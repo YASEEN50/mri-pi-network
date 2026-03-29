@@ -1,0 +1,12 @@
+{
+  "name": "Medical Platform",
+  "short_name": "MedPlatform",
+  "description": "منصة طبية وعلمية متكاملة",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0f1e",
+  "theme_color": "#10b981",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ]
+}

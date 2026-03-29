@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "home": "الرئيسية",
+    "doctors": "الأطباء",
+    "facilities": "المنشآت",
+    "login": "تسجيل الدخول",
+    "register": "إنشاء حساب",
+    "dashboard": "لوحة التحكم",
+    "logout": "تسجيل الخروج",
+    "profile": "الملف الشخصي"
+  },
+  "home": {
+    "hero_title": "منصتك الطبية الشاملة",
+    "hero_subtitle": "احجز مواعيدك مع أفضل الأطباء والمنشآت الطبية بسهولة وأمان",
+    "hero_cta": "ابحث عن طبيب",
+    "hero_cta_secondary": "انضم كطبيب",
+    "featured_doctors": "أطباء مميزون",
+    "featured_facilities": "منشآت مميزة",
+    "stats_doctors": "طبيب معتمد",
+    "stats_facilities": "منشأة طبية",
+    "stats_appointments": "موعد محجوز",
+    "stats_cities": "مدينة"
+  },
+  "doctors": {
+    "title": "الأطباء",
+    "search_placeholder": "ابحث بالاسم أو التخصص...",
+    "filter_specialization": "التخصص",
+    "filter_city": "المدينة",
+    "filter_rating": "التقييم",
+    "book_appointment": "احجز موعداً",
+    "view_profile": "عرض الملف",
+    "experience": "سنة خبرة",
+    "reviews": "تقييم",
+    "consultation_fee": "رسوم الاستشارة",
+    "available_today": "متاح اليوم",
+    "no_results": "لا توجد نتائج مطابقة"
+  },
+  "facilities": {
+    "title": "المنشآت الطبية",
+    "types": {
+      "MEDICAL_CENTER": "مركز طبي",
+      "LABORATORY": "مختبر",
+      "SCIENTIFIC_INSTITUTE": "معهد علمي",
+      "UNIVERSITY": "جامعة",
+      "MEDICAL_COLLEGE": "كلية طب",
+      "HOSPITAL": "مستشفى",
+      "CLINIC": "عيادة",
+      "PHARMACY": "صيدلية"
+    }
+  },
+  "appointment": {
+    "title": "حجز موعد",
+    "date": "التاريخ",
+    "time": "الوقت",
+    "type": "نوع الموعد",
+    "in_person": "حضوري",
+    "online": "عن بعد",
+    "reason": "سبب الزيارة",
+    "notes": "ملاحظات إضافية",
+    "confirm": "تأكيد الحجز",
+    "cancel": "إلغاء",
+    "status": {
+      "PENDING": "قيد الانتظار",
+      "CONFIRMED": "مؤكد",
+      "CANCELLED": "ملغي",
+      "COMPLETED": "مكتمل",
+      "NO_SHOW": "لم يحضر"
+    },
+    "my_appointments": "مواعيدي",
+    "no_appointments": "لا توجد مواعيد بعد"
+  },
+  "review": {
+    "title": "أضف تقييمك",
+    "rating": "التقييم",
+    "comment": "تعليقك",
+    "comment_placeholder": "شارك تجربتك مع هذا الطبيب...",
+    "submit": "إرسال التقييم",
+    "login_required": "يجب تسجيل الدخول لإضافة تقييم"
+  },
+  "dashboard": {
+    "welcome": "مرحباً",
+    "pending_approval": "طلبك قيد المراجعة",
+    "pending_message": "سيتم مراجعة مستنداتك وإعلامك بالنتيجة قريباً",
+    "schedule": "الجدول",
+    "availability": "أوقات العمل",
+    "manage_doctors": "إدارة الأطباء",
+    "verification": "التحقق والموافقة"
+  },
+  "admin": {
+    "pending_doctors": "أطباء بانتظار الموافقة",
+    "pending_facilities": "منشآت بانتظار الموافقة",
+    "approve": "موافقة",
+    "reject": "رفض",
+    "rejection_reason": "سبب الرفض",
+    "view_documents": "عرض المستندات",
+    "approved": "تمت الموافقة",
+    "rejected": "تم الرفض"
+  },
+  "common": {
+    "loading": "جاري التحميل...",
+    "error": "حدث خطأ",
+    "retry": "إعادة المحاولة",
+    "save": "حفظ",
+    "cancel": "إلغاء",
+    "edit": "تعديل",
+    "delete": "حذف",
+    "search": "بحث",
+    "filter": "فلتر",
+    "show_more": "عرض المزيد",
+    "back": "رجوع",
+    "next": "التالي",
+    "previous": "السابق",
+    "of": "من",
+    "sar": "ر.س",
+    "stars": "نجوم"
+  },
+  "upload": {
+    "title": "رفع الملف",
+    "drag_drop": "اسحب وأفلت الملف هنا أو",
+    "browse": "استعرض الملفات",
+    "allowed_types": "PDF، JPG، PNG (حد أقصى 10MB)",
+    "uploading": "جاري الرفع...",
+    "success": "تم رفع الملف بنجاح",
+    "error": "فشل رفع الملف"
+  }
+}

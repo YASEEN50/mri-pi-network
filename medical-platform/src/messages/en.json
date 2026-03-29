@@ -1,0 +1,126 @@
+{
+  "nav": {
+    "home": "Home",
+    "doctors": "Doctors",
+    "facilities": "Facilities",
+    "login": "Login",
+    "register": "Register",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "profile": "Profile"
+  },
+  "home": {
+    "hero_title": "Your Complete Medical Platform",
+    "hero_subtitle": "Book appointments with the best doctors and medical facilities easily and securely",
+    "hero_cta": "Find a Doctor",
+    "hero_cta_secondary": "Join as a Doctor",
+    "featured_doctors": "Featured Doctors",
+    "featured_facilities": "Featured Facilities",
+    "stats_doctors": "Verified Doctors",
+    "stats_facilities": "Medical Facilities",
+    "stats_appointments": "Appointments Booked",
+    "stats_cities": "Cities"
+  },
+  "doctors": {
+    "title": "Doctors",
+    "search_placeholder": "Search by name or specialization...",
+    "filter_specialization": "Specialization",
+    "filter_city": "City",
+    "filter_rating": "Rating",
+    "book_appointment": "Book Appointment",
+    "view_profile": "View Profile",
+    "experience": "yrs experience",
+    "reviews": "reviews",
+    "consultation_fee": "Consultation Fee",
+    "available_today": "Available Today",
+    "no_results": "No matching results found"
+  },
+  "facilities": {
+    "title": "Medical Facilities",
+    "types": {
+      "MEDICAL_CENTER": "Medical Center",
+      "LABORATORY": "Laboratory",
+      "SCIENTIFIC_INSTITUTE": "Scientific Institute",
+      "UNIVERSITY": "University",
+      "MEDICAL_COLLEGE": "Medical College",
+      "HOSPITAL": "Hospital",
+      "CLINIC": "Clinic",
+      "PHARMACY": "Pharmacy"
+    }
+  },
+  "appointment": {
+    "title": "Book Appointment",
+    "date": "Date",
+    "time": "Time",
+    "type": "Appointment Type",
+    "in_person": "In Person",
+    "online": "Online",
+    "reason": "Reason for Visit",
+    "notes": "Additional Notes",
+    "confirm": "Confirm Booking",
+    "cancel": "Cancel",
+    "status": {
+      "PENDING": "Pending",
+      "CONFIRMED": "Confirmed",
+      "CANCELLED": "Cancelled",
+      "COMPLETED": "Completed",
+      "NO_SHOW": "No Show"
+    },
+    "my_appointments": "My Appointments",
+    "no_appointments": "No appointments yet"
+  },
+  "review": {
+    "title": "Add Your Review",
+    "rating": "Rating",
+    "comment": "Your Comment",
+    "comment_placeholder": "Share your experience with this doctor...",
+    "submit": "Submit Review",
+    "login_required": "You must be logged in to add a review"
+  },
+  "dashboard": {
+    "welcome": "Welcome",
+    "pending_approval": "Your application is under review",
+    "pending_message": "We will review your documents and notify you of the result soon",
+    "schedule": "Schedule",
+    "availability": "Availability",
+    "manage_doctors": "Manage Doctors",
+    "verification": "Verification & Approval"
+  },
+  "admin": {
+    "pending_doctors": "Doctors Pending Approval",
+    "pending_facilities": "Facilities Pending Approval",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejection_reason": "Rejection Reason",
+    "view_documents": "View Documents",
+    "approved": "Approved",
+    "rejected": "Rejected"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "edit": "Edit",
+    "delete": "Delete",
+    "search": "Search",
+    "filter": "Filter",
+    "show_more": "Show More",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "of": "of",
+    "sar": "SAR",
+    "stars": "stars"
+  },
+  "upload": {
+    "title": "Upload File",
+    "drag_drop": "Drag and drop file here or",
+    "browse": "Browse Files",
+    "allowed_types": "PDF, JPG, PNG (max 10MB)",
+    "uploading": "Uploading...",
+    "success": "File uploaded successfully",
+    "error": "File upload failed"
+  }
+}

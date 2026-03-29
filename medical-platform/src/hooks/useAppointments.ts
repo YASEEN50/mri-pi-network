@@ -1,0 +1,73 @@
+import { useState, useEffect, useCallback } from 'react'
+
+export interface Appointment {
+  id: string
+  status: string
+  type: string
+  scheduledAt: string
+  duration: number
+  reason?: string
+  notes?: string
+  doctorNotes?: string
+  fee?: number
+  isPaid: boolean
+  doctorId?: string
+  facilityId?: string
+}
+
+export interface UseAppointmentsOptions {
+  status?: string
+  fromDate?: string
+  toDate?: string
+  page?: number
+  limit?: number
+}
+
+export function useAppointments(options: UseAppointmentsOptions = {}) {
+  const [appointments, setAppointments] = useState<Appointment[]>([])
+  const [total, setTotal] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const fetchAppointments = useCallback(async () => {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const params = new URLSearchParams()
+      if (options.status)   params.set('status',   options.status)
+      if (options.fromDate) params.set('fromDate',  options.fromDate)
+      if (options.toDate)   params.set('toDate',    options.toDate)
+      if (options.page)     params.set('page',      String(options.page))
+      if (options.limit)    params.set('limit',     String(options.limit))
+
+      const res = await fetch(`/api/appointments?${params}`)
+      const data = await res.json()
+      if (!res.ok) { setError(data.error?.message ?? 'خطأ في تحميل المواعيد'); return }
+      setAppointments(data.data ?? [])
+      setTotal(data.meta?.total ?? 0)
+    } catch { setError('خطأ في الاتصال بالخادم') }
+    finally { setIsLoading(false) }
+  }, [options.status, options.fromDate, options.toDate, options.page, options.limit])
+
+  useEffect(() => { fetchAppointments() }, [fetchAppointments])
+
+  const updateStatus = useCallback(async (id: string, status: string, meta?: Record<string, string>): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/appointments/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status, ...meta }),
+      })
+      if (res.ok) { fetchAppointments(); return true }
+      return false
+    } catch { return false }
+  }, [fetchAppointments])
+
+  return {
+    appointments, total, isLoading, error,
+    refetch: fetchAppointments,
+    cancelAppointment:   (id: string, reason: string) => updateStatus(id, 'CANCELLED', { cancelReason: reason }),
+    confirmAppointment:  (id: string) => updateStatus(id, 'CONFIRMED'),
+    completeAppointment: (id: string, doctorNotes?: string) => updateStatus(id, 'COMPLETED', doctorNotes ? { doctorNotes } : undefined),
+  }
+}
