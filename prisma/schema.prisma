@@ -1,0 +1,1514 @@
+// =============================================================================
+// Medical Platform - Prisma Schema
+// Architecture: Clean, scalable, production-ready
+// =============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS
+// =============================================================================
+
+enum Role {
+  CLIENT
+  DOCTOR
+  FACILITY
+  ADMIN
+  OWNER
+}
+
+enum ApprovalStatus {
+  PENDING
+  DOCUMENTS_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum FacilityType {
+  MEDICAL_CENTER
+  LABORATORY
+  SCIENTIFIC_INSTITUTE
+  UNIVERSITY
+  MEDICAL_COLLEGE
+  HOSPITAL
+  CLINIC
+  PHARMACY
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  NO_SHOW
+}
+
+enum AppointmentType {
+  IN_PERSON
+  ONLINE
+}
+
+enum DayOfWeek {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum PublicationType {
+  ARTICLE
+  RESEARCH
+  CASE_STUDY
+  ANNOUNCEMENT
+}
+
+// أنواع البريميو
+enum PremioType {
+  MONTHLY
+  YEARLY
+  LIFETIME
+  FREE_GIFT   // منحة مجانية من المالك
+}
+
+// حالة البريميو
+enum PremioStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+// سياسة دفع الطبيب
+enum PaymentPolicy {
+  PAY_BEFORE_BOOKING    // دفع كامل قبل الحجز
+  DEPOSIT_AND_PAY_LATER // إيداع + دفعة لاحقة
+  PAY_ON_SERVICE        // دفع بعد الخدمة (افتراضي)
+}
+
+// نوع المعاملة المالية
+enum TransactionType {
+  PREMIO_PURCHASE   // شراء بريميو
+  APPOINTMENT_FEE   // رسوم موعد
+  DEPOSIT           // إيداع
+  FINAL_PAYMENT     // دفعة نهائية
+  REFUND            // استرداد
+}
+
+// حالة المعاملة المالية
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  REFUNDED
+}
+
+// نوع نشاط السجل
+enum ActivityType {
+  CREATE_ADMIN
+  REMOVE_ADMIN
+  GIVE_FREE_PREMIO
+  REVOKE_PREMIO
+  DELETE_USER
+  APPROVE_DOCTOR
+  REJECT_DOCTOR
+  BAN_USER
+  UNBAN_USER
+  CHANGE_PREMIO_PRICES
+  APPROVE_FACILITY
+  REJECT_FACILITY
+  // Verification
+  UPLOAD_CERTIFICATE
+  FACE_COMPARE
+  AI_DECISION
+  ADMIN_REVIEW_APPROVE
+  ADMIN_REVIEW_REJECT
+  SUBMIT_VERIFICATION
+}
+
+// =============================================================================
+// AUTH & USERS
+// =============================================================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String?   @unique
+  emailVerified DateTime?
+  phone         String?   @unique
+  passwordHash  String?
+  role          Role      @default(CLIENT)
+  isActive      Boolean   @default(true)
+
+  // Pi Network
+  piUid         String?   @unique
+  piUsername    String?   @unique
+
+  // Soft delete
+  deletedAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  // Relations
+  clientProfile   ClientProfile?
+  doctorProfile   DoctorProfile?
+  facilityProfile FacilityProfile?
+  adminProfile    AdminProfile?
+  accounts        Account[]
+  sessions        Session[]
+  reviews         Review[]
+  appointments    Appointment[]     @relation("ClientAppointments")
+  notifications   Notification[]
+  premios         Premio[]
+  transactions    Transaction[]     @relation("UserTransactions")
+  activityLogs    ActivityLog[]     @relation("ActorLogs")
+
+  @@index([email])
+  @@index([piUid])
+  @@index([role])
+  @@index([deletedAt])
+  reportsMade       ContentReport[]   @relation("ReportsMade")
+  tasksAssigned     AdminTask[]       @relation("TasksAssigned")
+  tasksCreated      AdminTask[]       @relation("TasksCreated")
+  adminPermissions  AdminPermission[] @relation("AdminPermissions")
+  verificationSessions VerificationSession[] @relation("UserVerificationSessions")
+
+  @@map("users")
+}
+
+// NextAuth - Accounts
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+  @@map("accounts")
+}
+
+// NextAuth - Sessions
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+// NextAuth - Verification Tokens
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// =============================================================================
+// CLIENT PROFILE
+// =============================================================================
+
+model ClientProfile {
+  id          String    @id @default(uuid())
+  userId      String    @unique
+  firstName   String
+  lastName    String
+  phone       String?
+  dateOfBirth DateTime?
+  gender      String?
+  avatarUrl   String?
+  address     String?
+  city        String?
+  country     String    @default("SA")
+
+  // Medical
+  bloodType       String?
+  allergies       String[]
+  chronicDiseases String[]
+
+  // Soft delete
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  medicalRecords MedicalRecord[]
+
+  @@index([userId])
+  @@index([deletedAt])
+  @@map("client_profiles")
+}
+
+// =============================================================================
+// DOCTOR PROFILE
+// =============================================================================
+
+model DoctorProfile {
+  id                    String         @id @default(uuid())
+  userId                String         @unique
+  firstName             String
+  lastName              String
+  avatarUrl             String?
+  bio                   String?
+  phone                 String?
+  gender                String?
+  dateOfBirth           DateTime?
+
+  // Professional
+  specialization        String
+  subSpecialization     String?
+  yearsOfExperience     Int            @default(0)
+  languages             String[]       @default(["ar"])
+
+  // License
+  licenseNumber         String         @unique
+  licenseImageUrl       String
+  licenseExpiryDate     DateTime?
+  licenseIssuingCountry String         @default("SA")
+
+  // Approval
+  approvalStatus        ApprovalStatus @default(PENDING)
+  approvalNotes         String?
+  approvedAt            DateTime?
+  approvedBy            String?
+
+  // Pi KYC
+  piKycVerified         Boolean        @default(false)
+
+  // Location
+  city                  String?
+  country               String         @default("SA")
+  address               String?
+  consultationFee       Decimal?       @db.Decimal(10, 2)
+
+  // سياسة الدفع
+  paymentPolicy         PaymentPolicy  @default(PAY_ON_SERVICE)
+  depositPercentage     Decimal        @default(0) @db.Decimal(5, 2) // نسبة الإيداع %
+  paymentDeadlineHours  Int            @default(24) // ساعات للدفع قبل الموعد
+
+  // Stats
+  totalReviews          Int            @default(0)
+  averageRating         Decimal        @default(0) @db.Decimal(3, 2)
+  totalAppointments     Int            @default(0)
+
+  // Soft delete
+  deletedAt             DateTime?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+
+  // Relations
+  user          User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  credentials   DoctorCredential[]
+  facilities    DoctorFacility[]
+  availability  Availability[]
+  appointments  Appointment[]          @relation("DoctorAppointments")
+  reviews       Review[]
+  publications  Publication[]
+  transactions  Transaction[]          @relation("DoctorTransactions")
+
+  // Verification
+  verification          DoctorVerification?
+  verificationSessions  VerificationSession[] @relation("DoctorVerificationSessions")
+  fraudRefs             FraudReference[]      @relation("DoctorFraudRefs")
+  verificationScores    VerificationScore[]   @relation("DoctorScores")
+  fraudChecks           FraudCheck[]          @relation("DoctorFraudChecks")
+  matchedFrauds         FraudCheck[]          @relation("MatchedDoctorFrauds")
+
+  @@index([userId])
+  @@index([specialization])
+  @@index([approvalStatus])
+  @@index([licenseNumber])
+  @@index([city])
+  @@index([deletedAt])
+
+  referralsFrom  Referral[]      @relation("ReferralFrom")
+  referralsTo    Referral[]      @relation("ReferralTo")
+  medicalRecords MedicalRecord[]
+
+  @@map("doctor_profiles")
+}
+
+// شهادات الطبيب العلمية
+model DoctorCredential {
+  id           String    @id @default(uuid())
+  doctorId     String
+  title        String
+  institution  String
+  country      String
+  year         Int
+  documentUrl  String
+  isVerified   Boolean   @default(false)
+  verifiedAt   DateTime?
+
+  deletedAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@index([deletedAt])
+  @@map("doctor_credentials")
+}
+
+// علاقة Many-to-Many بين الطبيب والمنشأة
+model DoctorFacility {
+  id           String    @id @default(uuid())
+  doctorId     String
+  facilityId   String
+  role         String?
+  startDate    DateTime  @default(now())
+  endDate      DateTime?
+  isActive     Boolean   @default(true)
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  doctor   DoctorProfile   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  facility FacilityProfile @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@unique([doctorId, facilityId])
+  @@index([doctorId])
+  @@index([facilityId])
+  @@map("doctor_facilities")
+}
+
+// =============================================================================
+// FACILITY PROFILE
+// =============================================================================
+
+model FacilityProfile {
+  id               String         @id @default(uuid())
+  userId           String         @unique
+  name             String
+  type             FacilityType
+  description      String?
+  logoUrl          String?
+  coverUrl         String?
+
+  // License
+  licenseNumber    String         @unique
+  licenseDocUrl    String
+  licenseExpiryDate DateTime?
+
+  // Approval
+  approvalStatus   ApprovalStatus @default(PENDING)
+  approvalNotes    String?
+  approvedAt       DateTime?
+  approvedBy       String?
+
+  // Contact
+  phone            String?
+  email            String?
+  website          String?
+
+  // Location
+  address          String
+  city             String
+  country          String         @default("SA")
+  latitude         Decimal?       @db.Decimal(10, 8)
+  longitude        Decimal?       @db.Decimal(11, 8)
+
+  // Stats
+  totalReviews     Int            @default(0)
+  averageRating    Decimal        @default(0) @db.Decimal(3, 2)
+
+  // Soft delete
+  deletedAt        DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  // Relations
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctors      DoctorFacility[]
+  appointments Appointment[]    @relation("FacilityAppointments")
+  reviews      Review[]
+  availability Availability[]
+
+  @@index([userId])
+  @@index([type])
+  @@index([approvalStatus])
+  @@index([city])
+  @@index([licenseNumber])
+  @@index([deletedAt])
+  @@map("facility_profiles")
+}
+
+// =============================================================================
+// AVAILABILITY
+// =============================================================================
+
+model Availability {
+  id          String    @id @default(uuid())
+  doctorId    String?
+  facilityId  String?
+  dayOfWeek   DayOfWeek
+  startTime   String
+  endTime     String
+  slotMinutes Int       @default(30)
+  isActive    Boolean   @default(true)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  doctor   DoctorProfile?   @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  facility FacilityProfile? @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@index([facilityId])
+  @@map("availabilities")
+}
+
+// =============================================================================
+// APPOINTMENTS
+// =============================================================================
+
+model Appointment {
+  id          String            @id @default(uuid())
+  clientId    String
+  doctorId    String?
+  facilityId  String?
+  type        AppointmentType   @default(IN_PERSON)
+  status      AppointmentStatus @default(PENDING)
+
+  scheduledAt DateTime
+  duration    Int               @default(30)
+  notes       String?
+  reason      String?
+
+  // Results
+  doctorNotes    String?
+  cancelReason   String?
+  cancelledBy    String?
+
+  // Payment
+  fee               Decimal?       @db.Decimal(10, 2)
+  depositAmount     Decimal?       @db.Decimal(10, 2) // مبلغ الإيداع المدفوع
+  isPaid            Boolean        @default(false)
+  isDepositPaid     Boolean        @default(false)
+  paidAt            DateTime?
+
+  // Soft delete
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  // Relations
+  client       User              @relation("ClientAppointments", fields: [clientId], references: [id])
+  doctor       DoctorProfile?    @relation("DoctorAppointments", fields: [doctorId], references: [id])
+  facility     FacilityProfile?  @relation("FacilityAppointments", fields: [facilityId], references: [id])
+  review       Review?
+  transactions Transaction[]
+
+  @@index([clientId])
+  @@index([doctorId])
+  @@index([facilityId])
+  @@index([status])
+  @@index([scheduledAt])
+  @@index([deletedAt])
+
+  reminders     AppointmentReminder[]
+  medicalRecord MedicalRecord?
+
+  @@map("appointments")
+}
+
+// =============================================================================
+// REVIEWS
+// =============================================================================
+
+model Review {
+  id            String    @id @default(uuid())
+  clientId      String
+  doctorId      String?
+  facilityId    String?
+  appointmentId String?   @unique
+
+  rating      Int
+  comment     String?
+  isVisible   Boolean   @default(true)
+
+  deletedAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  client      User             @relation(fields: [clientId], references: [id])
+  doctor      DoctorProfile?   @relation(fields: [doctorId], references: [id])
+  facility    FacilityProfile? @relation(fields: [facilityId], references: [id])
+  appointment Appointment?     @relation(fields: [appointmentId], references: [id])
+
+  @@index([clientId])
+  @@index([doctorId])
+  @@index([facilityId])
+  @@index([rating])
+  @@index([deletedAt])
+  @@map("reviews")
+}
+
+// =============================================================================
+// PUBLICATIONS
+// =============================================================================
+
+model Publication {
+  id          String            @id @default(uuid())
+  doctorId    String
+  title       String
+  summary     String?
+  content     String?
+  type        PublicationType   @default(ARTICLE)
+  status      PublicationStatus @default(DRAFT)
+  tags        String[]
+  coverUrl    String?
+  publishedAt DateTime?
+
+  viewCount   Int               @default(0)
+  likeCount   Int               @default(0)
+
+  deletedAt   DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId])
+  @@index([type])
+  @@index([status])
+  @@index([publishedAt])
+  @@index([deletedAt])
+  @@map("publications")
+}
+
+// =============================================================================
+// NOTIFICATIONS
+// =============================================================================
+
+model Notification {
+  id        String    @id @default(uuid())
+  userId    String
+  title     String
+  body      String
+  type      String
+  data      Json?
+  isRead    Boolean   @default(false)
+  readAt    DateTime?
+
+  createdAt DateTime  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("notifications")
+}
+
+// =============================================================================
+// PREMIO (نظام البريميو)
+// =============================================================================
+
+// إعدادات أسعار البريميو - يتحكم بها المالك
+model PremioSettings {
+  id                 String   @id @default(uuid())
+  monthlyPrice       Decimal  @db.Decimal(10, 4) // سعر الشهري بـ Pi
+  yearlyPrice        Decimal  @db.Decimal(10, 4) // سعر السنوي بـ Pi
+  lifetimePrice      Decimal  @db.Decimal(10, 4) // سعر مدى الحياة بـ Pi
+  isMonthlyEnabled   Boolean  @default(true)     // تفعيل/تعطيل الشهري
+  isYearlyEnabled    Boolean  @default(true)     // تفعيل/تعطيل السنوي
+  isLifetimeEnabled  Boolean  @default(true)     // تفعيل/تعطيل مدى الحياة
+  updatedBy          String   // userId المالك
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  @@map("premio_settings")
+}
+
+// سجل البريميو لكل مستخدم
+model Premio {
+  id          String       @id @default(uuid())
+  userId      String
+  type        PremioType
+  status      PremioStatus @default(ACTIVE)
+  startDate   DateTime     @default(now())
+  expiryDate  DateTime?    // null = مدى الحياة
+  pricePaid   Decimal?     @db.Decimal(10, 4) // كم دفع بـ Pi
+  txHash      String?      // hash المعاملة في Pi Network
+  giftedBy    String?      // userId المالك إذا كانت هدية مجانية
+  notes       String?      // ملاحظة المالك عند منح المجاني
+
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([status])
+  @@index([expiryDate])
+  @@map("premios")
+}
+
+// =============================================================================
+// TRANSACTIONS (المعاملات المالية)
+// =============================================================================
+
+model Transaction {
+  id              String            @id @default(uuid())
+  userId          String            // من دفع
+  doctorId        String?           // من استلم (إن وجد)
+  appointmentId   String?           // مرتبط بموعد
+
+  type            TransactionType
+  status          TransactionStatus @default(PENDING)
+
+  amountTotal     Decimal           @db.Decimal(10, 4) // المبلغ الكلي بـ Pi
+  platformFee     Decimal           @db.Decimal(10, 4) // نسبة المنصة
+  receiverAmount  Decimal           @db.Decimal(10, 4) // مبلغ المستلم
+
+  payerWallet     String?           // محفظة الدافع
+  receiverWallet  String?           // محفظة المستلم
+
+  txHash          String?           // Hash في Pi Blockchain
+  notes           String?
+
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  user        User          @relation("UserTransactions", fields: [userId], references: [id])
+  doctor      DoctorProfile? @relation("DoctorTransactions", fields: [doctorId], references: [id])
+  appointment Appointment?  @relation(fields: [appointmentId], references: [id])
+
+  @@index([userId])
+  @@index([doctorId])
+  @@index([appointmentId])
+  @@index([status])
+  @@index([type])
+  @@map("transactions")
+}
+
+// =============================================================================
+// ACTIVITY LOG (سجل النشاطات)
+// =============================================================================
+
+model ActivityLog {
+  id          String       @id @default(uuid())
+  actorId     String       // من قام بالعملية
+  action      ActivityType
+  targetType  String       // USER / DOCTOR / FACILITY / PREMIO
+  targetId    String       // معرف الهدف
+  details     Json?        // تفاصيل إضافية
+  ipAddress   String?      // IP المستخدم
+
+  createdAt   DateTime     @default(now())
+
+  actor User @relation("ActorLogs", fields: [actorId], references: [id])
+
+  @@index([actorId])
+  @@index([action])
+  @@index([targetId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}
+
+// =============================================================================
+// VERIFICATION SYSTEM (نظام التحقق من الأطباء)
+// =============================================================================
+
+enum VerificationStatus {
+  UNVERIFIED
+  PENDING
+  AI_APPROVED
+  AI_REJECTED
+  VERIFIED        // قبول بشري نهائي
+  REJECTED        // رفض بشري نهائي
+}
+
+enum VerificationStage {
+  UPLOAD_CERTIFICATE
+  FACE_COMPARE
+  AI_DECISION
+  ADMIN_REVIEW
+  FINAL_DECISION
+}
+
+enum QueueStatus {
+  WAITING
+  IN_REVIEW
+  COMPLETED
+}
+
+enum CertificateStatus {
+  PENDING_OCR
+  OCR_DONE
+  AI_APPROVED
+  AI_REJECTED
+  HUMAN_APPROVED
+  HUMAN_REJECTED
+}
+
+enum MatchStatus {
+  PENDING
+  MATCHED
+  NOT_MATCHED
+}
+
+enum AdminRole {
+  SUPER_ADMIN
+  VERIFICATION_ADMIN
+  VIEWER
+}
+
+// تفاصيل التحقق من الطبيب
+model DoctorVerification {
+  id                    String             @id @default(uuid())
+  doctorId              String             @unique
+  // حالة التحقق الكلية
+  verificationStatus    VerificationStatus @default(UNVERIFIED)
+  currentStage          VerificationStage  @default(UPLOAD_CERTIFICATE)
+  // التحقق من الوجه
+  faceVerificationStatus MatchStatus       @default(PENDING)
+  selfieImageUrl        String?
+  idImageUrl            String?
+  faceMatchConfidence   Float?
+  // درجة الثقة الكلية
+  overallConfidence     Float?
+  // محاولات الرفع
+  uploadAttempts        Int                @default(0)
+  // ملاحظات الرفض
+  rejectionReason       String?
+
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  doctor                DoctorProfile      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  certificates          DoctorCertificate[]
+  queueEntry            VerificationQueue?
+
+  @@index([verificationStatus])
+  @@index([doctorId])
+  @@map("doctor_verifications")
+}
+
+// شهادات الطبيب للتحقق
+model DoctorCertificate {
+  id               String            @id @default(uuid())
+  verificationId   String
+  imageUrl         String
+  // نتائج OCR
+  extractedText    String?           @db.Text
+  extractedName    String?
+  extractedSpecialty String?
+  extractedIssueDate String?
+  extractedExpiryDate String?
+  extractedIssuer  String?
+  // مطابقة الاسم
+  nameMatchStatus  MatchStatus       @default(PENDING)
+  nameMatchScore   Float?
+  // نتائج AI
+  aiConfidence     Float?
+  aiStatus         MatchStatus       @default(PENDING)
+  aiNotes          String?
+  // مراجعة بشرية
+  humanStatus      MatchStatus       @default(PENDING)
+  humanNotes       String?
+  reviewedBy       String?
+  reviewedAt       DateTime?
+  // الحالة الكلية
+  status           CertificateStatus @default(PENDING_OCR)
+
+  createdAt        DateTime          @default(now())
+
+  verification     DoctorVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([verificationId])
+  @@index([status])
+  @@map("doctor_certificates")
+}
+
+// قائمة انتظار المراجعة البشرية
+model VerificationQueue {
+  id               String       @id @default(uuid())
+  verificationId   String       @unique
+  priority         Int          @default(5)   // 1 = عالي, 10 = منخفض
+  assignedTo       String?
+  status           QueueStatus  @default(WAITING)
+  notes            String?
+
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  verification     DoctorVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([priority])
+  @@map("verification_queue")
+}
+
+// إعدادات النظام
+model SystemConfig {
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String
+  description String?
+
+  updatedAt   DateTime @updatedAt
+
+  @@map("system_configs")
+}
+
+// أدوار المشرفين
+model AdminProfile {
+  id        String    @id @default(uuid())
+  userId    String    @unique
+  role      AdminRole @default(VIEWER)
+  isActive  Boolean   @default(true)
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("admin_profiles")
+}
+
+// =============================================================================
+// MEDICAL RECORDS (السجل الطبي الإلكتروني)
+// =============================================================================
+
+enum RecordType {
+  PRESCRIPTION       // وصفة طبية
+  LAB_RESULT         // نتيجة تحليل
+  RADIOLOGY_REPORT   // تقرير أشعة
+  DIAGNOSIS          // تشخيص
+  DISCHARGE_SUMMARY  // ملخص خروج
+  VACCINATION        // تطعيم
+  OTHER
+}
+
+model MedicalRecord {
+  id            String     @id @default(uuid())
+  clientId      String
+  doctorId      String?
+  appointmentId String?   @unique
+  type          RecordType
+  title         String
+  description   String?    @db.Text
+  fileUrl       String?
+  fileType      String?    // pdf / image / etc
+  isShared      Boolean    @default(false)  // هل مشارك مع الأطباء؟
+  sharedUntil   DateTime?
+  deletedAt     DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  client      ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  doctor      DoctorProfile? @relation(fields: [doctorId], references: [id])
+  appointment Appointment?   @relation(fields: [appointmentId], references: [id])
+
+  @@index([clientId])
+  @@index([doctorId])
+  @@index([type])
+  @@map("medical_records")
+}
+
+// =============================================================================
+// CHAT (المحادثات)
+// =============================================================================
+
+enum ChatRoomStatus {
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
+model ChatRoom {
+  id            String         @id @default(uuid())
+  appointmentId String?        @unique
+  clientId      String
+  doctorId      String
+  status        ChatRoomStatus @default(ACTIVE)
+  lastMessageAt DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  messages    ChatMessage[]
+
+  @@index([clientId])
+  @@index([doctorId])
+  @@map("chat_rooms")
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  roomId     String
+  senderId   String
+  content    String   @db.Text
+  fileUrl    String?
+  fileType   String?
+  isRead     Boolean  @default(false)
+  readAt     DateTime?
+  deletedAt  DateTime?
+  createdAt  DateTime @default(now())
+
+  room       ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+
+  @@index([roomId])
+  @@index([senderId])
+  @@map("chat_messages")
+}
+
+// =============================================================================
+// REFERRALS (نظام الإحالات)
+// =============================================================================
+
+enum ReferralStatus {
+  PENDING
+  ACCEPTED
+  COMPLETED
+  CANCELLED
+}
+
+model Referral {
+  id               String         @id @default(uuid())
+  fromDoctorId     String
+  toDoctorId       String
+  clientId         String
+  appointmentId    String?
+  reason           String
+  notes            String?
+  status           ReferralStatus @default(PENDING)
+  resultNotes      String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  fromDoctor DoctorProfile @relation("ReferralFrom", fields: [fromDoctorId], references: [id])
+  toDoctor   DoctorProfile @relation("ReferralTo",   fields: [toDoctorId],   references: [id])
+
+  @@index([fromDoctorId])
+  @@index([toDoctorId])
+  @@index([clientId])
+  @@map("referrals")
+}
+
+// =============================================================================
+// APPOINTMENT REMINDERS (تذكيرات المواعيد)
+// =============================================================================
+
+enum ReminderStatus {
+  PENDING
+  SENT
+  FAILED
+  CANCELLED
+}
+
+model AppointmentReminder {
+  id            String         @id @default(uuid())
+  appointmentId String
+  sendAt        DateTime
+  type          String         // "24h" | "2h" | "custom"
+  status        ReminderStatus @default(PENDING)
+  sentAt        DateTime?
+  error         String?
+  createdAt     DateTime       @default(now())
+
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([sendAt, status])
+  @@index([appointmentId])
+  @@map("appointment_reminders")
+}
+
+// =============================================================================
+// CONTENT MODERATION (مراقبة المحتوى)
+// =============================================================================
+
+enum ReportType {
+  INAPPROPRIATE_CONTENT
+  FAKE_INFORMATION
+  SPAM
+  HARASSMENT
+  OTHER
+}
+
+enum ReportStatus {
+  PENDING
+  REVIEWED
+  ACTION_TAKEN
+  DISMISSED
+}
+
+enum ContentType {
+  PUBLICATION
+  REVIEW
+  CHAT_MESSAGE
+  PROFILE
+}
+
+model ContentReport {
+  id          String        @id @default(uuid())
+  reporterId  String
+  contentType ContentType
+  contentId   String
+  reason      ReportType
+  description String?
+  status      ReportStatus  @default(PENDING)
+  reviewedBy  String?
+  reviewNotes String?
+  reviewedAt  DateTime?
+  actionTaken String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  reporter    User          @relation("ReportsMade", fields: [reporterId], references: [id])
+
+  @@index([status])
+  @@index([contentType])
+  @@index([reporterId])
+  @@map("content_reports")
+}
+
+// =============================================================================
+// ADMIN TASKS & PERMISSIONS (مهام وصلاحيات الأدمن)
+// =============================================================================
+
+enum TaskStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum TaskPriority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+model AdminTask {
+  id          String       @id @default(uuid())
+  assignedTo  String
+  assignedBy  String
+  title       String
+  description String?      @db.Text
+  category    String       // VERIFICATION / MODERATION / SUPPORT / OTHER
+  status      TaskStatus   @default(PENDING)
+  priority    TaskPriority @default(MEDIUM)
+  dueDate     DateTime?
+  completedAt DateTime?
+  notes       String?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  admin       User         @relation("TasksAssigned", fields: [assignedTo], references: [id])
+  assigner    User         @relation("TasksCreated",  fields: [assignedBy],  references: [id])
+
+  @@index([assignedTo])
+  @@index([status])
+  @@index([priority])
+  @@map("admin_tasks")
+}
+
+model AdminPermission {
+  id          String   @id @default(uuid())
+  adminId     String
+  permission  String   // canApproveDoctor / canModeratePosts / canManageUsers / etc
+  granted     Boolean  @default(true)
+  grantedBy   String
+  grantedAt   DateTime @default(now())
+
+  admin       User     @relation("AdminPermissions", fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@unique([adminId, permission])
+  @@map("admin_permissions")
+}
+
+// =============================================================================
+// VERIFICATION SYSTEM v2 — Production-Grade
+// =============================================================================
+
+model VerificationSession {
+  id                String    @id @default(uuid())
+  doctorId          String
+  userId            String
+
+  currentState      String    @default("UNVERIFIED")
+  // UNVERIFIED | LICENSE_UPLOADED | CREDENTIALS_UPLOADED |
+  // FACE_SUBMITTED | FRAUD_CHECK | SCORING | ADMIN_REVIEW |
+  // APPROVED | REJECTED | EXPIRED | REVERIFY_REQUIRED
+
+  attemptNumber     Int       @default(1)
+  licenseExpiryDate DateTime?
+  rejectionReason   String?
+  // Fraud Intelligence fields
+  ipAddress         String?
+  deviceId          String?
+  userAgent         String?
+  rejectedBy        String?
+  rejectedAt        DateTime?
+  isActive          Boolean   @default(true)
+  startedAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  completedAt       DateTime?
+
+  doctor     DoctorProfile          @relation("DoctorVerificationSessions", fields: [doctorId], references: [id], onDelete: Cascade)
+  user       User                   @relation("UserVerificationSessions",   fields: [userId],   references: [id], onDelete: Cascade)
+  documents  VerificationDocument[]
+  jobs        JobTracking[]
+  fraudChecks       FraudCheck[]       @relation("SessionFraudChecks")
+  score             VerificationScore?  @relation("SessionScore")
+  faceVerifications FaceVerification[]  @relation("SessionFaceVerifications")
+
+  @@index([doctorId])
+  @@index([currentState, updatedAt(sort: Desc)])
+  @@index([licenseExpiryDate])
+  @@map("verification_sessions")
+}
+
+model VerificationDocument {
+  id            String   @id @default(uuid())
+  sessionId     String
+  doctorId      String
+  docType       String
+  // LICENSE | CREDENTIAL | SELFIE | ID_DOCUMENT
+
+  storageKey    String
+  storageBucket String   @default("medical-verify")
+  mimeType      String
+  fileSizeBytes Int
+  pHash         String?
+  sha256Hash    String?
+  isProcessed   Boolean  @default(false)
+  isFlagged     Boolean  @default(false)
+  flagReason    String?
+  createdAt     DateTime @default(now())
+
+  session   VerificationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  ocrResult   OcrResult?
+  fraudRefs   FraudReference[] @relation("DocFraudRef")
+  fraudChecks FraudCheck[]     @relation("DocFraudChecks")
+
+  @@index([sessionId])
+  @@index([pHash])
+  @@index([sha256Hash])
+  @@index([doctorId, docType])
+  @@map("verification_documents")
+}
+
+model OcrResult {
+  id                  String    @id @default(uuid())
+  documentId          String    @unique
+  sessionId           String
+  extractedName       String?
+  licenseNumber       String?
+  specialty           String?
+  expiryDate          DateTime?
+  issueDate           DateTime?
+  confidenceScore     Decimal   @db.Decimal(5, 2)
+  nameMatchScore      Decimal?  @db.Decimal(5, 2)
+  nameMatchStatus     String?
+  // MATCHED | PARTIAL | MISMATCH | UNKNOWN
+  rawText             String?   @db.Text
+  isManuallyVerified  Boolean   @default(false)
+  verifiedBy          String?
+  createdAt           DateTime  @default(now())
+
+  document VerificationDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([licenseNumber])
+  @@map("ocr_results")
+}
+
+model JobTracking {
+  id             String    @id @default(uuid())
+  sessionId      String?
+  doctorId       String?
+  jobType        String
+  // ocr-processing | face-comparison | fraud-check |
+  // score-calculation | admin-notification | license-expiry-check
+  queueJobId     String?
+  status         String    @default("pending")
+  // pending | processing | completed | failed | dead
+  attempts       Int       @default(0)
+  maxAttempts    Int       @default(3)
+  lastError      String?
+  lastErrorAt    DateTime?
+  result         Json?
+  idempotencyKey String?   @unique
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  completedAt    DateTime?
+
+  session VerificationSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([status, jobType, createdAt(sort: Desc)])
+  @@index([sessionId])
+  @@map("job_tracking")
+}
+
+model IdempotencyKey {
+  id               String   @id @default(uuid())
+  doctorUserId     String
+  step             String
+  // LICENSE_UPLOAD | CREDENTIALS_UPLOAD | FACE_SUBMISSION | ADMIN_DECISION
+  idempotencyKey   String   @unique
+  responseStatus   Int      @default(200)
+  responseSnapshot Json     @default("{}")
+  expiresAt        DateTime
+  createdAt        DateTime @default(now())
+
+  @@unique([doctorUserId, step])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}
+
+model AuditLog {
+  id            String   @id @default(uuid())
+  actorId       String
+  actorRole     String
+  // DOCTOR | ADMIN | OWNER | SYSTEM
+  action        String
+  targetType    String
+  targetId      String?
+  payload       Json     @default("{}")
+  ipAddress     String?
+  userAgent     String?
+  hmacSignature String
+  createdAt     DateTime @default(now())
+
+  @@index([actorId, createdAt(sort: Desc)])
+  @@index([targetId, createdAt(sort: Desc)])
+  @@index([action,   createdAt(sort: Desc)])
+  @@index([createdAt(sort: Desc)])
+  @@map("audit_logs")
+}
+
+// =============================================================================
+// FACE VERIFICATION (نتائج مقارنة الوجه)
+// =============================================================================
+
+model FaceVerification {
+  id            String   @id @default(uuid())
+  sessionId     String
+  doctorId      String
+  selfieDocId   String
+  idDocId       String
+  matchScore    Float    @default(0)
+  confidence    String   @default("LOW") // HIGH | MEDIUM | LOW | UNDETECTABLE
+  facesDetected Boolean  @default(false)
+  serviceUsed   String   @default("unknown")
+  rawResponse   Json     @default("{}")
+  createdAt     DateTime @default(now())
+
+  session VerificationSession @relation("SessionFaceVerifications", fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId])
+  @@index([doctorId])
+  @@map("face_verifications")
+}
+
+// =============================================================================
+// FRAUD DETECTION + SCORE ENGINE
+// =============================================================================
+
+model FraudReference {
+  id          String   @id @default(uuid())
+  doctorId    String
+  documentId  String
+  imageType   String   // LICENSE | CREDENTIAL | SELFIE | ID_DOCUMENT
+  pHash       String
+  sha256Hash  String   @unique
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  doctor   DoctorProfile       @relation("DoctorFraudRefs", fields: [doctorId],   references: [id], onDelete: Cascade)
+  document VerificationDocument @relation("DocFraudRef",    fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([pHash])
+  @@index([isActive, imageType])
+  @@map("fraud_references")
+}
+
+model FraudCheck {
+  id               String   @id @default(uuid())
+  sessionId        String
+  doctorId         String
+  documentId       String
+  checkType        String
+  // PHASH_IMAGE | LICENSE_NUMBER | SHA256_EXACT | METADATA_ANOMALY
+  isFlagged        Boolean  @default(false)
+  matchedDoctorId  String?
+  similarityScore  Decimal? @db.Decimal(5, 2)
+  riskFlags        Json     @default("[]")
+  isResolved       Boolean  @default(false)
+  resolvedBy       String?
+  resolutionNotes  String?
+  resolvedAt       DateTime?
+  createdAt        DateTime @default(now())
+
+  session        VerificationSession  @relation("SessionFraudChecks",  fields: [sessionId],  references: [id], onDelete: Cascade)
+  doctor         DoctorProfile        @relation("DoctorFraudChecks",   fields: [doctorId],   references: [id], onDelete: Cascade)
+  document       VerificationDocument @relation("DocFraudChecks",      fields: [documentId], references: [id], onDelete: Cascade)
+  matchedDoctor  DoctorProfile?       @relation("MatchedDoctorFrauds", fields: [matchedDoctorId], references: [id], onDelete: SetNull)
+
+  @@index([sessionId])
+  @@index([isFlagged, createdAt(sort: Desc)])
+  @@index([doctorId])
+  @@map("fraud_checks")
+}
+
+model VerificationScore {
+  id               String   @id @default(uuid())
+  sessionId        String   @unique
+  doctorId         String
+  ocrConfidence    Decimal  @default(0) @db.Decimal(5, 2)
+  faceMatchScore   Decimal  @default(0) @db.Decimal(5, 2)
+  documentClarity  Decimal  @default(0) @db.Decimal(5, 2)
+  fraudRiskScore   Decimal  @default(0) @db.Decimal(5, 2)
+  finalScore       Decimal  @default(0) @db.Decimal(5, 2)
+  riskLevel        String   @default("HIGH") // LOW | MEDIUM | HIGH
+  scoreBreakdown   Json     @default("{}")
+  algorithmVersion String   @default("v1")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  session VerificationSession @relation("SessionScore", fields: [sessionId], references: [id], onDelete: Cascade)
+  doctor  DoctorProfile       @relation("DoctorScores",  fields: [doctorId],  references: [id], onDelete: Cascade)
+
+  @@index([riskLevel, finalScore(sort: Desc)])
+  @@map("verification_scores")
+}
+
+// =============================================================================
+// FRAUD INTELLIGENCE LAYER
+// =============================================================================
+
+// ── DeviceFingerprint ─────────────────────────────────────────────────────────
+
+model DeviceFingerprint {
+  id                String    @id @default(uuid())
+  deviceId          String    @unique
+  firstSeenAt       DateTime  @default(now())
+  lastSeenAt        DateTime  @default(now())
+  riskLevel         String    @default("LOW")   // LOW | MEDIUM | HIGH
+  linkedUsersCount  Int       @default(1)
+  totalAttempts     Int       @default(1)
+  failedAttempts    Int       @default(0)
+  metadata          Json      @default("{}")     // user-agent, platform, etc.
+
+  users             DeviceUser[]
+  fraudEvents       FraudEvent[]  @relation("DeviceFraudEvents")
+
+  @@index([riskLevel])
+  @@index([linkedUsersCount])
+  @@map("device_fingerprints")
+}
+
+// ── DeviceUser (many-to-many: device ↔ user) ─────────────────────────────────
+
+model DeviceUser {
+  id         String   @id @default(uuid())
+  deviceId   String
+  userId     String
+  firstSeenAt DateTime @default(now())
+  lastSeenAt  DateTime @default(now())
+
+  device DeviceFingerprint @relation(fields: [deviceId], references: [deviceId], onDelete: Cascade)
+
+  @@unique([deviceId, userId])
+  @@index([userId])
+  @@map("device_users")
+}
+
+// ── IPReputation ──────────────────────────────────────────────────────────────
+
+model IPReputation {
+  id              String   @id @default(uuid())
+  ipAddress       String   @unique
+  requestCount    Int      @default(1)
+  failedAttempts  Int      @default(0)
+  riskLevel       String   @default("LOW")   // LOW | MEDIUM | HIGH
+  firstSeenAt     DateTime @default(now())
+  lastSeenAt      DateTime @default(now())
+  isBanned        Boolean  @default(false)
+  bannedAt        DateTime?
+  banReason       String?
+  metadata        Json     @default("{}")
+
+  fraudEvents FraudEvent[] @relation("IPFraudEvents")
+
+  @@index([riskLevel])
+  @@index([isBanned])
+  @@map("ip_reputations")
+}
+
+// ── FraudEvent ────────────────────────────────────────────────────────────────
+
+enum FraudEventType {
+  MULTI_ACCOUNT_DEVICE    // نفس الجهاز لأكثر من 3 مستخدمين
+  HIGH_FREQUENCY_ATTEMPT  // محاولات متكررة سريعة
+  AUTOMATION_SUSPECTED    // سلوك بوت (uploads متقاربة جداً)
+  SHARED_DEVICE           // جهاز مشترك بين مستخدمين
+  IP_FLOOD                // flood من نفس الـ IP
+  RAPID_RESUBMISSION      // إعادة تقديم سريعة بعد الرفض
+  SUSPICIOUS_UA           // User-Agent مشبوه
+}
+
+model FraudEvent {
+  id        String         @id @default(uuid())
+  type      FraudEventType
+  userId    String
+  sessionId String?
+  ipAddress String?
+  deviceId  String?
+  severity  String         @default("MEDIUM")  // LOW | MEDIUM | HIGH | CRITICAL
+  metadata  Json           @default("{}")
+  resolved  Boolean        @default(false)
+  resolvedBy String?
+  resolvedAt DateTime?
+  createdAt DateTime       @default(now())
+
+  ipReputation    IPReputation?       @relation("IPFraudEvents",     fields: [ipAddress], references: [ipAddress])
+  deviceFingerprint DeviceFingerprint? @relation("DeviceFraudEvents", fields: [deviceId],  references: [deviceId])
+
+  @@index([userId])
+  @@index([type])
+  @@index([severity, createdAt(sort: Desc)])
+  @@index([sessionId])
+  @@map("fraud_events")
+}
+
+// ── Extend VerificationSession with intelligence fields ───────────────────────
+// NOTE: أضف هذه الحقول يدوياً لـ VerificationSession إذا أردت tracking كامل:
+// ipAddress    String?
+// deviceId     String?
+// userAgent    String?

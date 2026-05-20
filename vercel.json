@@ -1,0 +1,24 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "npm run vercel-build",
+  "installCommand": "npm install",
+  "regions": ["iad1"],
+  "functions": {
+    "src/app/api/workers/ocr/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/workers/face/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/workers/fraud/route.ts": {
+      "maxDuration": 60
+    },
+    "src/app/api/doctor/upload-license/route.ts": {
+      "maxDuration": 30
+    },
+    "src/app/api/doctor/upload-face-v2/route.ts": {
+      "maxDuration": 30
+    }
+  }
+}

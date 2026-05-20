@@ -1,0 +1,58 @@
+{
+  "name": "medical-platform",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "prisma generate && next build",
+    "vercel-build": "prisma generate && prisma migrate deploy && next build",
+    "postinstall": "prisma generate",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "db:migrate": "prisma migrate dev",
+    "db:migrate:prod": "prisma migrate deploy",
+    "db:seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
+    "db:studio": "prisma studio",
+    "db:reset": "prisma migrate reset --force && npm run db:seed",
+    "db:generate": "prisma generate",
+    "test:e2e": "node scripts/e2e-full-test.mjs"
+  },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
+  "dependencies": {
+    "@auth/prisma-adapter": "^2.7.2",
+    "@aws-sdk/client-s3": "^3.705.0",
+    "@aws-sdk/s3-request-presigner": "^3.705.0",
+    "@prisma/client": "6.0.0",
+    "@tailwindcss/forms": "0.5.11",
+    "@upstash/ratelimit": "2.0.8",
+    "@upstash/redis": "1.38.0",
+    "bcryptjs": "^2.4.3",
+    "browser-image-compression": "2.0.2",
+    "ioredis": "5.10.1",
+    "next": "15.5.15",
+    "next-auth": "^4.24.10",
+    "next-intl": "4.9.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "resend": "6.10.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "3.3.5",
+    "@types/bcryptjs": "^2.4.6",
+    "@types/node": "22.19.17",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^9.16.0",
+    "eslint-config-next": "15.5.15",
+    "postcss": "^8.4.49",
+    "prisma": "6.0.0",
+    "tailwindcss": "^3.4.16",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.2"
+  }
+}

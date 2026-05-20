@@ -1,0 +1,42 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* RTL/LTR logical properties support */
+@layer base {
+  :root {
+    --font-cairo: 'Cairo', sans-serif;
+    --font-inter: 'Inter', sans-serif;
+  }
+
+  html[dir="rtl"] {
+    font-family: var(--font-cairo), sans-serif;
+  }
+
+  html[dir="ltr"] {
+    font-family: var(--font-inter), sans-serif;
+  }
+
+  /* Custom scrollbar */
+  ::-webkit-scrollbar        { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track  { background: transparent; }
+  ::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.1); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+  /* Input autofill dark mode fix */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: white;
+    -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.05) inset;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+}
+
+@layer utilities {
+  /* Logical RTL/LTR utilities (already in Tailwind v3, just making sure) */
+  .start-0  { inset-inline-start: 0; }
+  .end-0    { inset-inline-end: 0; }
+  .ms-auto  { margin-inline-start: auto; }
+  .me-auto  { margin-inline-end: auto; }
+}
