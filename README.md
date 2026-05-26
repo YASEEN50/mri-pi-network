@@ -34,15 +34,6 @@ npm run dev
 
 ## حسابات الاختبار
 
-| الدور | البريد | كلمة المرور |
-|-------|--------|------------|
-| Admin | admin@medical-platform.com | Admin@123456 |
-| Client | client@test.com | Client@123456 |
-| Doctor (معتمد) | doctor@test.com | Doctor@123456 |
-| Doctor (قيد المراجعة) | doctor.pending@test.com | Doctor@123456 |
-| Facility | facility@test.com | Facility@123456 |
-
----
 
 ## الميزات الرئيسية
 
