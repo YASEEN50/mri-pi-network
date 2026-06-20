@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { prisma } from '@/lib/prisma'
+import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
 import { PiSdkService } from './pi-sdk.service'
 import { Role } from '@prisma/client'
 
@@ -15,20 +16,14 @@ export interface PiAuthResult {
 }
 
 export class PiAuthService {
-  private readonly piSdk: PiSdkService
+  private readonly piSdk: PiSdkService | null
 
   constructor() {
-    this.piSdk = new PiSdkService()
+    this.piSdk = process.env.PI_API_KEY ? new PiSdkService() : null
   }
 
   async authenticateWithAccessToken(accessToken: string): Promise<PiAuthResult | null> {
-    const isSandbox = process.env.PI_SANDBOX === 'true'
-
-    // التحقق من التوكن
-    const piUser = isSandbox
-      ? await this.piSdk.verifySandboxToken(accessToken)
-      : await this.piSdk.verifyAccessToken(accessToken)
-
+    const piUser = await verifyPiAccessToken(accessToken)
     if (!piUser) return null
 
     // البحث عن المستخدم أو إنشاؤه
@@ -55,8 +50,8 @@ export class PiAuthService {
       })
     }
 
-    // تحديث KYC إذا كان متاحاً
-    if (!isSandbox) {
+    // تحديث KYC إذا كان متاحاً (يتطلب PI_API_KEY)
+    if (this.piSdk) {
       const kycStatus = await this.piSdk.getKYCStatus(piUser.uid)
       if (kycStatus.verified) {
         const doctorProfile = await prisma.doctorProfile.findUnique({

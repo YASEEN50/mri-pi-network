@@ -96,7 +96,7 @@ export const authOptions: NextAuthOptions = {
       credentials: { accessToken: { label: 'Pi Access Token', type: 'text' } },
       async authorize(credentials) {
         if (!credentials?.accessToken) throw new Error('MISSING_PI_TOKEN')
-        const piUser = await verifyPiToken(credentials.accessToken)
+        const piUser = await verifyPiAccessToken(credentials.accessToken)
         if (!piUser) throw new Error('INVALID_PI_TOKEN')
         const user = await prisma.user.upsert({
           where: { piUid: piUser.uid },
@@ -139,15 +139,4 @@ export const authOptions: NextAuthOptions = {
   },
 }
 
-interface PiUser { uid: string; username: string }
-
-async function verifyPiToken(accessToken: string): Promise<PiUser | null> {
-  try {
-    const response = await fetch('https://api.minepi.com/v2/me', {
-      headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
-    })
-    if (!response.ok) return null
-    const data = await response.json()
-    return { uid: data.uid, username: data.username }
-  } catch { return null }
-}
+import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'

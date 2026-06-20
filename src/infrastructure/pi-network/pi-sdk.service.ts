@@ -3,6 +3,8 @@
 // Pi Network SDK — server-side verification
 // =============================================================================
 
+import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
+
 export interface PiUserInfo {
   uid: string
   username: string
@@ -20,9 +22,7 @@ export class PiSdkService {
 
   constructor() {
     const apiKey = process.env.PI_API_KEY
-    if (!apiKey) throw new Error('PI_API_KEY is not set')
-
-    this.apiKey = apiKey
+    this.apiKey = apiKey ?? ''
     this.isSandbox = process.env.PI_SANDBOX === 'true'
   }
 
@@ -37,35 +37,16 @@ export class PiSdkService {
   // Verify Pi access token (received from frontend Pi SDK)
   // -------------------------------------------------------------------------
   async verifyAccessToken(accessToken: string): Promise<PiUserInfo | null> {
-    try {
-      const res = await fetch(`${this.baseUrl}/v2/me`, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-      })
-
-      if (!res.ok) {
-        console.error('[Pi SDK] Token verification failed:', res.status)
-        return null
-      }
-
-      const data = await res.json()
-      return {
-        uid: data.uid,
-        username: data.username,
-        roles: data.roles ?? [],
-      }
-    } catch (err) {
-      console.error('[Pi SDK] verifyAccessToken error:', err)
-      return null
-    }
+    const me = await verifyPiAccessToken(accessToken)
+    if (!me) return null
+    return { uid: me.uid, username: me.username, roles: [] }
   }
 
   // -------------------------------------------------------------------------
   // Get user KYC status
   // -------------------------------------------------------------------------
   async getKYCStatus(piUid: string): Promise<PiKYCStatus> {
+    if (!this.apiKey) return { verified: false }
     try {
       const res = await fetch(`${this.baseUrl}/v2/users/${piUid}`, {
         headers: this.headers,

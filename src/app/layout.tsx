@@ -4,6 +4,7 @@ import Script from 'next/script'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { SessionProvider } from '@/components/common/SessionProvider'
+import { PiAuthProvider } from '@/components/auth/PiAuthProvider'
 import './globals.css'
 
 import { Cairo, Inter } from 'next/font/google'
@@ -35,7 +36,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body className={`${cairo.variable} ${inter.variable} font-sans bg-slate-950 text-white antialiased`}>
         <NextIntlClientProvider messages={messages}>
           <SessionProvider>
-            {children}
+            <PiAuthProvider>
+              {children}
+            </PiAuthProvider>
           </SessionProvider>
         </NextIntlClientProvider>
         {/* Pi Network SDK */}

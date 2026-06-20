@@ -5,17 +5,7 @@ import { ok, fromAppError, parseBody, serverError } from '@/lib/api-response'
 import { PiLoginSchema } from '@/lib/validations/auth.schema'
 import { UnauthorizedError } from '@/core/errors'
 import { Role } from '@prisma/client'
-
-async function verifyPiToken(accessToken: string) {
-  try {
-    const res = await fetch('https://api.minepi.com/v2/me', {
-      headers: { Authorization: `Bearer ${accessToken}` },
-    })
-    if (!res.ok) return null
-    const data = await res.json()
-    return { uid: data.uid as string, username: data.username as string }
-  } catch { return null }
-}
+import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
 
 export async function POST(req: NextRequest) {
   try {
@@ -23,7 +13,7 @@ export async function POST(req: NextRequest) {
     const parsed = parseBody(PiLoginSchema, body)
     if (!parsed.success) return parsed.response
 
-    const piUser = await verifyPiToken(parsed.data.accessToken)
+    const piUser = await verifyPiAccessToken(parsed.data.accessToken)
     if (!piUser) return fromAppError(new UnauthorizedError('فشل التحقق من حساب Pi Network'))
 
     const user = await prisma.user.upsert({

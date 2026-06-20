@@ -1,9 +1,8 @@
 'use client'
-// src/components/auth/PiLoginButton.tsx
 
 import { useState } from 'react'
-import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { isPiBrowser, signInWithPiNetwork } from '@/lib/pi/pi-auth-client'
 
 interface PiLoginButtonProps {
   callbackUrl?: string
@@ -11,13 +10,17 @@ interface PiLoginButtonProps {
   onError?: (error: string) => void
 }
 
-export default function PiLoginButton({ callbackUrl = '/dashboard', onSuccess, onError }: PiLoginButtonProps) {
+export default function PiLoginButton({
+  callbackUrl = '/dashboard',
+  onSuccess,
+  onError,
+}: PiLoginButtonProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
   async function handlePiLogin() {
-    if (!window.Pi) {
+    if (!isPiBrowser()) {
       const msg = 'Pi Browser غير متوفر. يرجى فتح التطبيق داخل Pi Browser'
       setError(msg)
       onError?.(msg)
@@ -27,46 +30,19 @@ export default function PiLoginButton({ callbackUrl = '/dashboard', onSuccess, o
     setIsLoading(true)
     setError('')
 
-    try {
-      // Initialize Pi SDK
-      window.Pi.init({
-        version: '2.0',
-        sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-      })
+    const result = await signInWithPiNetwork()
 
-      // Authenticate with Pi
-      const authResult = await window.Pi.authenticate(
-        ['username', 'payments', 'wallet_address'],
-        (payment: unknown) => {
-          // Handle incomplete payments
-          console.warn('[Pi] Incomplete payment found:', payment)
-        }
-      )
+    setIsLoading(false)
 
-      // Send token to our backend via NextAuth
-      const result = await signIn('pi-network', {
-        accessToken: authResult.accessToken,
-        redirect: false,
-      })
-
-      if (result?.error) {
-        const msg = 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى'
-        setError(msg)
-        onError?.(msg)
-        return
-      }
-
-      onSuccess?.()
-      router.push(callbackUrl)
-      router.refresh()
-    } catch (err) {
-      const msg = 'حدث خطأ أثناء التحقق من Pi Network'
-      setError(msg)
-      onError?.(msg)
-      console.error('[Pi Auth Error]', err)
-    } finally {
-      setIsLoading(false)
+    if (!result.ok) {
+      setError(result.error ?? 'فشل تسجيل الدخول')
+      onError?.(result.error ?? 'فشل تسجيل الدخول')
+      return
     }
+
+    onSuccess?.()
+    router.push(callbackUrl)
+    router.refresh()
   }
 
   return (
@@ -87,7 +63,6 @@ export default function PiLoginButton({ callbackUrl = '/dashboard', onSuccess, o
           </>
         ) : (
           <>
-            {/* Pi Logo */}
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-purple-500 to-purple-700 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform">
               <span className="text-white text-xs font-bold">π</span>
             </div>
@@ -96,9 +71,7 @@ export default function PiLoginButton({ callbackUrl = '/dashboard', onSuccess, o
         )}
       </button>
 
-      {error && (
-        <p className="text-center text-red-400 text-xs">{error}</p>
-      )}
+      {error && <p className="text-center text-red-400 text-xs">{error}</p>}
 
       <p className="text-center text-slate-500 text-xs">
         يتطلب Pi Browser مثبتاً على جهازك
