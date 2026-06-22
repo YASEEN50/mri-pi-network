@@ -2,9 +2,8 @@
 // خدمة إنشاء وإرسال تذكيرات المواعيد
 
 import { prisma, db } from '@/lib/prisma'
-import { Resend } from 'resend'
+import { getResendClient } from '@/lib/resend-client'
 
-const resend    = new Resend(process.env.RESEND_API_KEY)
 const BASE_URL  = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 const FROM      = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
 const APP_NAME  = 'المنصة الطبية'
@@ -96,7 +95,7 @@ async function sendReminderEmail(reminder: any) {
   const timeLabel = reminder.type === '24h' ? '24 ساعة' : 'ساعتين'
 
   try {
-    await resend.emails.send({
+    await getResendClient().emails.send({
       from: FROM,
       to:   apt.client.email!,
       subject: `تذكير: موعدك مع ${doctorName} بعد ${timeLabel}`,

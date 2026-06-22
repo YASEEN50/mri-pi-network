@@ -3,10 +3,9 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
 import { rateLimitAuth } from '@/lib/rate-limit'
-import { Resend } from 'resend'
+import { getResendClient } from '@/lib/resend-client'
 import { z } from 'zod'
 
-const resend    = new Resend(process.env.RESEND_API_KEY)
 const FROM      = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
 const APP_NAME  = 'المنصة الطبية'
 const BASE_URL  = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
@@ -49,7 +48,7 @@ export async function POST(req: NextRequest) {
     })
 
     // إرسال البريد
-    await resend.emails.send({
+    await getResendClient().emails.send({
       from:    FROM,
       to:      email,
       subject: `رمز إعادة تعيين كلمة المرور - ${APP_NAME}`,

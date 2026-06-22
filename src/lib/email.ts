@@ -1,9 +1,7 @@
 // src/lib/email.ts
 // خدمة إرسال الإيميلات عبر Resend
 
-import { Resend } from 'resend'
-
-const resend = new Resend(process.env.RESEND_API_KEY)
+import { getResendClient } from '@/lib/resend-client'
 
 const FROM_EMAIL = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
 const PLATFORM_NAME = 'المنصة الطبية'
@@ -15,7 +13,7 @@ const BASE_URL = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 export async function sendVerificationEmail(email: string, token: string) {
   const link = `${BASE_URL}/api/auth/verify-email?token=${token}`
 
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `تأكيد بريدك الإلكتروني - ${PLATFORM_NAME}`,
@@ -39,7 +37,7 @@ export async function sendVerificationEmail(email: string, token: string) {
 export async function sendChangeEmailVerification(newEmail: string, token: string) {
   const link = `${BASE_URL}/api/auth/confirm-email-change?token=${token}`
 
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: newEmail,
     subject: `تأكيد تغيير البريد الإلكتروني - ${PLATFORM_NAME}`,
@@ -65,7 +63,7 @@ export async function sendChangeEmailVerification(newEmail: string, token: strin
 export async function sendPasswordResetEmail(email: string, token: string) {
   const link = `${BASE_URL}/reset-password?token=${token}`
 
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `إعادة تعيين كلمة المرور - ${PLATFORM_NAME}`,
@@ -90,7 +88,7 @@ export async function sendPasswordResetEmail(email: string, token: string) {
 // 5. اكتمال التحقق الآلي للطبيب
 // =============================================================================
 export async function sendDoctorAiVerificationCompleteEmail(email: string, doctorName: string) {
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `اكتمل التحقق الآلي — ${PLATFORM_NAME}`,
@@ -109,7 +107,7 @@ export async function sendDoctorAiVerificationCompleteEmail(email: string, docto
 // 6. موافقة الأدمن على الطبيب
 // =============================================================================
 export async function sendDoctorApprovedEmail(email: string, doctorName: string) {
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `تم التحقق من حسابك — ${PLATFORM_NAME}`,
@@ -132,7 +130,7 @@ export async function sendFacilityDoctorApprovedEmail(
   facilityName: string,
   doctorName: string,
 ) {
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `طبيب معتمد في ${facilityName}`,
@@ -163,7 +161,7 @@ function emailCard(
 }
 
 export async function sendPasswordChangedNotification(email: string) {
-  await resend.emails.send({
+  await getResendClient().emails.send({
     from: FROM_EMAIL,
     to: email,
     subject: `تم تغيير كلمة المرور - ${PLATFORM_NAME}`,
