@@ -18,7 +18,8 @@
 
 | المتغير | مطلوب | ملاحظات |
 |---------|--------|---------|
-| `DATABASE_URL` | نعم | رابط Neon مع `?sslmode=require` |
+| `DATABASE_URL` | نعم | رابط Neon **المُجمّع (pooler)** مع `?sslmode=require` |
+| `DIRECT_URL` | نعم | رابط Neon **المباشر (بدون `-pooler`)** — مطلوب لـ `migrate deploy` |
 | `NEXTAUTH_SECRET` | نعم | 32+ حرف عشوائي |
 | `NEXTAUTH_URL` | نعم | `https://your-app.vercel.app` |
 | `WORKER_SECRET` | نعم | لاستدعاء عمال OCR/face/fraud |
@@ -82,7 +83,8 @@ npm run dev
 
 | المشكلة | الحل |
 |---------|------|
-| فشل `migrate deploy` | تأكد من `DATABASE_URL` وصلاحيات Neon |
+| فشل `migrate deploy` (P1002 / advisory lock) | أضف `DIRECT_URL` (رابط بدون pooler). لا تشغّل نشرين متزامنين. |
+| فشل `migrate deploy` (عام) | تأكد من `DATABASE_URL` و`DIRECT_URL` وصلاحيات Neon |
 | OCR لا يعمل | `GOOGLE_CLOUD_VISION_API_KEY` + `WORKER_SECRET` + `NEXTAUTH_URL` |
 | 401 على workers | `x-worker-secret` يجب أن يطابق `WORKER_SECRET` |
 | لا بريد | `RESEND_API_KEY` و `EMAIL_FROM` |
