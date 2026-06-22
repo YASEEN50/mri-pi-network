@@ -22,8 +22,8 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: { default: 'المنصة الطبية', template: '%s | المنصة الطبية' },
-  description: 'منصة طبية وعلمية متكاملة',
+  title: { default: 'MRI', template: '%s | MRI' },
+  description: 'MRI — منصة طبية موثوقة تربط المرضى بالأطباء والمنشآت المعتمدة',
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
@@ -33,7 +33,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang={locale} dir={isRTL ? 'rtl' : 'ltr'} suppressHydrationWarning>
-      <body className={`${cairo.variable} ${inter.variable} font-sans bg-slate-950 text-white antialiased`}>
+      <body className={`${cairo.variable} ${inter.variable} font-sans bg-background text-slate-100 antialiased`}>
         <NextIntlClientProvider messages={messages}>
           <SessionProvider>
             <PiAuthProvider>

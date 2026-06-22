@@ -1,0 +1,217 @@
+{
+  "pass": [
+    {
+      "cat": "Build",
+      "name": "Dev server on localhost:3000",
+      "detail": ""
+    },
+    {
+      "cat": "Build",
+      "name": "GET /api/health",
+      "detail": "299ms"
+    },
+    {
+      "cat": "Database",
+      "name": "Prisma connectivity",
+      "detail": ""
+    },
+    {
+      "cat": "Database",
+      "name": "Schema models count",
+      "detail": "45 models in schema"
+    },
+    {
+      "cat": "Database",
+      "name": "DB tables count",
+      "detail": "46 tables in public schema"
+    },
+    {
+      "cat": "Database",
+      "name": "Seed admin account exists",
+      "detail": "admin@medical-platform.com"
+    },
+    {
+      "cat": "Auth",
+      "name": "Page /login renders",
+      "detail": "200"
+    },
+    {
+      "cat": "Auth",
+      "name": "Page /register renders",
+      "detail": "200"
+    },
+    {
+      "cat": "Auth",
+      "name": "Pi Network login button present in HTML",
+      "detail": ""
+    },
+    {
+      "cat": "Auth",
+      "name": "POST /api/auth/register",
+      "detail": "test-reg-1782077380101@test.local"
+    },
+    {
+      "cat": "Roles",
+      "name": "CLIENT account exists",
+      "detail": "client@test.com"
+    },
+    {
+      "cat": "Roles",
+      "name": "DOCTOR account exists",
+      "detail": "doctor@test.com"
+    },
+    {
+      "cat": "Roles",
+      "name": "ADMIN account exists",
+      "detail": "admin@medical-platform.com"
+    },
+    {
+      "cat": "Roles",
+      "name": "OWNER account exists",
+      "detail": "owner@medical-platform.com"
+    },
+    {
+      "cat": "CLIENT",
+      "name": "GET /api/doctors?search=",
+      "detail": "481ms"
+    },
+    {
+      "cat": "CLIENT",
+      "name": "GET /api/doctors/[id]",
+      "detail": "a353292f-cf03-4574-b92b-cca291362380"
+    },
+    {
+      "cat": "CLIENT",
+      "name": "Page /doctors/[id]/reviews",
+      "detail": "a353292f-cf03-4574-b92b-cca291362380"
+    },
+    {
+      "cat": "DOCTOR",
+      "name": "GET /api/doctor/verification-status",
+      "detail": "\"\""
+    },
+    {
+      "cat": "ADMIN",
+      "name": "GET /api/admin/verification (PENDING_HUMAN)",
+      "detail": "items=0"
+    },
+    {
+      "cat": "ADMIN",
+      "name": "GET /api/admin/stats",
+      "detail": "6278ms"
+    },
+    {
+      "cat": "ADMIN",
+      "name": "Page /admin/verification",
+      "detail": "status=200"
+    },
+    {
+      "cat": "ADMIN",
+      "name": "Page /admin/fraud-events",
+      "detail": "status=200"
+    },
+    {
+      "cat": "ADMIN",
+      "name": "Page /admin",
+      "detail": "status=200"
+    },
+    {
+      "cat": "OWNER",
+      "name": "Page /owner",
+      "detail": ""
+    },
+    {
+      "cat": "OWNER",
+      "name": "Page /owner/risk-config",
+      "detail": ""
+    },
+    {
+      "cat": "Verification",
+      "name": "Session states in DB",
+      "detail": "PENDING_HUMAN=1, PENDING_AI=0"
+    },
+    {
+      "cat": "Verification",
+      "name": "Legacy verification_queue sync table",
+      "detail": "1 rows"
+    },
+    {
+      "cat": "Map",
+      "name": "/doctors-map page loads",
+      "detail": ""
+    },
+    {
+      "cat": "Security",
+      "name": "Workers reject without WORKER_SECRET",
+      "detail": "status=401"
+    },
+    {
+      "cat": "Security",
+      "name": "Admin API requires auth",
+      "detail": "status=401"
+    },
+    {
+      "cat": "Security",
+      "name": ".env in .gitignore",
+      "detail": ""
+    },
+    {
+      "cat": "Docs",
+      "name": "README.md",
+      "detail": "3595 chars"
+    },
+    {
+      "cat": "Docs",
+      "name": "docs/API.md",
+      "detail": "3005 chars"
+    },
+    {
+      "cat": "Docs",
+      "name": "docs/DEPLOYMENT.md",
+      "detail": "2548 chars"
+    },
+    {
+      "cat": "Performance",
+      "name": "/ load time",
+      "detail": "157ms"
+    },
+    {
+      "cat": "Performance",
+      "name": "/login load time",
+      "detail": "268ms"
+    },
+    {
+      "cat": "Performance",
+      "name": "/doctors load time",
+      "detail": "1335ms"
+    },
+    {
+      "cat": "Performance",
+      "name": "/api/health load time",
+      "detail": "449ms"
+    },
+    {
+      "cat": "Pi Payments",
+      "name": "PI_API_KEY configured",
+      "detail": ""
+    },
+    {
+      "cat": "Performance",
+      "name": "browser-image-compression in package.json",
+      "detail": ""
+    }
+  ],
+  "fail": [],
+  "warn": [
+    {
+      "cat": "CLIENT",
+      "name": "GET /api/reviews",
+      "detail": "status=405"
+    },
+    {
+      "cat": "Security",
+      "name": "Upstash rate limiting",
+      "detail": "UPSTASH_* not set — rate limit may be disabled in dev"
+    }
+  ]
+}

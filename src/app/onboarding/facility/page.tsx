@@ -56,8 +56,8 @@ export default function FacilityOnboardingPage() {
       }
       await update({ isProfileComplete: true })
       // توجيه صحيح بعد تسجيل المنشأة (ليس /doctor/pending)
-      console.log('[onboarding/facility] facility saved, redirecting to /facility/pending')
-      router.push('/facility/pending')
+      console.log('[onboarding/facility] facility saved, redirecting to /facility/verify')
+      router.push('/facility/verify')
     } catch {
       setError('حدث خطأ في الاتصال')
     } finally {

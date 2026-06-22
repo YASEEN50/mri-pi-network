@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
+import DashboardBreadcrumb, { getAdminDashboardHref, getAdminDashboardLabel } from '@/components/admin/DashboardBreadcrumb'
 
 interface PendingItem {
   id: string
@@ -72,20 +73,30 @@ export default function AdminPendingPage() {
   }
 
   const items = tab === 'doctors' ? doctors : facilities
+  const dashboardHref = getAdminDashboardHref(session?.user?.role)
+  const dashboardLabel = getAdminDashboardLabel(session?.user?.role)
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <div className="flex items-center justify-between mb-8">
+        <DashboardBreadcrumb items={[{ label: 'الطلبات المعلقة' }]} />
+
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8 mt-2">
           <div>
             <h1 className="text-2xl font-bold text-white">الطلبات المعلقة</h1>
             <p className="text-slate-400 text-sm mt-1">طلبات تسجيل بانتظار الموافقة</p>
           </div>
-          <Link href="/admin/verification"
-            className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 rounded-xl text-sm transition-all hover:bg-emerald-500/30">
-            🔍 التحقق المتقدم
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href={dashboardHref}
+              className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white hover:bg-white/10 rounded-xl text-sm transition-all">
+              ← {dashboardLabel}
+            </Link>
+            <Link href="/admin/verification-v2"
+              className="px-4 py-2 bg-primary/20 border border-primary/30 text-accent rounded-xl text-sm transition-all hover:bg-primary/30">
+              🔍 التحقق المتقدم (v2)
+            </Link>
+          </div>
         </div>
 
         {/* تبويبات */}
@@ -94,11 +105,11 @@ export default function AdminPendingPage() {
             <button key={t} onClick={() => setTab(t)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium border transition-all
                 ${tab === t
-                  ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
+                  ? 'bg-primary/20 border-primary/30 text-accent'
                   : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
               {t === 'doctors' ? '👨‍⚕️ الأطباء' : '🏥 المنشآت'}
               <span className={`mr-2 text-xs px-2 py-0.5 rounded-full
-                ${tab === t ? 'bg-emerald-500/30 text-emerald-300' : 'bg-white/10 text-slate-500'}`}>
+                ${tab === t ? 'bg-primary/30 text-accent' : 'bg-white/10 text-slate-500'}`}>
                 {t === 'doctors' ? totals.doctors : totals.facilities}
               </span>
             </button>
@@ -106,10 +117,10 @@ export default function AdminPendingPage() {
         </div>
 
         {/* الجدول */}
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden">
+        <div className="mpi-card rounded-2xl overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full" />
+              <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
             </div>
           ) : items.length === 0 ? (
             <div className="text-center py-20">
@@ -137,9 +148,21 @@ export default function AdminPendingPage() {
                       {new Date(item.createdAt).toLocaleDateString('ar-SA')}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 flex-wrap">
+                        {tab === 'doctors' && (
+                          <Link href={`/admin/doctors/${item.id}/verify`}
+                            className="px-3 py-1 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
+                            📄 المستندات
+                          </Link>
+                        )}
+                        {tab === 'facilities' && (
+                          <Link href={`/admin/facilities/${item.id}/verify`}
+                            className="px-3 py-1 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
+                            📄 المستندات
+                          </Link>
+                        )}
                         <button onClick={() => handleApprove(tab, item.id)}
-                          className="px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs transition-all">
+                          className="px-3 py-1 bg-success/20 hover:bg-success/30 border border-success/30 text-success rounded-lg text-xs transition-all">
                           ✅ قبول
                         </button>
                         <button onClick={() => handleReject(tab, item.id)}

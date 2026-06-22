@@ -9,6 +9,7 @@ import Link from 'next/link'
 
 interface QueueItem {
   queueId:             string
+  sessionId?:          string
   verificationId:      string
   priority:            number
   queueStatus:         string
@@ -160,7 +161,7 @@ export default function AdminVerificationPage() {
                       {new Date(item.createdAt).toLocaleDateString('ar-SA')}
                     </td>
                     <td className="px-4 py-3">
-                      <Link href={`/admin/verification/${item.verificationId}`}
+                      <Link href={`/admin/verification-v2/${item.sessionId ?? item.verificationId}`}
                         className="px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 rounded-lg text-xs font-medium transition-all">
                         مراجعة
                       </Link>

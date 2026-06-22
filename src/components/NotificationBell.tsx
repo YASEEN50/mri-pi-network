@@ -85,7 +85,7 @@ export default function NotificationBell() {
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5 transition-all">
+        className="relative p-2 rounded-lg text-slate-400 hover:text-accent hover:bg-primary/10 transition-all">
         <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
             d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -98,12 +98,12 @@ export default function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute top-full mt-2 w-80 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 end-0">
+        <div className="absolute top-full mt-2 w-80 bg-surface-elevated border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50 end-0">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
             <h3 className="font-semibold text-white text-sm">الإشعارات</h3>
             {unread > 0 && (
-              <button onClick={markAllRead} className="text-xs text-emerald-400 hover:text-emerald-300 transition-colors">
+              <button onClick={markAllRead} className="text-xs text-accent hover:text-white transition-colors">
                 تحديد الكل كمقروء
               </button>
             )}
@@ -118,7 +118,7 @@ export default function NotificationBell() {
                 <div key={n.id}
                   onClick={() => !n.isRead && markRead(n.id)}
                   className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-all cursor-pointer group
-                    ${!n.isRead ? 'bg-emerald-500/5' : ''}`}>
+                    ${!n.isRead ? 'bg-primary/5' : ''}`}>
                   <div className="flex items-start gap-3">
                     <span className="text-base flex-shrink-0">{TYPE_ICONS[n.type] ?? TYPE_ICONS.DEFAULT}</span>
                     <div className="flex-1 min-w-0">
@@ -127,7 +127,7 @@ export default function NotificationBell() {
                       <p className="text-xs text-slate-600 mt-1">{new Date(n.createdAt).toLocaleDateString('ar-SA')}</p>
                     </div>
                     <div className="flex items-center gap-1 flex-shrink-0">
-                      {!n.isRead && <div className="w-2 h-2 bg-emerald-400 rounded-full" />}
+                      {!n.isRead && <div className="w-2 h-2 bg-accent rounded-full" />}
                       <button
                         onClick={e => deleteNotification(n.id, e)}
                         className="opacity-0 group-hover:opacity-100 text-slate-500 hover:text-red-400 transition-all text-xs px-1">

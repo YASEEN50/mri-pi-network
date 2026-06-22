@@ -258,6 +258,7 @@ export async function createPendingAiVerificationSession(
 
  */
 
+/** @deprecated v1 — doctor_verifications / verification_queue — سيتم إهماله لاحقاً */
 export async function ensureLegacyHumanQueue(
   doctorId: string,
   options?: { notify?: boolean },

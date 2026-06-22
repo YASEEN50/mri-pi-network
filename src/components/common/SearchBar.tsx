@@ -2,6 +2,7 @@
 // src/components/common/SearchBar.tsx
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
+import { cn } from '@/lib/cn'
 
 interface SearchResult {
   doctors:      any[]
@@ -9,7 +10,11 @@ interface SearchResult {
   publications: any[]
 }
 
-export default function SearchBar() {
+interface SearchBarProps {
+  variant?: 'default' | 'hero'
+}
+
+export default function SearchBar({ variant = 'default' }: SearchBarProps) {
   const [query,   setQuery]   = useState('')
   const [results, setResults] = useState<SearchResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -44,26 +49,35 @@ export default function SearchBar() {
     results.doctors.length > 0 || results.facilities.length > 0 || results.publications.length > 0
   )
 
+  const isHero = variant === 'hero'
+
   return (
-    <div className="relative" ref={ref}>
+    <div className={cn('relative', isHero && 'w-full')} ref={ref}>
       <div className="relative">
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
           onFocus={() => query.length >= 2 && setOpen(true)}
           placeholder="ابحث عن طبيب، تخصص..."
-          className="w-56 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-emerald-500/50 focus:w-72 transition-all"
+          className={cn(
+            'bg-surface/80 border border-white/10 rounded-xl px-4 py-2 text-white text-sm placeholder-slate-500',
+            'focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all',
+            isHero ? 'w-full py-3.5 text-base shadow-card' : 'w-56 focus:w-72',
+          )}
           dir="rtl"
         />
         {loading && (
           <div className="absolute left-3 top-1/2 -translate-y-1/2">
-            <div className="animate-spin w-3.5 h-3.5 border border-emerald-500 border-t-transparent rounded-full" />
+            <div className="animate-spin w-3.5 h-3.5 border border-primary border-t-transparent rounded-full" />
           </div>
         )}
       </div>
 
       {open && (
-        <div className="absolute top-full mt-2 left-0 w-80 bg-slate-800 border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50">
+        <div className={cn(
+          'absolute top-full mt-2 bg-surface-elevated border border-white/10 rounded-2xl shadow-2xl overflow-hidden z-50',
+          isHero ? 'left-0 right-0 w-full' : 'left-0 w-80',
+        )}>
           {!hasResults ? (
             <div className="text-center py-6 text-slate-500 text-sm">{`لا توجد نتائج لـ "${query}"`}</div>
           ) : (
@@ -75,7 +89,7 @@ export default function SearchBar() {
                   {results!.doctors.map(d => (
                     <Link key={d.id} href={`/doctors/${d.id}`} onClick={() => setOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-all">
-                      <div className="w-8 h-8 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 text-xs font-medium flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary-400 text-xs font-medium flex-shrink-0">
                         {d.name?.[0] ?? '?'}
                       </div>
                       <div className="flex-1 min-w-0">
@@ -95,7 +109,7 @@ export default function SearchBar() {
                   {results!.facilities.map(f => (
                     <Link key={f.id} href={`/facilities/${f.id}`} onClick={() => setOpen(false)}
                       className="flex items-center gap-3 px-4 py-3 hover:bg-white/5 transition-all">
-                      <div className="w-8 h-8 rounded-full bg-teal-500/20 flex items-center justify-center text-teal-400 text-xs font-medium flex-shrink-0">
+                      <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center text-accent text-xs font-medium flex-shrink-0">
                         🏥
                       </div>
                       <div className="flex-1 min-w-0">

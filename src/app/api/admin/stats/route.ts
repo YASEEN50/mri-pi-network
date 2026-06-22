@@ -18,8 +18,18 @@ export async function GET(_req: NextRequest) {
       prisma.doctorProfile.count({ where: { deletedAt: null } }),
       prisma.clientProfile.count({ where: { deletedAt: null } }),
       prisma.facilityProfile.count({ where: { deletedAt: null } }),
-      prisma.doctorProfile.count({ where: { approvalStatus: 'DOCUMENTS_REVIEW', deletedAt: null } }),
-      prisma.facilityProfile.count({ where: { approvalStatus: 'DOCUMENTS_REVIEW', deletedAt: null } }),
+      prisma.doctorProfile.count({
+        where: {
+          approvalStatus: { in: ['PENDING', 'DOCUMENTS_REVIEW'] },
+          deletedAt: null,
+        },
+      }),
+      prisma.facilityProfile.count({
+        where: {
+          approvalStatus: { in: ['PENDING', 'DOCUMENTS_REVIEW'] },
+          deletedAt: null,
+        },
+      }),
       prisma.appointment.count({ where: { deletedAt: null } }),
       prisma.appointment.count({ where: { status: 'COMPLETED', deletedAt: null } }),
       prisma.review.count({ where: { deletedAt: null } }),

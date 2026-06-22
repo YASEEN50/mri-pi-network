@@ -5,6 +5,7 @@ import { requireAuth }    from '@/infrastructure/auth/providers/role-guard'
 import { prisma, db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role }           from '@prisma/client'
+import { computeUploadStage } from '@/lib/verification/document-types'
 
 export async function GET() {
   try {
@@ -23,8 +24,8 @@ export async function GET() {
       include: {
         documents: {
           select: {
-            id: true, docType: true, isProcessed: true,
-            isFlagged: true, flagReason: true, createdAt: true,
+            id: true, docType: true, subType: true, legalName: true,
+            isProcessed: true, isFlagged: true, flagReason: true, createdAt: true,
           },
           orderBy: { createdAt: 'desc' },
         },
@@ -58,7 +59,8 @@ export async function GET() {
       return ok({
         verificationStatus: 'UNVERIFIED',
         pipelinePhase:      'pending_ai',
-        currentStage:       'UPLOAD_LICENSE',
+        currentStage:       'UPLOAD_DEGREE',
+        uploadStage:        'degree',
         message:            'لم تبدأ عملية التحقق بعد',
         documents:          [],
         jobs:               [],
@@ -70,15 +72,18 @@ export async function GET() {
     const hasLicense     = docs.some((d: any) => d.docType === 'LICENSE')
     const licenseReady   = docs.some((d: any) => d.docType === 'LICENSE'      && d.isProcessed)
     const hasCredentials = docs.some((d: any) => d.docType === 'CREDENTIAL')
-    const hasSelfie      = docs.some((d: any) => d.docType === 'SELFIE'       && d.isProcessed)
-    const hasIdDoc       = docs.some((d: any) => d.docType === 'ID_DOCUMENT'  && d.isProcessed)
+    const hasDataflow    = docs.some((d: any) => d.docType === 'DATAFLOW')
+    const hasSelfie      = docs.some((d: any) => d.docType === 'SELFIE')
+    const hasIdDoc       = docs.some((d: any) => d.docType === 'ID_DOCUMENT')
     const faceResult     = session.faceVerifications?.[0] ?? null
+    const uploadStage    = computeUploadStage(docs, session.currentState)
 
     return ok({
       sessionId:          session.id,
       verificationStatus: session.currentState,
       pipelinePhase:      mapPipelinePhase(session.currentState, licenseReady),
       currentStage:       mapStateToStage(session.currentState),
+      uploadStage,
       licenseExpiryDate:  session.licenseExpiryDate,
       rejectionReason:    session.rejectionReason,
       startedAt:          session.startedAt,
@@ -86,8 +91,12 @@ export async function GET() {
 
       // خطوات الإكمال
       steps: {
+        degreeUploaded:      hasCredentials,
         licenseUploaded:     hasLicense,
         licenseProcessed:    licenseReady,
+        dataflowUploaded:    hasDataflow,
+        identityUploaded:    hasIdDoc,
+        selfieUploaded:      hasSelfie,
         credentialsUploaded: hasCredentials,
         faceVerified:        hasSelfie && hasIdDoc,
         submitted:           ['PENDING_HUMAN', 'ADMIN_REVIEW', 'APPROVED', 'REJECTED'].includes(session.currentState),
@@ -114,6 +123,8 @@ export async function GET() {
       documents: docs.map((d: any) => ({
         id:          d.id,
         docType:     d.docType,
+        subType:     d.subType,
+        legalName:   d.legalName,
         isProcessed: d.isProcessed,
         isFlagged:   d.isFlagged,
         flagReason:  d.flagReason,

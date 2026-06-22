@@ -6,13 +6,20 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession }  from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Navbar from '@/components/common/Navbar'
+import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 const RISK_COLORS: Record<string, string> = {
   HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#10b981',
 }
 const DOC_LABELS: Record<string, string> = {
-  LICENSE: '📋 رخصة المزاولة', CREDENTIAL: '🎓 شهادة علمية',
-  SELFIE: '🤳 صورة شخصية', ID_DOCUMENT: '🪪 وثيقة هوية',
+  CREDENTIAL:  '🎓 الشهادة الجامعية',
+  LICENSE:     '📋 شهادة مزاولة المهنة',
+  DATAFLOW:    '📊 نتيجة Dataflow',
+  ID_DOCUMENT: '🪪 الهوية',
+  SELFIE:      '🤳 صورة سيلفي',
+}
+const DEGREE_LABELS: Record<string, string> = {
+  BACHELOR: 'بكالوريوس', MASTER: 'ماجستير', FELLOWSHIP: 'زمالة',
 }
 
 export default function VerificationDetailPage() {
@@ -69,13 +76,13 @@ export default function VerificationDetailPage() {
   }
 
   if (status === 'loading' || loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{background:'#080c14'}}>
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
     </div>
   )
 
   if (!data) return (
-    <div className="min-h-screen flex items-center justify-center" style={{background:'#080c14'}}>
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="text-center">
         <div className="text-4xl mb-3">😕</div>
         <p className="text-slate-400">الجلسة غير موجودة</p>
@@ -87,16 +94,18 @@ export default function VerificationDetailPage() {
   const canDecide = data.currentState === 'PENDING_HUMAN' || data.currentState === 'ADMIN_REVIEW'
 
   return (
-    <div className="min-h-screen" style={{background:'#080c14'}} dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <button onClick={() => router.back()} className="text-slate-400 hover:text-white transition-colors text-sm">
-            → رجوع
-          </button>
-          <div className="h-4 w-px bg-white/10" />
+        <DashboardBreadcrumb
+          items={[
+            { label: 'التحقق المتقدم (v2)', href: '/admin/verification-v2' },
+            { label: data.doctor?.name ?? 'مراجعة الطلب' },
+          ]}
+        />
+        <div className="flex items-center gap-3 mt-4">
           <h1 className="text-xl font-bold text-white">مراجعة طلب التحقق</h1>
           <span className="text-slate-500 text-sm font-mono">{sessionId.slice(0, 8)}...</span>
         </div>
@@ -204,22 +213,37 @@ export default function VerificationDetailPage() {
           <h2 className="text-white font-semibold mb-3">📁 الوثائق المرفوعة ({data.documents?.length})</h2>
           <div className="grid grid-cols-2 gap-2">
             {data.documents?.map((doc: any) => (
-              <div key={doc.id} className="rounded-xl p-3 flex items-center gap-2"
+              <div key={doc.id} className="rounded-xl p-3 flex items-center justify-between gap-2"
                 style={{
                   background: doc.isFlagged ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)',
                   border: `1px solid ${doc.isFlagged ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`,
                 }}>
-                <span className="text-lg">{DOC_LABELS[doc.docType]?.split(' ')[0] ?? '📄'}</span>
-                <div>
-                  <p className="text-slate-200 text-sm">{DOC_LABELS[doc.docType]?.split(' ').slice(1).join(' ') ?? doc.docType}</p>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className={`text-xs ${doc.isProcessed ? 'text-emerald-400' : 'text-amber-400'}`}>
-                      {doc.isProcessed ? '✅ معالج' : '⏳ معالجة'}
-                    </span>
-                    <span className="text-slate-600 text-xs">{doc.sizeKb} KB</span>
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-lg">{DOC_LABELS[doc.docType]?.split(' ')[0] ?? '📄'}</span>
+                  <div className="min-w-0">
+                    <p className="text-slate-200 text-sm">{DOC_LABELS[doc.docType]?.split(' ').slice(1).join(' ') ?? doc.docType}</p>
+                    {(doc.subType || doc.legalName) && (
+                      <p className="text-slate-500 text-xs mt-0.5 truncate">
+                        {doc.subType ? DEGREE_LABELS[doc.subType] ?? doc.subType : ''}
+                        {doc.subType && doc.legalName ? ' · ' : ''}
+                        {doc.legalName ?? ''}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className={`text-xs ${doc.isProcessed ? 'text-accent' : 'text-amber-400'}`}>
+                        {doc.isProcessed ? '✅ معالج' : '⏳ معالجة'}
+                      </span>
+                      <span className="text-slate-600 text-xs">{doc.sizeKb} KB</span>
+                    </div>
+                    {doc.isFlagged && <p className="text-red-400 text-xs mt-0.5">{doc.flagReason}</p>}
                   </div>
-                  {doc.isFlagged && <p className="text-red-400 text-xs mt-0.5">{doc.flagReason}</p>}
                 </div>
+                {doc.url && (
+                  <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                    className="shrink-0 px-3 py-1.5 rounded-lg text-xs text-blue-400 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20">
+                    عرض ↗
+                  </a>
+                )}
               </div>
             ))}
           </div>

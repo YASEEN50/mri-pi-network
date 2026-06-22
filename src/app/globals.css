@@ -2,39 +2,71 @@
 @tailwind components;
 @tailwind utilities;
 
-/* RTL/LTR logical properties support */
 @layer base {
   :root {
     --font-cairo: 'Cairo', sans-serif;
     --font-inter: 'Inter', sans-serif;
+
+    --color-primary: #0A66C2;
+    --color-secondary: #1A365D;
+    --color-accent: #00D4FF;
+    --color-success: #22C55E;
+    --color-warning: #F59E0B;
+    --color-danger: #EF4444;
+    --color-bg: #0A0F1E;
+    --color-surface: #111827;
+    --color-border: rgba(255, 255, 255, 0.08);
   }
 
-  html[dir="rtl"] {
-    font-family: var(--font-cairo), sans-serif;
+  html[dir="rtl"] { font-family: var(--font-cairo), sans-serif; }
+  html[dir="ltr"] { font-family: var(--font-inter), sans-serif; }
+
+  body {
+    background-color: var(--color-bg);
+    color: #f8fafc;
   }
 
-  html[dir="ltr"] {
-    font-family: var(--font-inter), sans-serif;
-  }
-
-  /* Custom scrollbar */
   ::-webkit-scrollbar        { width: 6px; height: 6px; }
   ::-webkit-scrollbar-track  { background: transparent; }
-  ::-webkit-scrollbar-thumb  { background: rgba(255,255,255,0.1); border-radius: 3px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+  ::-webkit-scrollbar-thumb  { background: rgba(10, 102, 194, 0.25); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(0, 212, 255, 0.35); }
 
-  /* Input autofill dark mode fix */
   input:-webkit-autofill,
   input:-webkit-autofill:hover,
   input:-webkit-autofill:focus {
     -webkit-text-fill-color: white;
-    -webkit-box-shadow: 0 0 0px 1000px rgba(255,255,255,0.05) inset;
+    -webkit-box-shadow: 0 0 0px 1000px rgba(17, 24, 39, 0.9) inset;
     transition: background-color 5000s ease-in-out 0s;
   }
 }
 
+@layer components {
+  .mpi-grid-bg {
+    background-image:
+      linear-gradient(rgba(10, 102, 194, 0.04) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(10, 102, 194, 0.04) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  .mpi-hero-glow {
+    background: radial-gradient(ellipse 80% 50% at 50% -10%, rgba(10, 102, 194, 0.22), transparent),
+                radial-gradient(ellipse 50% 40% at 80% 20%, rgba(0, 212, 255, 0.08), transparent);
+  }
+
+  .mpi-gradient-text {
+    @apply bg-gradient-to-r from-accent to-primary bg-clip-text text-transparent;
+  }
+
+  .mpi-card {
+    @apply bg-surface-card border border-white/[0.08] rounded-2xl backdrop-blur-sm;
+  }
+
+  .mpi-card-hover {
+    @apply mpi-card transition-all duration-300 hover:border-primary/30 hover:shadow-card-hover hover:-translate-y-0.5;
+  }
+}
+
 @layer utilities {
-  /* Logical RTL/LTR utilities (already in Tailwind v3, just making sure) */
   .start-0  { inset-inline-start: 0; }
   .end-0    { inset-inline-end: 0; }
   .ms-auto  { margin-inline-start: auto; }

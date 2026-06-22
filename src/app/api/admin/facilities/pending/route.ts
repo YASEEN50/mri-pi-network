@@ -4,6 +4,12 @@ import { Role, ApprovalStatus } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
+import { resolveStoredDocUrl } from '@/lib/storage/local-file-url'
+
+const PENDING_WHERE = {
+  approvalStatus: { in: [ApprovalStatus.PENDING, ApprovalStatus.DOCUMENTS_REVIEW] as ApprovalStatus[] },
+  deletedAt: null,
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -16,7 +22,7 @@ export async function GET(req: NextRequest) {
 
     const [facilities, total] = await Promise.all([
       prisma.facilityProfile.findMany({
-        where: { approvalStatus: ApprovalStatus.PENDING, deletedAt: null },
+        where: PENDING_WHERE,
         skip,
         take: limit,
         orderBy: { createdAt: 'asc' },
@@ -28,17 +34,17 @@ export async function GET(req: NextRequest) {
           approvalStatus: true,
           city: true,
           phone: true,
+          licenseDocUrl: true,
+          ownershipDocUrl: true,
           createdAt: true,
           user: { select: { email: true } },
         },
       }),
-      prisma.facilityProfile.count({
-        where: { approvalStatus: ApprovalStatus.PENDING, deletedAt: null },
-      }),
+      prisma.facilityProfile.count({ where: PENDING_WHERE }),
     ])
 
     return ok(
-      facilities.map((f: any) => ({
+      facilities.map(f => ({
         id: f.id,
         name: f.name,
         type: f.type,
@@ -48,8 +54,10 @@ export async function GET(req: NextRequest) {
         phone: f.phone,
         email: f.user.email,
         createdAt: f.createdAt,
+        hasOwnershipDoc: Boolean(resolveStoredDocUrl(f.ownershipDocUrl)),
+        hasLicenseDoc: Boolean(resolveStoredDocUrl(f.licenseDocUrl)),
       })),
-      { total, page, limit }
+      { total, page, limit },
     )
   } catch (err) {
     console.error('[GET /api/admin/facilities/pending]', err)

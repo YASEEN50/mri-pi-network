@@ -28,9 +28,11 @@ export default withAuth(
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
 
-    // ── OWNER يذهب لـ /owner مباشرة إذا حاول الوصول لـ /dashboard ──
+    // ── OWNER: /dashboard/admin مسموح — باقي /dashboard يُوجّه لـ /owner ──
     if (pathname.startsWith('/dashboard') && role === Role.OWNER) {
-      return NextResponse.redirect(new URL('/owner', req.url))
+      if (!pathname.startsWith('/dashboard/admin')) {
+        return NextResponse.redirect(new URL('/owner', req.url))
+      }
     }
 
     // ── الملف الشخصي غير مكتمل ──────────────────────────────
@@ -56,7 +58,8 @@ export default withAuth(
     // ── FACILITY ───────────────────────────────────────────
     if (pathname.startsWith('/facility') || pathname.startsWith('/dashboard/facility')) {
       if (role !== Role.FACILITY) return NextResponse.redirect(new URL('/unauthorized', req.url))
-      if (approvalStatus !== ApprovalStatus.APPROVED && !pathname.startsWith('/facility/pending')) {
+      const facilityPendingOk = pathname.startsWith('/facility/pending') || pathname.startsWith('/facility/verify')
+      if (approvalStatus !== ApprovalStatus.APPROVED && !facilityPendingOk) {
         return NextResponse.redirect(new URL('/facility/pending', req.url))
       }
     }

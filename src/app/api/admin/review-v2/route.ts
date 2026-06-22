@@ -184,8 +184,8 @@ export async function GET(req: NextRequest) {
         },
         documents: {
           select: {
-            id: true, docType: true, storageKey: true,
-            isProcessed: true, isFlagged: true, flagReason: true,
+            id: true, docType: true, subType: true, legalName: true,
+            storageKey: true, isProcessed: true, isFlagged: true, flagReason: true,
             mimeType: true, fileSizeBytes: true, createdAt: true,
           },
           orderBy: { createdAt: 'asc' },
@@ -276,7 +276,10 @@ export async function GET(req: NextRequest) {
       documents: session.documents.map((d: any) => ({
         id:          d.id,
         docType:     d.docType,
+        subType:     d.subType,
+        legalName:   d.legalName,
         storageKey:  d.storageKey,
+        url:         `/api/files/${d.storageKey.split('/').map(encodeURIComponent).join('/')}`,
         isProcessed: d.isProcessed,
         isFlagged:   d.isFlagged,
         flagReason:  d.flagReason,

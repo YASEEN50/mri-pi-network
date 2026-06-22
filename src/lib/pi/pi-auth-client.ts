@@ -3,13 +3,30 @@
 import { signIn } from 'next-auth/react'
 
 const PI_SCOPES = ['username'] as const
+export const PI_SKIP_AUTO_LOGIN_KEY = 'pi_skip_auto_login'
 
 function onIncompletePaymentFound(payment: unknown): void {
   console.warn('[Pi] Incomplete payment found:', payment)
 }
 
+/** Pi SDK is loaded on every page; require Pi Browser UA — not just window.Pi */
 export function isPiBrowser(): boolean {
-  return typeof window !== 'undefined' && typeof window.Pi !== 'undefined'
+  if (typeof window === 'undefined') return false
+  if (typeof window.Pi === 'undefined') return false
+  const ua = navigator.userAgent.toLowerCase()
+  return /pibrowser|pi browser|pinetwork/.test(ua)
+}
+
+export function markExplicitLogout(): void {
+  try { sessionStorage.setItem(PI_SKIP_AUTO_LOGIN_KEY, '1') } catch {}
+}
+
+export function clearExplicitLogout(): void {
+  try { sessionStorage.removeItem(PI_SKIP_AUTO_LOGIN_KEY) } catch {}
+}
+
+export function shouldSkipPiAutoLogin(): boolean {
+  try { return sessionStorage.getItem(PI_SKIP_AUTO_LOGIN_KEY) === '1' } catch { return false }
 }
 
 /** await Pi.init fully (Promise or sync) before authenticate */

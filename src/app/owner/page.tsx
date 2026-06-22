@@ -33,9 +33,9 @@ export default function OwnerDashboard() {
   }, [])
 
   if (status === 'loading' || loading) return (
-    <div className="min-h-screen flex items-center justify-center" style={{background:'#0a0d14'}}>
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="flex flex-col items-center gap-3">
-        <div className="animate-spin w-10 h-10 border-2 border-emerald-500 border-t-transparent rounded-full" />
+        <div className="animate-spin w-10 h-10 border-2 border-primary border-t-transparent rounded-full" />
         <p className="text-slate-500 text-sm">جاري تحميل لوحة التحكم...</p>
       </div>
     </div>
@@ -48,12 +48,12 @@ export default function OwnerDashboard() {
     ? Math.round(((stats.totalDoctors - stats.pendingDoctors) / stats.totalDoctors) * 100) : 0
 
   const statCards = [
-    { label: 'المستخدمون',     value: stats?.totalUsers ?? 0,             icon: '👥', clr: '#6366f1', sub: `${stats?.totalClients ?? 0} مريض` },
-    { label: 'الأطباء',        value: stats?.totalDoctors ?? 0,           icon: '👨‍⚕️', clr: '#10b981', sub: `${stats?.pendingDoctors ?? 0} معلق` },
-    { label: 'المنشآت',        value: stats?.totalFacilities ?? 0,        icon: '🏥', clr: '#3b82f6', sub: `${stats?.pendingFacilities ?? 0} معلق` },
-    { label: 'المواعيد',       value: stats?.totalAppointments ?? 0,      icon: '📅', clr: '#f59e0b', sub: `${completionRate}% مكتمل` },
-    { label: 'المكتملة',       value: stats?.completedAppointments ?? 0,  icon: '✅', clr: '#14b8a6', sub: 'موعد ناجح' },
-    { label: 'التقييمات',      value: stats?.totalReviews ?? 0,           icon: '⭐', clr: '#f97316', sub: 'تقييم مريض' },
+    { label: 'المستخدمون', value: stats?.totalUsers ?? 0,             icon: '👥', clr: '#6366f1', sub: `${stats?.totalClients ?? 0} مريض`, href: null },
+    { label: 'الأطباء',    value: stats?.totalDoctors ?? 0,           icon: '👨‍⚕️', clr: '#10b981', sub: `${stats?.pendingDoctors ?? 0} معلق`, href: '/dashboard/admin/pending' },
+    { label: 'المنشآت',    value: stats?.totalFacilities ?? 0,        icon: '🏥', clr: '#3b82f6', sub: `${stats?.pendingFacilities ?? 0} معلق`, href: '/dashboard/admin/pending' },
+    { label: 'المواعيد',   value: stats?.totalAppointments ?? 0,      icon: '📅', clr: '#f59e0b', sub: `${completionRate}% مكتمل`, href: null },
+    { label: 'المكتملة',   value: stats?.completedAppointments ?? 0,  icon: '✅', clr: '#14b8a6', sub: 'موعد ناجح', href: null },
+    { label: 'التقييمات',  value: stats?.totalReviews ?? 0,           icon: '⭐', clr: '#f97316', sub: 'تقييم مريض', href: null },
   ]
 
   const quickActions = [
@@ -62,7 +62,7 @@ export default function OwnerDashboard() {
     { href: '/owner/give-premio',       icon: '🎁', label: 'منح مجاني',        desc: 'مكافأة مستخدم',      clr: '#34d399' },
     { href: '/owner/assign-admin',      icon: '🛡️', label: 'المديرين',         desc: 'صلاحيات الفريق',     clr: '#60a5fa' },
     { href: '/dashboard/admin/pending', icon: '⏳', label: 'الطلبات',          desc: `${pendingTotal} معلق`, clr: '#fbbf24' },
-    { href: '/admin/verification',      icon: '🔍', label: 'التحقق',           desc: 'مراجعة الوثائق',     clr: '#f87171' },
+    { href: '/admin/verification-v2',      icon: '🔍', label: 'التحقق',           desc: 'مراجعة الوثائق',     clr: '#f87171' },
     { href: '/owner/risk-config',        icon: '⚡', label: 'محرك المخاطر',     desc: 'أوزان التحقق',        clr: '#f59e0b' },
     { href: '/admin',                   icon: '⚙️', label: 'الإدارة',          desc: 'لوحة الأدمن',        clr: '#818cf8' },
     { href: '/doctors',                 icon: '🩺', label: 'الأطباء',          desc: 'عرض وإدارة',         clr: '#2dd4bf' },
@@ -70,15 +70,14 @@ export default function OwnerDashboard() {
   ]
 
   return (
-    <div className="min-h-screen" style={{background:'#0a0d14'}} dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
-              style={{background:'rgba(16,185,129,0.12)',border:'1px solid rgba(16,185,129,0.25)'}}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl bg-primary/15 border border-primary/25">
               👑
             </div>
             <div>
@@ -86,25 +85,31 @@ export default function OwnerDashboard() {
               <p className="text-slate-400 text-sm">{session?.user?.email}</p>
             </div>
           </div>
-          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-mono"
-            style={{background:'rgba(16,185,129,0.08)',border:'1px solid rgba(16,185,129,0.15)',color:'#34d399'}}>
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse inline-block" />
+          <div className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-mono bg-primary/10 border border-primary/20 text-accent">
+            <span className="w-2 h-2 rounded-full bg-accent animate-pulse inline-block" />
             {time.toLocaleTimeString('ar-SA',{hour:'2-digit',minute:'2-digit',second:'2-digit'})}
           </div>
         </div>
 
         {/* إحصاء - 6 بطاقات */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
-          {statCards.map(c => (
-            <div key={c.label}
-              className="rounded-2xl p-4 transition-all hover:scale-[1.02] cursor-default"
-              style={{background:`${c.clr}12`,border:`1px solid ${c.clr}28`}}>
-              <div className="text-2xl mb-3">{c.icon}</div>
-              <p className="text-2xl font-bold text-white">{c.value.toLocaleString('ar-SA')}</p>
-              <p className="text-xs font-semibold mt-0.5 mb-1" style={{color:c.clr}}>{c.label}</p>
-              <p className="text-xs text-slate-500">{c.sub}</p>
-            </div>
-          ))}
+          {statCards.map(c => {
+            const inner = (
+              <>
+                <div className="text-2xl mb-3">{c.icon}</div>
+                <p className="text-2xl font-bold text-white">{c.value.toLocaleString('ar-SA')}</p>
+                <p className="text-xs font-semibold mt-0.5 mb-1" style={{color:c.clr}}>{c.label}</p>
+                <p className="text-xs text-slate-500">{c.sub}</p>
+              </>
+            )
+            const cls = `rounded-2xl p-4 transition-all hover:scale-[1.02] ${c.href ? 'cursor-pointer' : 'cursor-default'}`
+            const style = { background: `${c.clr}12`, border: `1px solid ${c.clr}28` }
+            return c.href ? (
+              <Link key={c.label} href={c.href} className={cls} style={style}>{inner}</Link>
+            ) : (
+              <div key={c.label} className={cls} style={style}>{inner}</div>
+            )
+          })}
         </div>
 
         {/* Progress Section */}
@@ -114,13 +119,12 @@ export default function OwnerDashboard() {
             { label:'الأطباء المعتمدون',   pct: doctorApprovalRate,   clr:'#6366f1', sub:`${(stats?.totalDoctors ?? 0) - (stats?.pendingDoctors ?? 0)} معتمد` },
             { label:'نشاط المنصة',         pct: Math.min(100, (stats?.totalAppointments ?? 0) / 5), clr:'#f59e0b', sub:'بناءً على المواعيد' },
           ].map(bar => (
-            <div key={bar.label} className="rounded-2xl p-5"
-              style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+            <div key={bar.label} className="rounded-2xl p-5 mpi-card">
               <div className="flex justify-between items-baseline mb-2">
                 <p className="text-slate-400 text-xs">{bar.label}</p>
                 <p className="text-white font-bold text-lg">{Math.round(bar.pct)}%</p>
               </div>
-              <div className="h-2 rounded-full mb-2" style={{background:'rgba(255,255,255,0.07)'}}>
+              <div className="h-2 rounded-full mb-2 bg-white/10">
                 <div className="h-full rounded-full transition-all duration-1000"
                   style={{width:`${Math.round(bar.pct)}%`,background:`linear-gradient(90deg,${bar.clr},${bar.clr}88)`}} />
               </div>
@@ -131,8 +135,7 @@ export default function OwnerDashboard() {
 
         {/* تنبيه الطلبات المعلقة */}
         {pendingTotal > 0 && (
-          <div className="rounded-2xl p-4 mb-6 flex items-center justify-between"
-            style={{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)'}}>
+          <div className="rounded-2xl p-4 mb-6 flex items-center justify-between bg-warning/10 border border-warning/20">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚠️</span>
               <div>
@@ -141,8 +144,7 @@ export default function OwnerDashboard() {
               </div>
             </div>
             <Link href="/dashboard/admin/pending"
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105"
-              style={{background:'rgba(245,158,11,0.25)',color:'#fbbf24',border:'1px solid rgba(245,158,11,0.3)'}}>
+              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 bg-warning/25 text-warning border border-warning/30">
               مراجعة الآن ←
             </Link>
           </div>
@@ -152,20 +154,19 @@ export default function OwnerDashboard() {
           {/* الإجراءات السريعة */}
           <div className="lg:col-span-2">
             <h2 className="text-white font-semibold mb-4 flex items-center gap-2 text-sm">
-              <span className="w-1 h-4 rounded-full bg-emerald-500 inline-block" />
+              <span className="w-1 h-4 rounded-full bg-primary inline-block" />
               الإجراءات السريعة
             </h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               {quickActions.map(a => (
                 <Link key={a.href} href={a.href}
-                  className="rounded-2xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.03] group"
-                  style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+                  className="rounded-2xl p-4 flex flex-col gap-3 transition-all hover:scale-[1.03] group mpi-card">
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center text-lg transition-all group-hover:scale-110"
                     style={{background:`${a.clr}15`,border:`1px solid ${a.clr}30`}}>
                     {a.icon}
                   </div>
                   <div>
-                    <p className="text-white text-sm font-medium group-hover:text-emerald-400 transition-colors">{a.label}</p>
+                    <p className="text-white text-sm font-medium group-hover:text-accent transition-colors">{a.label}</p>
                     <p className="text-slate-500 text-xs mt-0.5">{a.desc}</p>
                   </div>
                 </Link>
@@ -176,13 +177,12 @@ export default function OwnerDashboard() {
           {/* إدارة النظام */}
           <div>
             <h2 className="text-white font-semibold mb-4 flex items-center gap-2 text-sm">
-              <span className="w-1 h-4 rounded-full bg-blue-500 inline-block" />
+              <span className="w-1 h-4 rounded-full bg-primary inline-block" />
               إدارة النظام
             </h2>
-            <div className="rounded-2xl overflow-hidden"
-              style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+            <div className="rounded-2xl overflow-hidden mpi-card">
               {[
-                { href:'/admin/verification',      icon:'🔍', label:'التحقق من الأطباء',  badge: stats?.pendingDoctors ?? 0 },
+                { href:'/admin/verification-v2',   icon:'🔍', label:'التحقق من الأطباء',  badge: stats?.pendingDoctors ?? 0 },
                 { href:'/owner/moderation',        icon:'🔎', label:'مراقبة المحتوى',     badge: 0 },
                 { href:'/dashboard/admin/pending', icon:'⏳', label:'الطلبات المعلقة',    badge: pendingTotal },
                 { href:'/owner/assign-admin',      icon:'🛡️', label:'إدارة الفريق',       badge: 0 },
@@ -198,8 +198,7 @@ export default function OwnerDashboard() {
                   </div>
                   <div className="flex items-center gap-2">
                     {item.badge > 0 && (
-                      <span className="text-xs px-2 py-0.5 rounded-full"
-                        style={{background:'rgba(245,158,11,0.2)',color:'#fbbf24'}}>
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-warning/20 text-warning">
                         {item.badge}
                       </span>
                     )}

@@ -1,8 +1,8 @@
 'use client'
-import Navbar from '@/components/common/Navbar'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import OwnerSubpageLayout from '@/components/owner/OwnerSubpageLayout'
 
 interface PremioSettings {
   monthlyPrice: string
@@ -72,8 +72,8 @@ export default function PremioSettingsPage() {
   }
 
   if (isLoading) return (
-    <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-      <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full" />
+    <div className="min-h-screen bg-background flex items-center justify-center">
+      <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
     </div>
   )
 
@@ -84,12 +84,7 @@ export default function PremioSettingsPage() {
   ]
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">إعدادات البريميو 💎</h1>
-          <p className="text-slate-400 text-sm mt-1">تحكم بأسعار اشتراكات البريميو</p>
-        </div>
+    <OwnerSubpageLayout title="إعدادات البريميو 💎" subtitle="تحكم بأسعار اشتراكات البريميو">
 
         {message && (
           <div className={`mb-6 px-4 py-3 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
@@ -123,10 +118,9 @@ export default function PremioSettingsPage() {
         </div>
 
         <button onClick={handleSave} disabled={isSaving}
-          className="w-full mt-6 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white rounded-xl font-medium transition-all">
+          className="w-full mt-6 py-3 bg-primary hover:bg-primary-400 disabled:opacity-50 text-white rounded-xl font-medium transition-all shadow-glow-primary">
           {isSaving ? 'جاري الحفظ...' : 'حفظ الإعدادات'}
         </button>
-      </div>
-    </div>
+    </OwnerSubpageLayout>
   )
 }

@@ -34,8 +34,20 @@ npm run dev
 
 ## حسابات الاختبار
 
+بعد تشغيل `npm run db:seed` تُنشأ حسابات تطوير محلية. **لا تستخدمها في الإنتاج.**
 
-## الميزات الرئيسية
+| الدور | البريد الإلكتروني |
+|-------|-------------------|
+| Owner | `owner@medical-platform.com` |
+| Admin | `admin@medical-platform.com` |
+| Client | `client@test.com` |
+| Doctor (موثّق) | `doctor@test.com` |
+| Doctor (معلق) | `doctor.pending@test.com` |
+| Facility | `facility@test.com` |
+
+كلمات المرور الافتراضية للتطوير تُطبع في الطرفية عند تشغيل الـ seed (راجع `prisma/seed.ts` محلياً فقط).
+
+---
 
 ### استخراج نص الرخصة (Google Cloud Vision)
 

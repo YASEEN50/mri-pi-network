@@ -62,7 +62,11 @@ export default function FacilityPendingPage() {
                   </div>
                 </div>
               </div>
-              <Link href="/" className="inline-block mt-6 text-sm text-slate-400 hover:text-white transition-colors">
+              <Link href="/facility/verify"
+                className="inline-block mt-4 px-6 py-2.5 rounded-xl text-sm text-violet-400 border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 transition-all">
+                📄 رفع / تحديث المستندات
+              </Link>
+              <Link href="/" className="inline-block mt-4 mr-3 text-sm text-slate-400 hover:text-white transition-colors">
                 العودة للصفحة الرئيسية
               </Link>
             </>

@@ -103,18 +103,17 @@ export async function POST(req: NextRequest) {
     // ── 8. Get or create verification session ─────────────────────────────
     let session = await db.verificationSession.findFirst({
       where: { doctorId: doctor.id, isActive: true },
+      include: { documents: { where: { docType: 'CREDENTIAL' }, take: 1 } },
     }).catch(() => null)
 
-    if (!session) {
-      session = await db.verificationSession.create({
-        data: {
-          doctorId:     doctor.id,
-          userId,
-          currentState: 'UNVERIFIED',
-          isActive:     true,
-        },
-      })
-    } else if (session.currentState === 'PENDING_AI') {
+    if (!session?.documents?.length) {
+      return NextResponse.json(
+        { error: true, message: 'ارفع الشهادة الجامعية أولاً' },
+        { status: 400 },
+      )
+    }
+
+    if (session.currentState === 'PENDING_AI') {
       await db.verificationSession.update({
         where: { id: session.id },
         data:  { currentState: 'UNVERIFIED', updatedAt: new Date() },
@@ -139,6 +138,11 @@ export async function POST(req: NextRequest) {
         sha256Hash:    sha256,
         isProcessed:   false,
       },
+    })
+
+    await prisma.doctorProfile.update({
+      where: { id: doctor.id },
+      data:  { licenseImageUrl: `/api/files/${storageKey.split('/').map(encodeURIComponent).join('/')}` },
     })
 
     // ── 10. Enqueue OCR job ───────────────────────────────────────────────

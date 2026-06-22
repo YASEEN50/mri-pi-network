@@ -416,9 +416,10 @@ model FacilityProfile {
   logoUrl          String?
   coverUrl         String?
 
-  // License
+  // License & permits
   licenseNumber    String         @unique
-  licenseDocUrl    String
+  licenseDocUrl    String         // تصريح / ترخيص مزاولة رسمي
+  ownershipDocUrl  String?        // صك ملكية أو عقد إيجار
   licenseExpiryDate DateTime?
 
   // Approval
@@ -1198,7 +1199,10 @@ model VerificationDocument {
   sessionId     String
   doctorId      String
   docType       String
-  // LICENSE | CREDENTIAL | SELFIE | ID_DOCUMENT
+  // CREDENTIAL | LICENSE | DATAFLOW | SELFIE | ID_DOCUMENT
+  subType       String?  // BACHELOR | MASTER | FELLOWSHIP (للشهادة الجامعية)
+  legalName     String?  // الاسم كما في الشهادة / الهوية
+  title         String?  // وصف إضافي
 
   storageKey    String
   storageBucket String   @default("medical-verify")

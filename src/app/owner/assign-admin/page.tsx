@@ -1,11 +1,10 @@
 'use client'
-import Navbar from '@/components/common/Navbar'
 // src/app/owner/assign-admin/page.tsx
 
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import OwnerSubpageLayout from '@/components/owner/OwnerSubpageLayout'
 
 interface User { id: string; email: string | null; role: string; piUsername?: string | null; createdAt?: string }
 
@@ -106,15 +105,7 @@ export default function AssignAdminPage() {
   const currentSearchType = searchTypes.find(t => t.key === searchType)!
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/owner" className="text-slate-400 hover:text-white text-sm">← لوحة المالك</Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white">تعيين المديرين 🛡️</h1>
-            <p className="text-slate-400 text-sm mt-1">تعيين وإدارة مديري المنصة</p>
-          </div>
-        </div>
+    <OwnerSubpageLayout title="تعيين المديرين 🛡️" subtitle="تعيين وإدارة مديري المنصة">
 
         {message && (
           <div className={`mb-6 px-4 py-3 rounded-xl text-sm font-medium ${
@@ -240,7 +231,6 @@ export default function AssignAdminPage() {
             </button>
           </>
         )}
-      </div>
-    </div>
+    </OwnerSubpageLayout>
   )
 }

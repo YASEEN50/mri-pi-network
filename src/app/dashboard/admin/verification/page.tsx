@@ -3,7 +3,9 @@
 
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import Navbar from '@/components/common/Navbar'
+import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 type Tab = 'doctors' | 'facilities'
 
@@ -22,8 +24,9 @@ interface PendingFacility {
   name: string
   type: string
   licenseNumber: string
-  licenseDocUrl: string
   city: string
+  hasOwnershipDoc?: boolean
+  hasLicenseDoc?: boolean
 }
 
 export default function AdminVerificationPage() {
@@ -69,17 +72,18 @@ export default function AdminVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <div className="min-h-screen bg-background">
       <Navbar locale="ar" />
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-        <h1 className="text-2xl font-bold text-white mb-8">{t('verification' as any)}</h1>
+        <DashboardBreadcrumb items={[{ label: 'التحقق من الطلبات' }]} />
+        <h1 className="text-2xl font-bold text-white mb-8 mt-2">{t('verification' as any)}</h1>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8 p-1 bg-white/5 rounded-xl w-fit">
           {(['doctors', 'facilities'] as Tab[]).map((t_) => (
             <button key={t_} onClick={() => setTab(t_)}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${
-                tab === t_ ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:text-white'
+                tab === t_ ? 'bg-primary text-white' : 'text-slate-400 hover:text-white'
               }`}>
               {t_ === 'doctors' ? `👨‍⚕️ ${t('pending_doctors')} (${doctors.length})` : `🏥 ${t('pending_facilities')} (${facilities.length})`}
             </button>
@@ -88,7 +92,7 @@ export default function AdminVerificationPage() {
 
         {isLoading ? (
           <div className="flex justify-center py-20">
-            <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full" />
+            <div className="animate-spin w-8 h-8 border-2 border-primary border-t-transparent rounded-full" />
           </div>
         ) : tab === 'doctors' ? (
           <div className="space-y-4">
@@ -98,13 +102,13 @@ export default function AdminVerificationPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h3 className="font-bold text-white">{d.fullName}</h3>
-                    <p className="text-emerald-400 text-sm">{d.specialization}</p>
+                    <p className="text-accent text-sm">{d.specialization}</p>
                     <p className="text-slate-500 text-xs mt-1">رخصة: {d.licenseNumber} · {d.credentialsCount} شهادات</p>
                     {d.city && <p className="text-slate-500 text-xs">📍 {d.city}, {d.country}</p>}
                   </div>
                   <div className="flex gap-2 flex-shrink-0">
                     <button onClick={() => handleAction('doctor', d.id, 'approve')}
-                      className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 rounded-xl text-sm font-medium transition-all">
+                      className="px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-xl text-sm font-medium transition-all">
                       ✓ {t('approve')}
                     </button>
                     <button onClick={() => setRejectId(rejectId === d.id ? null : d.id)}
@@ -139,14 +143,17 @@ export default function AdminVerificationPage() {
                     <p className="text-teal-400 text-sm">{f.type}</p>
                     <p className="text-slate-500 text-xs mt-1">ترخيص: {f.licenseNumber}</p>
                     <p className="text-slate-500 text-xs">📍 {f.city}</p>
-                    <a href={f.licenseDocUrl} target="_blank" rel="noopener noreferrer"
-                      className="text-xs text-blue-400 hover:underline mt-1 inline-block">
-                      {t('view_documents')} →
-                    </a>
+                    <p className="text-slate-500 text-xs mt-1">
+                      {f.hasOwnershipDoc ? '✅ ملكية' : '⏳ ملكية'} · {f.hasLicenseDoc ? '✅ تصريح' : '⏳ تصريح'}
+                    </p>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                    <Link href={`/admin/facilities/${f.id}/verify`}
+                      className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-xl text-sm font-medium transition-all">
+                      📄 المستندات
+                    </Link>
                     <button onClick={() => handleAction('facility', f.id, 'approve')}
-                      className="px-4 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 rounded-xl text-sm font-medium transition-all">
+                      className="px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-xl text-sm font-medium transition-all">
                       ✓ {t('approve')}
                     </button>
                     <button onClick={() => setRejectId(rejectId === f.id ? null : f.id)}

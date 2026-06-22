@@ -27,7 +27,7 @@ export default function AdminDoctorsPage() {
 
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return }
-    if (session?.user?.role !== 'ADMIN') { router.push('/'); return }
+    if (session && !['ADMIN', 'OWNER'].includes(session.user.role)) { router.push('/'); return }
     if (session) loadDoctors()
   }, [session, status, filter, router])
 

@@ -5,7 +5,7 @@ import SettingsTab from '@/components/profile/SettingsTab'
 import DoctorVerificationPanel from '@/components/profile/DoctorVerificationPanel'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
 import Image from 'next/image'
@@ -49,6 +49,9 @@ export default function ProfilePage() {
   const [isLoading, setIsLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
+  const avatarInputRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [activeTab, setActiveTab] = useState<'info' | 'health' | 'settings' | 'verification'>(() => {
     if (typeof window !== 'undefined') {
@@ -72,6 +75,57 @@ export default function ProfilePage() {
       const data = await res.json()
       if (data.success && data.data) setProfile(data.data)
     } finally { setIsLoading(false) }
+  }
+
+  async function handleAvatarPick(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''
+
+    if (!file.type.startsWith('image/')) {
+      setMessage({ type: 'error', text: 'يُقبل فقط ملفات الصور' })
+      return
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      setMessage({ type: 'error', text: 'حجم الصورة يتجاوز 10MB' })
+      return
+    }
+
+    setAvatarUploading(true)
+    setMessage(null)
+
+    const localPreview = URL.createObjectURL(file)
+    setAvatarPreview(localPreview)
+
+    try {
+      let toUpload = file
+      try {
+        const { compressImageForUpload } = await import('@/lib/client/image-compress')
+        toUpload = await compressImageForUpload(file)
+      } catch { /* original */ }
+
+      const fd = new FormData()
+      fd.append('file', toUpload)
+
+      const res = await fetch('/api/profile/avatar', { method: 'POST', body: fd })
+      const data = await res.json()
+
+      if (!data.success || !data.data?.avatarUrl) {
+        setAvatarPreview(null)
+        setMessage({ type: 'error', text: data.message ?? data.error?.message ?? 'فشل رفع الصورة' })
+        return
+      }
+
+      setProfile(p => ({ ...p, avatarUrl: data.data.avatarUrl }))
+      setMessage({ type: 'success', text: 'تم تحديث الصورة الشخصية ✅' })
+    } catch {
+      setAvatarPreview(null)
+      setMessage({ type: 'error', text: 'حدث خطأ أثناء رفع الصورة' })
+    } finally {
+      setAvatarUploading(false)
+      URL.revokeObjectURL(localPreview)
+      setAvatarPreview(null)
+    }
   }
 
   async function handleSave() {
@@ -117,6 +171,8 @@ export default function ProfilePage() {
     : session.user.email ?? `@${session.user.piUsername}`
 
   const avatarLetter = (profile.firstName?.[0] ?? session.user.email?.[0] ?? 'U').toUpperCase()
+  const displayAvatar = avatarPreview ?? profile.avatarUrl
+  const canUploadAvatar = isClient || isDoctor
 
   return (
     <div className="min-h-screen bg-slate-950" dir="rtl">
@@ -129,12 +185,44 @@ export default function ProfilePage() {
 
             {/* Avatar */}
             <div className="relative">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-emerald-400/20 to-teal-500/20 border border-emerald-500/20 flex items-center justify-center text-3xl font-bold text-emerald-400 overflow-hidden">
-                {profile.avatarUrl
-                  ? <Image src={profile.avatarUrl} alt="avatar" width={80} height={80} unoptimized className="w-full h-full object-cover" />
+              <button
+                type="button"
+                disabled={!isEditing || !canUploadAvatar || avatarUploading}
+                onClick={() => isEditing && canUploadAvatar && avatarInputRef.current?.click()}
+                className={`w-20 h-20 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 border border-primary/25 flex items-center justify-center text-3xl font-bold text-accent overflow-hidden relative ${
+                  isEditing && canUploadAvatar ? 'cursor-pointer hover:ring-2 hover:ring-accent/40 transition-all' : 'cursor-default'
+                }`}
+              >
+                {displayAvatar
+                  ? <Image src={displayAvatar} alt="avatar" width={80} height={80} unoptimized className="w-full h-full object-cover" />
                   : avatarLetter
                 }
-              </div>
+                {avatarUploading && (
+                  <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+                    <div className="animate-spin w-6 h-6 border-2 border-accent border-t-transparent rounded-full" />
+                  </div>
+                )}
+              </button>
+              {isEditing && canUploadAvatar && (
+                <>
+                  <input
+                    ref={avatarInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    onChange={handleAvatarPick}
+                  />
+                  <button
+                    type="button"
+                    disabled={avatarUploading}
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-primary border-2 border-slate-950 flex items-center justify-center text-xs hover:bg-primary-400 transition-colors disabled:opacity-50"
+                    title="تغيير الصورة"
+                  >
+                    📷
+                  </button>
+                </>
+              )}
               {isClient && (
                 <div className={`absolute -bottom-1 -left-1 w-6 h-6 rounded-full border-2 border-slate-950 flex items-center justify-center text-xs ${currentHealthStatus.bg} border`}>
                   {currentHealthStatus.icon}
@@ -288,14 +376,21 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* رابط الصورة */}
-            {isEditing && (
-              <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
-                <h3 className="text-white font-semibold mb-3">الصورة الشخصية</h3>
-                <input value={profile.avatarUrl ?? ''} onChange={e => setProfile(p => ({ ...p, avatarUrl: e.target.value }))}
-                  placeholder="رابط الصورة (URL)..."
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50" />
-                <p className="text-slate-500 text-xs mt-2">أدخل رابط صورتك الشخصية</p>
+            {isEditing && canUploadAvatar && (
+              <div className="mpi-card rounded-2xl p-5">
+                <h3 className="text-white font-semibold mb-2">الصورة الشخصية</h3>
+                <p className="text-slate-400 text-sm mb-3">
+                  اضغط على الصورة أعلاه أو الزر 📷 لاختيار صورة من معرض الهاتف أو الجهاز.
+                </p>
+                <button
+                  type="button"
+                  disabled={avatarUploading}
+                  onClick={() => avatarInputRef.current?.click()}
+                  className="w-full py-3 rounded-xl border border-dashed border-white/20 text-slate-300 hover:border-accent/40 hover:text-accent transition-all text-sm disabled:opacity-50"
+                >
+                  {avatarUploading ? 'جاري رفع الصورة...' : '📁 اختيار صورة من المعرض'}
+                </button>
+                <p className="text-slate-500 text-xs mt-2">PNG أو JPG — حد أقصى 10MB</p>
               </div>
             )}
           </div>

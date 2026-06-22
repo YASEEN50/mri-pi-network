@@ -61,42 +61,32 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
   }
 
   return (
-    <div className="min-h-screen" style={{background:'#080c14'}} dir="rtl">
+    <div className="min-h-screen bg-background flex flex-col" dir="rtl">
       <Navbar locale={locale} />
 
       {/* Hero Banner */}
-      <div className="relative overflow-hidden" style={{background:'linear-gradient(135deg,#0f1a2e 0%,#0a1628 50%,#071020 100%)'}}>
-        <div className="absolute inset-0 opacity-30"
-          style={{backgroundImage:'radial-gradient(circle at 20% 50%, rgba(16,185,129,0.15) 0%, transparent 60%), radial-gradient(circle at 80% 20%, rgba(59,130,246,0.1) 0%, transparent 50%)'}}>
-        </div>
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 relative">
+      <div className="relative overflow-hidden mpi-hero-glow border-b border-white/5">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 py-12 relative animate-fade-in">
           <div className="flex flex-col sm:flex-row items-start gap-6">
-            {/* Avatar */}
             <div className="relative flex-shrink-0">
-              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl overflow-hidden flex items-center justify-center text-4xl font-bold"
-                style={{background:'linear-gradient(135deg,rgba(16,185,129,0.25),rgba(59,130,246,0.2))',border:'2px solid rgba(16,185,129,0.3)'}}>
+              <div className="w-28 h-28 sm:w-36 sm:h-36 rounded-3xl overflow-hidden flex items-center justify-center text-4xl font-bold bg-gradient-to-br from-primary/25 to-accent/15 border-2 border-primary/30">
                 {doctor.avatarUrl
                   ? <Image src={doctor.avatarUrl} alt={doctor.firstName} width={144} height={144} unoptimized className="w-full h-full object-cover" />
-                  : <span style={{color:'#34d399'}}>{initials}</span>
+                  : <span className="text-accent">{initials}</span>
                 }
               </div>
-              {/* شارة التحقق */}
-              <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm"
-                style={{background:'rgba(16,185,129,0.9)',border:'2px solid #080c14'}}>
+              <div className="absolute -bottom-2 -left-2 w-8 h-8 rounded-full flex items-center justify-center text-sm bg-success border-2 border-background">
                 ✓
               </div>
             </div>
 
-            {/* Info */}
             <div className="flex-1">
               <div className="flex flex-wrap items-center gap-2 mb-2">
-                <span className="text-xs px-2.5 py-1 rounded-full font-medium"
-                  style={{background:'rgba(16,185,129,0.15)',color:'#34d399',border:'1px solid rgba(16,185,129,0.3)'}}>
+                <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-success/15 text-success border border-success/30">
                   طبيب معتمد ✓
                 </span>
                 {doctor.piKycVerified && (
-                  <span className="text-xs px-2.5 py-1 rounded-full"
-                    style={{background:'rgba(139,92,246,0.15)',color:'#a78bfa',border:'1px solid rgba(139,92,246,0.3)'}}>
+                  <span className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/25">
                     🟣 Pi KYC
                   </span>
                 )}
@@ -105,7 +95,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
               <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">
                 د. {doctor.firstName} {doctor.lastName}
               </h1>
-              <p className="text-lg mb-0.5" style={{color:'#34d399'}}>{doctor.specialization}</p>
+              <p className="text-lg mb-0.5 text-accent">{doctor.specialization}</p>
               {doctor.subSpecialization && (
                 <p className="text-slate-400 text-sm mb-3">{doctor.subSpecialization}</p>
               )}
@@ -133,8 +123,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
               {doctor.languages.length > 0 && (
                 <div className="flex flex-wrap gap-2">
                   {doctor.languages.map((l: any) => (
-                    <span key={l} className="text-xs px-2.5 py-1 rounded-lg"
-                      style={{background:'rgba(255,255,255,0.06)',color:'#94a3b8',border:'1px solid rgba(255,255,255,0.1)'}}>
+                    <span key={l} className="text-xs px-2.5 py-1 rounded-lg bg-white/5 text-slate-400 border border-white/10">
                       🌐 {LANGUAGE_LABELS[l] ?? l}
                     </span>
                   ))}
@@ -144,10 +133,9 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
 
             {/* Fee Badge */}
             {fee && (
-              <div className="flex-shrink-0 text-center px-6 py-4 rounded-2xl hidden sm:block"
-                style={{background:'rgba(16,185,129,0.1)',border:'1px solid rgba(16,185,129,0.2)'}}>
+              <div className="flex-shrink-0 text-center px-6 py-4 rounded-2xl hidden sm:block bg-primary/10 border border-primary/25">
                 <p className="text-slate-400 text-xs mb-1">رسوم الاستشارة</p>
-                <p className="text-3xl font-bold" style={{color:'#34d399'}}>{fee}</p>
+                <p className="text-3xl font-bold text-accent">{fee}</p>
                 <p className="text-slate-400 text-xs mt-1">ريال سعودي</p>
               </div>
             )}
@@ -163,9 +151,9 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
 
             {/* نبذة */}
             {doctor.bio && (
-              <div className="rounded-2xl p-6" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+              <div className="rounded-2xl p-6 mpi-card">
                 <h2 className="text-white font-bold mb-3 flex items-center gap-2">
-                  <span className="w-1 h-5 rounded-full inline-block" style={{background:'#34d399'}}></span>
+                  <span className="w-1 h-5 rounded-full inline-block bg-accent"></span>
                   نبذة عن الطبيب
                 </h2>
                 <p className="text-slate-300 leading-relaxed text-sm">{doctor.bio}</p>
@@ -174,17 +162,16 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
 
             {/* أوقات العمل */}
             {doctor.availability.length > 0 && (
-              <div className="rounded-2xl p-6" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+              <div className="rounded-2xl p-6 mpi-card">
                 <h2 className="text-white font-bold mb-4 flex items-center gap-2">
-                  <span className="w-1 h-5 rounded-full inline-block" style={{background:'#3b82f6'}}></span>
+                  <span className="w-1 h-5 rounded-full inline-block bg-primary"></span>
                   أوقات العمل
                 </h2>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {doctor.availability.map((a: any) => (
-                    <div key={a.id} className="rounded-xl p-3 text-center"
-                      style={{background:'rgba(59,130,246,0.08)',border:'1px solid rgba(59,130,246,0.15)'}}>
+                    <div key={a.id} className="rounded-xl p-3 text-center bg-primary/10 border border-primary/20">
                       <p className="text-white text-sm font-medium mb-1">{DAY_LABELS[a.dayOfWeek]}</p>
-                      <p className="text-xs" style={{color:'#60a5fa'}}>{a.startTime} - {a.endTime}</p>
+                      <p className="text-xs text-accent">{a.startTime} - {a.endTime}</p>
                       <p className="text-slate-500 text-xs mt-0.5">{a.slotMinutes} دقيقة/موعد</p>
                     </div>
                   ))}
@@ -194,17 +181,15 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
 
             {/* المؤهلات العلمية */}
             {doctor.credentials.length > 0 && (
-              <div className="rounded-2xl p-6" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+              <div className="rounded-2xl p-6 mpi-card">
                 <h2 className="text-white font-bold mb-4 flex items-center gap-2">
-                  <span className="w-1 h-5 rounded-full inline-block" style={{background:'#f59e0b'}}></span>
+                  <span className="w-1 h-5 rounded-full inline-block bg-warning"></span>
                   المؤهلات والشهادات العلمية
                 </h2>
                 <div className="space-y-3">
                   {doctor.credentials.map((c: any) => (
-                    <div key={c.id} className="flex items-start gap-4 p-4 rounded-xl"
-                      style={{background:'rgba(245,158,11,0.05)',border:'1px solid rgba(245,158,11,0.12)'}}>
-                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0"
-                        style={{background:'rgba(245,158,11,0.15)'}}>
+                    <div key={c.id} className="flex items-start gap-4 p-4 rounded-xl bg-warning/5 border border-warning/15">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl flex-shrink-0 bg-warning/15">
                         🎓
                       </div>
                       <div className="flex-1">
@@ -214,8 +199,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                           <span className="text-slate-500 text-xs">📅 {c.year}</span>
                           <span className="text-slate-500 text-xs">🌍 {c.country}</span>
                           {c.isVerified && (
-                            <span className="text-xs px-2 py-0.5 rounded-full"
-                              style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>
+                            <span className="text-xs px-2 py-0.5 rounded-full bg-success/15 text-success">
                               ✓ موثّق
                             </span>
                           )}
@@ -229,19 +213,18 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
 
             {/* المنشورات الطبية */}
             {doctor.publications.length > 0 && (
-              <div className="rounded-2xl p-6" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+              <div className="rounded-2xl p-6 mpi-card">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-white font-bold flex items-center gap-2">
-                    <span className="w-1 h-5 rounded-full inline-block" style={{background:'#8b5cf6'}}></span>
+                    <span className="w-1 h-5 rounded-full inline-block bg-secondary"></span>
                     المنشورات الطبية
                   </h2>
-                  <Link href="/publications" className="text-xs" style={{color:'#a78bfa'}}>عرض الكل ←</Link>
+                  <Link href="/publications" className="text-xs text-secondary-300 hover:text-secondary-200">عرض الكل ←</Link>
                 </div>
                 <div className="space-y-3">
                   {doctor.publications.map((p: any) => (
                     <Link key={p.id} href={`/publications/${p.id}`}
-                      className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/5"
-                      style={{border:'1px solid rgba(255,255,255,0.06)'}}>
+                      className="flex items-center gap-3 p-3 rounded-xl transition-all hover:bg-white/5 border border-white/5">
                       <span className="text-xl flex-shrink-0">
                         {p.type === 'RESEARCH' ? '🔬' : p.type === 'CASE_STUDY' ? '📊' : '📝'}
                       </span>
@@ -257,22 +240,20 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
 
             {/* التقييمات */}
             {(doctor.reviews.length > 0 || doctor.totalReviews > 0) && (
-              <div className="rounded-2xl p-6" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+              <div className="rounded-2xl p-6 mpi-card">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-white font-bold flex items-center gap-2">
-                    <span className="w-1 h-5 rounded-full inline-block" style={{background:'#f59e0b'}}></span>
+                    <span className="w-1 h-5 rounded-full inline-block bg-warning"></span>
                     تقييمات المرضى
                   </h2>
-                  <Link href={`/doctors/${doctor.id}/reviews`} className="text-xs" style={{color:'#fbbf24'}}>
+                  <Link href={`/doctors/${doctor.id}/reviews`} className="text-xs text-warning hover:text-amber-300">
                     كل التقييمات ({doctor.totalReviews}) ←
                   </Link>
                 </div>
 
-                {/* ملخص التقييم */}
-                <div className="flex flex-col sm:flex-row gap-6 mb-6 p-5 rounded-2xl"
-                  style={{background:'rgba(245,158,11,0.05)',border:'1px solid rgba(245,158,11,0.1)'}}>
+                <div className="flex flex-col sm:flex-row gap-6 mb-6 p-5 rounded-2xl bg-warning/5 border border-warning/10">
                   <div className="text-center">
-                    <p className="text-5xl font-bold mb-1" style={{color:'#fbbf24'}}>{rating.toFixed(1)}</p>
+                    <p className="text-5xl font-bold mb-1 text-warning">{rating.toFixed(1)}</p>
                     <div className="flex justify-center mb-1">
                       {[1,2,3,4,5].map((s: any) => <span key={s}>{STAR(s <= Math.round(rating))}</span>)}
                     </div>
@@ -283,8 +264,8 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                       <div key={d.star} className="flex items-center gap-2">
                         <span className="text-slate-400 text-xs w-4">{d.star}</span>
                         <span className="text-amber-400 text-xs">★</span>
-                        <div className="flex-1 h-2 rounded-full overflow-hidden" style={{background:'rgba(255,255,255,0.08)'}}>
-                          <div className="h-full rounded-full" style={{width:`${d.pct}%`,background:'#fbbf24'}} />
+                        <div className="flex-1 h-2 rounded-full overflow-hidden bg-white/10">
+                          <div className="h-full rounded-full bg-warning" style={{width:`${d.pct}%`}} />
                         </div>
                         <span className="text-slate-500 text-xs w-6">{d.count}</span>
                       </div>
@@ -295,10 +276,9 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                 {/* قائمة التقييمات */}
                 <div className="space-y-4">
                   {doctor.reviews.map((r: any) => (
-                    <div key={r.id} className="pb-4 border-b last:border-0" style={{borderColor:'rgba(255,255,255,0.06)'}}>
+                    <div key={r.id} className="pb-4 border-b border-white/5 last:border-0">
                       <div className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0"
-                          style={{background:'rgba(16,185,129,0.15)',color:'#34d399'}}>
+                        <div className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 bg-success/15 text-success">
                           {r.client.clientProfile?.firstName?.[0] ?? 'م'}
                         </div>
                         <div className="flex-1">
@@ -331,14 +311,12 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
           <div className="lg:col-span-1 space-y-4">
 
             {/* بطاقة الحجز */}
-            <div className="rounded-2xl overflow-hidden"
-              style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)'}}>
-              {/* Header */}
-              <div className="p-5 border-b" style={{borderColor:'rgba(255,255,255,0.07)',background:'rgba(16,185,129,0.06)'}}>
+            <div id="booking" className="rounded-2xl overflow-hidden scroll-mt-24 mpi-card">
+              <div className="p-5 border-b border-white/5 bg-primary/10">
                 <h3 className="text-white font-bold text-lg mb-1">حجز موعد</h3>
                 {fee && (
                   <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-bold" style={{color:'#34d399'}}>{fee}</span>
+                    <span className="text-2xl font-bold text-accent">{fee}</span>
                     <span className="text-slate-400 text-sm">ريال</span>
                   </div>
                 )}
@@ -354,7 +332,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
             </div>
 
             {/* معلومات الاتصال */}
-            <div className="rounded-2xl p-5" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+            <div className="rounded-2xl p-5 mpi-card">
               <h3 className="text-white font-semibold mb-3 text-sm">معلومات التواصل</h3>
               <div className="space-y-2.5">
                 {doctor.city && (
@@ -377,7 +355,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
             </div>
 
             {/* إحصائيات سريعة */}
-            <div className="rounded-2xl p-5" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+            <div className="rounded-2xl p-5 mpi-card">
               <h3 className="text-white font-semibold mb-3 text-sm">إحصائيات</h3>
               <div className="grid grid-cols-2 gap-3">
                 {[
@@ -386,8 +364,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                   { label: 'التقييمات',       value: doctor.totalReviews,      icon: '⭐' },
                   { label: 'المنشورات',       value: doctor.publications.length, icon: '📝' },
                 ].map((s: any) => (
-                  <div key={s.label} className="rounded-xl p-3 text-center"
-                    style={{background:'rgba(255,255,255,0.04)'}}>
+                  <div key={s.label} className="rounded-xl p-3 text-center bg-white/5">
                     <span className="text-xl block mb-1">{s.icon}</span>
                     <p className="text-white font-bold text-lg">{s.value}</p>
                     <p className="text-slate-500 text-xs">{s.label}</p>

@@ -3,23 +3,90 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { Role } from '@prisma/client'
 import SearchBar from '@/components/common/SearchBar'
+import NotificationBell from '@/components/NotificationBell'
+import { performLogout } from '@/lib/auth-logout'
+import { cn } from '@/lib/cn'
 
 interface NavbarProps {
   locale: 'ar' | 'en'
 }
 
+function getDashboardLink(role?: Role) {
+  switch (role) {
+    case Role.OWNER:    return '/owner'
+    case Role.ADMIN:    return '/dashboard/admin/verification'
+    case Role.DOCTOR:   return '/dashboard/doctor/schedule'
+    case Role.FACILITY: return '/dashboard/facility/doctors'
+    case Role.CLIENT:   return '/dashboard/client/appointments'
+    default:            return '/dashboard'
+  }
+}
+
+function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: string) => string) {
+  if (!role || role === Role.CLIENT) {
+    return [
+      { href: '/',             label: t('nav.home') },
+      { href: '/doctors',      label: t('nav.doctors') },
+      { href: '/facilities',   label: t('nav.facilities') },
+      { href: '/publications', label: locale === 'ar' ? 'المنشورات' : 'Publications' },
+      { href: '/appointments', label: locale === 'ar' ? 'مواعيدي' : 'My Appointments' },
+    ]
+  }
+  if (role === Role.DOCTOR) {
+    return [
+      { href: '/dashboard/doctor/schedule', label: locale === 'ar' ? 'جدولي' : 'Schedule' },
+      { href: '/dashboard/doctor/chat',     label: locale === 'ar' ? 'المحادثات' : 'Chat' },
+      { href: '/doctors',                   label: t('nav.doctors') },
+    ]
+  }
+  if (role === Role.FACILITY) {
+    return [
+      { href: '/dashboard/facility/overview', label: locale === 'ar' ? 'لوحة المنشأة' : 'Overview' },
+      { href: '/dashboard/facility/doctors',  label: locale === 'ar' ? 'الأطباء' : 'Doctors' },
+      { href: '/facilities',                  label: t('nav.facilities') },
+    ]
+  }
+  if (role === Role.ADMIN || role === Role.OWNER) {
+    return [
+      { href: getDashboardLink(role),     label: role === Role.OWNER ? (locale === 'ar' ? 'لوحة المالك' : 'Owner') : (locale === 'ar' ? 'لوحة التحكم' : 'Dashboard') },
+      { href: '/dashboard/admin/pending', label: locale === 'ar' ? 'الطلبات المعلقة' : 'Pending' },
+      { href: '/admin/verification-v2',   label: 'التحقق v2' },
+    ]
+  }
+  return [
+    { href: '/',           label: t('nav.home') },
+    { href: '/doctors',    label: t('nav.doctors') },
+    { href: '/facilities', label: t('nav.facilities') },
+  ]
+}
+
 export default function Navbar({ locale }: NavbarProps) {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const t = useTranslations()
   const router = useRouter()
   const [menuOpen, setMenuOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const isRTL = locale === 'ar'
+  const role = session?.user?.role as Role | undefined
+  const [loggingOut, setLoggingOut] = useState(false)
+  const isLoggedIn = status === 'authenticated' && !!session
+  const navLinks = getRoleNavLinks(role, locale, t)
+
+  async function handleLogout() {
+    if (loggingOut) return
+    setLoggingOut(true)
+    setUserMenuOpen(false)
+    try {
+      await performLogout('/')
+    } catch {
+      setLoggingOut(false)
+    }
+  }
 
   async function switchLocale() {
     const next = locale === 'ar' ? 'en' : 'ar'
@@ -27,123 +94,93 @@ export default function Navbar({ locale }: NavbarProps) {
     router.refresh()
   }
 
-  function getDashboardLink() {
-    if (!session) return '/dashboard'
-    switch (session.user.role) {
-      case Role.OWNER:    return '/owner'
-      case Role.ADMIN:    return '/dashboard/admin/verification'
-      case Role.DOCTOR:   return '/dashboard/doctor/schedule'
-      case Role.FACILITY: return '/dashboard/facility/doctors'
-      default:            return '/dashboard/client/appointments'
-    }
-  }
-
   return (
-    <nav className="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-xl border-b border-white/5">
+    <nav className="sticky top-0 z-50 bg-background/85 backdrop-blur-xl border-b border-white/[0.06]">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
 
-          {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+          <Link href="/" className="flex items-center gap-2.5 flex-shrink-0 group">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center shadow-glow-primary group-hover:shadow-glow transition-shadow">
               <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
                   d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
-            <span className="font-bold text-white text-sm hidden sm:block">
-              {locale === 'ar' ? 'المنصة الطبية' : 'MedPlatform'}
-            </span>
+            <div className="hidden sm:block">
+              <span className="font-bold text-white text-base leading-tight block tracking-wide">MRI</span>
+              <span className="text-[10px] text-slate-400 leading-none">
+                {locale === 'ar' ? 'منصة طبية موثوقة' : 'Trusted Medical Platform'}
+              </span>
+            </div>
           </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {[
-              { href: '/',           label: t('nav.home') },
-              { href: '/doctors',    label: t('nav.doctors') },
-              { href: '/facilities', label: t('nav.facilities') },
-              { href: '/publications', label: 'المنشورات' },
-            ].map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5 transition-all"
-              >
+          <div className="hidden md:flex items-center gap-0.5">
+            {navLinks.map(link => (
+              <Link key={link.href} href={link.href}
+                className="px-3 py-2 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-primary/10 transition-all">
                 {link.label}
               </Link>
             ))}
           </div>
 
-          {/* Right side */}
-          <div className="flex items-center gap-2">
-            {/* Search */}
-            <div className="hidden md:block">
-              <SearchBar />
-            </div>
-            {/* Language switcher */}
-            <button
-              onClick={switchLocale}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-xs text-slate-300 hover:text-white transition-all"
-            >
-              <span className="text-base">{locale === 'ar' ? '🇸🇦' : '🇺🇸'}</span>
-              <span className="hidden sm:block font-medium">{locale === 'ar' ? 'EN' : 'عر'}</span>
+          <div className="flex items-center gap-1.5">
+            <div className="hidden md:block"><SearchBar /></div>
+            {isLoggedIn && <div className="hidden sm:block"><NotificationBell /></div>}
+
+            <button onClick={switchLocale}
+              className="flex items-center px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-primary/10 border border-white/10 text-xs text-slate-400 hover:text-white transition-all">
+              {locale === 'ar' ? '🇺🇸 EN' : '🇸🇦 عر'}
             </button>
 
-            {session ? (
+            {isLoggedIn ? (
               <div className="relative">
-                <button
-                  onClick={() => setUserMenuOpen(!userMenuOpen)}
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 transition-all"
-                >
-                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center text-xs font-bold text-white">
+                <button onClick={() => setUserMenuOpen(!userMenuOpen)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-white/5 hover:bg-primary/10 border border-white/10 transition-all">
+                  <div className="w-7 h-7 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-xs font-bold text-white">
                     {session.user.email?.[0]?.toUpperCase() ?? session.user.piUsername?.[0]?.toUpperCase() ?? 'U'}
                   </div>
-                  <span className="text-xs text-slate-300 hidden sm:block max-w-[100px] truncate">
-                    {session.user.email ?? `@${session.user.piUsername}`}
-                  </span>
-                  <svg className={`w-3 h-3 text-slate-400 transition-transform ${userMenuOpen ? 'rotate-180' : ''}`}
+                  <svg className={cn('w-3 h-3 text-slate-500 transition-transform hidden lg:block', userMenuOpen && 'rotate-180')}
                     fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                   </svg>
                 </button>
 
                 {userMenuOpen && (
-                  <div className={`absolute top-full mt-2 w-48 bg-slate-800 border border-white/10 rounded-xl shadow-2xl overflow-hidden ${isRTL ? 'left-0' : 'right-0'}`}>
-                    <div className="px-3 py-2 border-b border-white/5">
-                      <p className="text-xs text-slate-400">{t('nav.dashboard')}</p>
-                      <p className="text-xs font-medium text-emerald-400 mt-0.5 capitalize">{session.user.role.toLowerCase()}</p>
+                  <div className={cn(
+                    'absolute top-full mt-2 w-52 bg-surface-elevated border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50',
+                    isRTL ? 'left-0' : 'right-0',
+                  )}>
+                    <div className="px-3 py-2.5 border-b border-white/5">
+                      <p className="text-xs text-slate-500">{t('nav.dashboard')}</p>
+                      <p className="text-xs font-medium text-accent mt-0.5 capitalize">{session.user.role.toLowerCase()}</p>
                     </div>
-                    <Link href={getDashboardLink()} onClick={() => setUserMenuOpen(false)}
-                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-all">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-                      </svg>
-                      {t('nav.dashboard')}
+                    <Link href={getDashboardLink(role)} onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:bg-primary/10 hover:text-white transition-all">
+                      🏠 {t('nav.dashboard')}
                     </Link>
-                    <button onClick={() => signOut({ callbackUrl: '/' })}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-red-500/10 transition-all">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                      </svg>
-                      {t('nav.logout')}
+                    <Link href="/profile" onClick={() => setUserMenuOpen(false)}
+                      className="flex items-center gap-2 px-3 py-2.5 text-sm text-slate-300 hover:bg-primary/10 hover:text-white transition-all">
+                      👤 {locale === 'ar' ? 'الملف الشخصي' : 'Profile'}
+                    </Link>
+                    <button type="button" onClick={() => void handleLogout()} disabled={loggingOut}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 text-sm text-red-400 hover:bg-danger/10 transition-all disabled:opacity-50">
+                      🚪 {loggingOut ? (locale === 'ar' ? 'جاري الخروج...' : 'Signing out...') : t('nav.logout')}
                     </button>
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link href="/login"
-                  className="px-3 py-1.5 text-sm text-slate-300 hover:text-white transition-colors">
+              <div className="flex items-center gap-1.5">
+                <Link href="/login" className="px-3 py-1.5 text-sm text-slate-400 hover:text-white transition-colors hidden sm:block">
                   {t('nav.login')}
                 </Link>
                 <Link href="/register"
-                  className="px-3 py-1.5 text-sm bg-emerald-500 hover:bg-emerald-400 text-white rounded-lg font-medium transition-all shadow-lg shadow-emerald-500/20">
+                  className="px-3 py-1.5 text-sm bg-primary hover:bg-primary-400 text-white rounded-lg font-medium transition-all shadow-glow-primary">
                   {t('nav.register')}
                 </Link>
               </div>
             )}
 
-            {/* Mobile menu button */}
             <button onClick={() => setMenuOpen(!menuOpen)}
               className="md:hidden p-2 rounded-lg text-slate-400 hover:text-white hover:bg-white/5">
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,21 +192,16 @@ export default function Navbar({ locale }: NavbarProps) {
           </div>
         </div>
 
-        {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-white/5 py-3 space-y-1">
-            {[
-              { href: '/',           label: t('nav.home') },
-              { href: '/doctors',    label: t('nav.doctors') },
-              { href: '/facilities', label: t('nav.facilities') },
-              { href: '/publications', label: 'المنشورات' },
-            ].map((link) => (
-              <Link key={link.href} href={link.href}
-                onClick={() => setMenuOpen(false)}
-                className="block px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/5">
+          <div className="md:hidden border-t border-white/5 py-3 space-y-1 animate-fade-in">
+            {navLinks.map(link => (
+              <Link key={link.href} href={link.href} onClick={() => setMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm text-slate-400 hover:text-white hover:bg-primary/10">
                 {link.label}
               </Link>
             ))}
+            {isLoggedIn && <div className="px-3 pt-2 border-t border-white/5"><NotificationBell /></div>}
+            <div className="px-3 pt-2"><SearchBar variant="hero" /></div>
           </div>
         )}
       </div>

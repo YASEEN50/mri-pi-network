@@ -14,9 +14,14 @@ export async function GET(req: NextRequest) {
     const limit = Number(req.nextUrl.searchParams.get('limit') ?? 20)
     const skip  = (page - 1) * limit
 
+    const pendingDoctorWhere = {
+      approvalStatus: { in: [ApprovalStatus.PENDING, ApprovalStatus.DOCUMENTS_REVIEW] as ApprovalStatus[] },
+      deletedAt: null,
+    }
+
     const [doctors, total] = await Promise.all([
       prisma.doctorProfile.findMany({
-        where: { approvalStatus: ApprovalStatus.PENDING, deletedAt: null },
+        where: pendingDoctorWhere,
         skip,
         take: limit,
         orderBy: { createdAt: 'asc' },
@@ -33,9 +38,7 @@ export async function GET(req: NextRequest) {
           user: { select: { email: true } },
         },
       }),
-      prisma.doctorProfile.count({
-        where: { approvalStatus: ApprovalStatus.PENDING, deletedAt: null },
-      }),
+      prisma.doctorProfile.count({ where: pendingDoctorWhere }),
     ])
 
     return ok(

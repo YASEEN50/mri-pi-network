@@ -1,9 +1,8 @@
 'use client'
-import Navbar from '@/components/common/Navbar'
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
+import OwnerSubpageLayout from '@/components/owner/OwnerSubpageLayout'
 
 interface User { id: string; email: string; role: string; premios: any[] }
 
@@ -66,15 +65,7 @@ export default function GivePremioPage() {
   const roleLabel = (role: string) => ({ DOCTOR: '👨‍⚕️ طبيب', FACILITY: '🏥 منشأة', CLIENT: '👤 عميل' }[role] ?? role)
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <div className="max-w-2xl mx-auto px-4 py-12">
-        <div className="flex items-center gap-4 mb-8">
-          <Link href="/owner" className="text-slate-400 hover:text-white text-sm">← لوحة المالك</Link>
-          <div>
-            <h1 className="text-2xl font-bold text-white">منح بريميو مجاني 🎁</h1>
-            <p className="text-slate-400 text-sm mt-1">امنح بريميو لأي مستخدم</p>
-          </div>
-        </div>
+    <OwnerSubpageLayout title="منح بريميو مجاني 🎁" subtitle="امنح بريميو لأي مستخدم">
 
         {message && (
           <div className={`mb-6 px-4 py-3 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
@@ -141,7 +132,6 @@ export default function GivePremioPage() {
             </button>
           </>
         )}
-      </div>
-    </div>
+    </OwnerSubpageLayout>
   )
 }

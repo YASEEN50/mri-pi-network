@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter }  from 'next/navigation'
 import Navbar from '@/components/common/Navbar'
+import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 interface SessionRow {
   sessionId:      string
@@ -67,11 +68,12 @@ export default function VerificationV2Page() {
   ]
 
   return (
-    <div className="min-h-screen" style={{background:'#080c14'}} dir="rtl">
+    <div className="min-h-screen bg-background" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-6xl mx-auto px-4 py-8">
+        <DashboardBreadcrumb items={[{ label: 'التحقق المتقدم (v2)' }]} />
 
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center justify-between mb-6 mt-2">
           <div>
             <h1 className="text-2xl font-bold text-white">مراجعة التحقق من الأطباء</h1>
             <p className="text-slate-400 text-sm mt-1">نظام v2 — مرتب حسب درجة المخاطرة</p>
@@ -145,11 +147,11 @@ export default function VerificationV2Page() {
                   {/* Status & Docs */}
                   <div className="text-left space-y-1.5">
                     <div className="flex items-center gap-2 justify-end">
-                      <span className={`text-xs px-2 py-0.5 rounded ${row.hasLicense ? 'text-emerald-400' : 'text-red-400'}`}
+                      <span className={`text-xs px-2 py-0.5 rounded ${row.hasLicense ? 'text-accent' : 'text-red-400'}`}
                         style={{background: row.hasLicense ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}}>
                         {row.hasLicense ? '✅' : '❌'} رخصة
                       </span>
-                      <span className={`text-xs px-2 py-0.5 rounded ${row.hasSelfie ? 'text-emerald-400' : 'text-red-400'}`}
+                      <span className={`text-xs px-2 py-0.5 rounded ${row.hasSelfie ? 'text-accent' : 'text-red-400'}`}
                         style={{background: row.hasSelfie ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)'}}>
                         {row.hasSelfie ? '✅' : '❌'} وجه
                       </span>

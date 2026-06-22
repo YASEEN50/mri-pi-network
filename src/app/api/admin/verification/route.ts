@@ -1,9 +1,31 @@
 // src/app/api/admin/verification/route.ts
+// قائمة مراجعة الأطباء — مصدر الحقيقة: VerificationSession (v2)
+//
+// DEPRECATED (v1): doctor_verifications + verification_queue — تُزامَن للتوافق فقط
+// وسيتم إهمالها لاحقاً. لا تُستخدم كمصدر للعرض في هذه الواجهة.
+
 import { NextRequest } from 'next/server'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
-import { prisma, db } from '@/lib/prisma'
+import { db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role } from '@prisma/client'
+
+/** تحويل فلتر الواجهة القديمة → حالات VerificationSession */
+function resolveSessionFilter(status: string): {
+  currentState: { in: string[] } | string
+  isActive?: boolean
+} {
+  switch (status) {
+    case 'IN_REVIEW':
+      return { currentState: 'ADMIN_REVIEW', isActive: true }
+    case 'COMPLETED':
+      return { currentState: { in: ['APPROVED', 'REJECTED'] }, isActive: false }
+    case 'WAITING':
+    default:
+      // PENDING_HUMAN فقط — بانتظار المراجعة البشرية
+      return { currentState: 'PENDING_HUMAN', isActive: true }
+  }
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -15,58 +37,87 @@ export async function GET(req: NextRequest) {
     const status = req.nextUrl.searchParams.get('status') ?? 'WAITING'
     const skip   = (page - 1) * limit
 
-    // القائمة القديمة — تُملأ عبر ensureLegacyHumanQueue من مسار v2
-    const [queue, total] = await Promise.all([
-      db.verificationQueue.findMany({
-        where:   { status: status as 'WAITING' | 'IN_REVIEW' | 'COMPLETED' },
+    const sessionFilter = resolveSessionFilter(status)
+
+    const [sessions, total] = await Promise.all([
+      db.verificationSession.findMany({
+        where: sessionFilter,
         skip,
-        take:    limit,
-        orderBy: [{ priority: 'asc' }, { createdAt: 'asc' }],
+        take:  limit,
+        orderBy: [
+          { score: { finalScore: 'asc' } },
+          { updatedAt: 'asc' },
+        ],
         include: {
-          verification: {
-            include: {
-              doctor: {
-                select: {
-                  firstName: true, lastName: true,
-                  specialization: true, city: true,
-                  user: { select: { email: true } },
-                },
-              },
-              certificates: {
-                orderBy: { createdAt: 'desc' },
-                take: 1,
-                select: {
-                  id: true, aiConfidence: true, nameMatchStatus: true,
-                  extractedName: true, extractedSpecialty: true, status: true,
-                },
-              },
+          doctor: {
+            select: {
+              firstName: true,
+              lastName: true,
+              specialization: true,
+              city: true,
+              user: { select: { email: true } },
             },
+          },
+          score: {
+            select: {
+              finalScore: true,
+              ocrConfidence: true,
+              faceMatchScore: true,
+              riskLevel: true,
+            },
+          },
+          faceVerifications: {
+            orderBy: { createdAt: 'desc' },
+            take: 1,
+            select: { matchScore: true, confidence: true },
           },
         },
       }),
-      db.verificationQueue.count({ where: { status: status as 'WAITING' | 'IN_REVIEW' | 'COMPLETED' } }),
+      db.verificationSession.count({ where: sessionFilter }),
     ])
 
-    console.log('[admin/verification] legacy queue', JSON.stringify({ status, count: queue.length, total }))
+    console.log('[admin/verification] v2 sessions', JSON.stringify({
+      status,
+      filter: sessionFilter,
+      count: sessions.length,
+      total,
+    }))
 
     return ok(
-      queue.map((q: any) => ({
-        queueId:         q.id,
-        priority:        q.priority,
-        assignedTo:      q.assignedTo,
-        queueStatus:     q.status,
-        createdAt:       q.createdAt,
-        verificationId:  q.verificationId,
-        verificationStatus: q.verification.verificationStatus,
-        overallConfidence: q.verification.overallConfidence,
-        faceMatchConfidence: q.verification.faceMatchConfidence,
-        doctorName:      `${q.verification.doctor.firstName} ${q.verification.doctor.lastName}`,
-        specialization:  q.verification.doctor.specialization,
-        city:            q.verification.doctor.city,
-        email:           q.verification.doctor.user.email,
-        certificate:     q.verification.certificates[0] ?? null,
-      })),
-      { total, page, limit }
+      sessions.map((s: any) => {
+        const face = s.faceVerifications?.[0]
+        const ocrConf = s.score?.ocrConfidence != null
+          ? Number(s.score.ocrConfidence)
+          : null
+        const faceConf = face?.matchScore != null
+          ? Number(face.matchScore)
+          : s.score?.faceMatchScore != null
+            ? Number(s.score.faceMatchScore)
+            : null
+        const riskScore = s.score?.finalScore != null ? Number(s.score.finalScore) : 50
+        const priority = riskScore <= 40 ? 3 : riskScore <= 70 ? 5 : 8
+
+        return {
+          queueId:             s.id,
+          sessionId:           s.id,
+          verificationId:      s.id,
+          priority,
+          queueStatus:         status,
+          createdAt:           s.startedAt,
+          verificationStatus:  s.currentState,
+          overallConfidence:   ocrConf,
+          faceMatchConfidence: faceConf,
+          doctorName:          `${s.doctor?.firstName ?? ''} ${s.doctor?.lastName ?? ''}`.trim(),
+          specialization:      s.doctor?.specialization,
+          city:                s.doctor?.city,
+          email:               s.doctor?.user?.email,
+          certificate: ocrConf != null
+            ? { aiConfidence: ocrConf, nameMatchStatus: 'PENDING' }
+            : null,
+          riskLevel: s.score?.riskLevel ?? null,
+        }
+      }),
+      { total, page, limit },
     )
   } catch (err) {
     console.error('[GET /api/admin/verification]', err)
