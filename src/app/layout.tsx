@@ -1,10 +1,10 @@
 // src/app/layout.tsx
 import type { Metadata } from 'next'
-import Script from 'next/script'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
 import { SessionProvider } from '@/components/common/SessionProvider'
 import { PiAuthProvider } from '@/components/auth/PiAuthProvider'
+import { PiSdkScript } from '@/components/auth/PiSdkScript'
 import './globals.css'
 
 import { Cairo, Inter } from 'next/font/google'
@@ -41,11 +41,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             </PiAuthProvider>
           </SessionProvider>
         </NextIntlClientProvider>
-        {/* Pi Network SDK */}
-        <Script
-          src="https://sdk.minepi.com/pi-sdk.js"
-          strategy="beforeInteractive"
-        />
+        <PiSdkScript />
       </body>
     </html>
   )

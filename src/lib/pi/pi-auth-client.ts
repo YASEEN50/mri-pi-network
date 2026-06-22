@@ -9,12 +9,12 @@ function onIncompletePaymentFound(payment: unknown): void {
   console.warn('[Pi] Incomplete payment found:', payment)
 }
 
-/** Pi SDK is loaded on every page; require Pi Browser UA — not just window.Pi */
+/** Pi SDK is loaded afterInteractive; require Pi Browser — not desktop Chrome with window.Pi stub */
 export function isPiBrowser(): boolean {
   if (typeof window === 'undefined') return false
   if (typeof window.Pi === 'undefined') return false
   const ua = navigator.userAgent.toLowerCase()
-  return /pibrowser|pi browser|pinetwork/.test(ua)
+  return /pibrowser|pi browser|pinetwork|minepi/.test(ua)
 }
 
 export function markExplicitLogout(): void {
@@ -29,18 +29,26 @@ export function shouldSkipPiAutoLogin(): boolean {
   try { return sessionStorage.getItem(PI_SKIP_AUTO_LOGIN_KEY) === '1' } catch { return false }
 }
 
+async function waitForPiSdk(timeoutMs = 8000): Promise<void> {
+  const started = Date.now()
+  while (!window.Pi) {
+    if (Date.now() - started > timeoutMs) {
+      throw new Error('PI_SDK_UNAVAILABLE')
+    }
+    await new Promise(r => setTimeout(r, 100))
+  }
+}
+
 /** await Pi.init fully (Promise or sync) before authenticate */
 export async function initPiSdk(): Promise<void> {
-  if (!window.Pi) {
-    throw new Error('PI_SDK_UNAVAILABLE')
-  }
+  await waitForPiSdk()
 
   const initConfig: { version: string; sandbox?: boolean } = {
     version: '2.0',
     sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
   }
 
-  const initResult = window.Pi.init(initConfig)
+  const initResult = window.Pi!.init(initConfig)
   await Promise.resolve(initResult)
 }
 
