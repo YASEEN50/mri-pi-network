@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import Navbar from '@/components/common/Navbar'
 import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
@@ -46,7 +47,14 @@ function DocumentPreview({ url, mimeType, label }: { url: string; mimeType?: str
     )
   }
   return (
-    <img src={url} alt={label} className="w-full max-h-96 object-contain rounded-xl border border-white/10 bg-black/20" />
+    <Image
+      src={url}
+      alt={label}
+      width={800}
+      height={384}
+      unoptimized
+      className="w-full max-h-96 object-contain rounded-xl border border-white/10 bg-black/20"
+    />
   )
 }
 
