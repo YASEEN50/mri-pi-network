@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <meta name="theme-color" content="#0f172a" />
+  <title>تسجيل الدخول — MRI</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Tahoma, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #1e293b;
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 20px;
+      padding: 32px 24px;
+      text-align: center;
+    }
+    h1 { font-size: 1.25rem; color: #fff; margin-bottom: 8px; }
+    p { font-size: 0.875rem; color: #94a3b8; margin-bottom: 20px; line-height: 1.5; }
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border-radius: 12px;
+      border: none;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      background: linear-gradient(135deg, #7c3aed, #6d28d9);
+      color: #fff;
+    }
+    .btn:disabled { opacity: 0.6; cursor: wait; }
+    .err { color: #f87171; font-size: 0.8rem; margin-top: 12px; min-height: 1.2em; }
+    .back { display: inline-block; margin-top: 16px; color: #94a3b8; font-size: 0.85rem; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>تسجيل الدخول بـ Pi</h1>
+    <p>اضغط الزر أدناه للمصادقة عبر Pi Network</p>
+    <button id="loginBtn" class="btn" type="button">π تسجيل الدخول</button>
+    <p id="err" class="err"></p>
+    <a class="back" href="/pi.html">← رجوع</a>
+  </div>
+  <script>
+    (function () {
+      var btn = document.getElementById('loginBtn')
+      var errEl = document.getElementById('err')
+
+      function showErr(msg) {
+        errEl.textContent = msg || ''
+      }
+
+      function getSandbox() {
+        return fetch('/api/pi-config', { cache: 'no-store' })
+          .then(function (r) { return r.json() })
+          .then(function (d) { return !!d.sandbox })
+          .catch(function () { return true })
+      }
+
+      btn.addEventListener('click', function () {
+        showErr('')
+        btn.disabled = true
+        btn.textContent = 'جاري التحقق...'
+
+        getSandbox().then(function (sandbox) {
+          if (!window.Pi) {
+            throw new Error('Pi SDK غير متوفر — افتح الصفحة من Pi Browser')
+          }
+          return window.Pi.init({ version: '2.0', sandbox: sandbox })
+        }).then(function () {
+          return window.Pi.authenticate(['username'], function () {})
+        }).then(function (auth) {
+          return fetch('/api/auth/csrf', { credentials: 'include' })
+            .then(function (r) { return r.json() })
+            .then(function (csrf) {
+              return fetch('/api/auth/callback/pi-network?json=true', {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: new URLSearchParams({
+                  csrfToken: csrf.csrfToken,
+                  accessToken: auth.accessToken,
+                  json: 'true',
+                }).toString(),
+              })
+            })
+        }).then(function (res) { return res.json() })
+          .then(function (data) {
+            if (data.error) {
+              throw new Error('فشل التحقق من حساب Pi')
+            }
+            window.location.href = data.url || '/dashboard'
+          })
+          .catch(function (e) {
+            showErr(e.message || 'حدث خطأ — حاول مرة أخرى')
+            btn.disabled = false
+            btn.textContent = 'π تسجيل الدخول'
+          })
+      })
+    })()
+  </script>
+</body>
+</html>

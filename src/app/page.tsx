@@ -10,6 +10,15 @@ import FacilityCard from '@/components/facilities/FacilityCard'
 import { prisma } from '@/lib/prisma'
 import { ApprovalStatus } from '@prisma/client'
 
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error('DB_TIMEOUT')), ms),
+    ),
+  ])
+}
+
 async function getFeaturedDoctors() {
   return prisma.doctorProfile.findMany({
     where: { approvalStatus: ApprovalStatus.APPROVED, deletedAt: null },
@@ -44,13 +53,12 @@ export default async function HomePage() {
   let stats = { doctors: 0, facilities: 0, appointments: 0 }
 
   try {
-    ;[doctors, facilities, stats] = await Promise.all([
-      getFeaturedDoctors(),
-      getFeaturedFacilities(),
-      getStats(),
-    ])
+    ;[doctors, facilities, stats] = await withTimeout(
+      Promise.all([getFeaturedDoctors(), getFeaturedFacilities(), getStats()]),
+      4000,
+    )
   } catch (e) {
-    console.error('[HomePage] DB error (Neon cold start?):', e)
+    console.error('[HomePage] DB error or timeout (Neon cold start?):', e)
   }
 
   return (

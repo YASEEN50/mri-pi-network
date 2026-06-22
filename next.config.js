@@ -30,6 +30,25 @@ const nextConfig = {
     ]
   },
 
+  // Pi Browser: lightweight static entry (Next.js bundle is heavy in Pi WebView)
+  async redirects() {
+    const piUa = '(?i).*(pibrowser|pi browser|pinetwork|minepi).*'
+    return [
+      {
+        source: '/',
+        has: [{ type: 'header', key: 'user-agent', value: piUa }],
+        destination: '/pi.html',
+        permanent: false,
+      },
+      {
+        source: '/login',
+        has: [{ type: 'header', key: 'user-agent', value: piUa }],
+        destination: '/pi-login.html',
+        permanent: false,
+      },
+    ]
+  },
+
   // التوجيه حسب الدور يتم في src/app/dashboard/page.tsx
 }
 
