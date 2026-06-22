@@ -4,7 +4,10 @@ import { useTranslations } from 'next-intl'
 import { useAppointments } from '@/hooks/useAppointments'
 import Navbar from '@/components/common/Navbar'
 import { useAuth } from '@/hooks/useAuth'
+import { useState } from 'react'
 import Link from 'next/link'
+import { payWithPi, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
+import { isPiBrowser } from '@/lib/pi/pi-auth-client'
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -21,7 +24,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export default function ClientAppointmentsPage() {
   const { user } = useAuth()
-  const { appointments, total, isLoading, cancelAppointment } = useAppointments()
+  const { appointments, total, isLoading, cancelAppointment, refetch } = useAppointments()
 
   if (isLoading) return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -81,6 +84,7 @@ export default function ClientAppointmentsPage() {
                     <AppointmentCard
                       key={apt.id}
                       apt={apt}
+                      onRefresh={refetch}
                       onCancel={async () => {
                         const reason = prompt('سبب الإلغاء:') ?? 'إلغاء من العميل'
                         await cancelAppointment(apt.id, reason)
@@ -100,7 +104,7 @@ export default function ClientAppointmentsPage() {
                 </h2>
                 <div className="space-y-3">
                   {completed.map(apt => (
-                    <AppointmentCard key={apt.id} apt={apt} showReview />
+                    <AppointmentCard key={apt.id} apt={apt} onRefresh={refetch} showReview />
                   ))}
                 </div>
               </section>
@@ -128,12 +132,48 @@ export default function ClientAppointmentsPage() {
 }
 
 function AppointmentCard({
-  apt, onCancel, showReview
+  apt, onCancel, showReview, onRefresh,
 }: {
   apt: any
   onCancel?: () => void
   showReview?: boolean
+  onRefresh?: () => void
 }) {
+  const [paying, setPaying] = useState(false)
+  const [payError, setPayError] = useState<string | null>(null)
+
+  async function handlePiPay() {
+    if (!apt.fee || apt.isPaid) return
+    if (!isPiBrowser()) {
+      setPayError('افتح الصفحة في Pi Browser للدفع بـ Pi')
+      return
+    }
+    setPaying(true)
+    setPayError(null)
+    try {
+      const paymentType = apt.isDepositPaid ? 'FULL' : 'FULL'
+      const amount = apt.isDepositPaid
+        ? Number(apt.fee) - Number(apt.depositAmount ?? 0)
+        : Number(apt.fee)
+      await payWithPi({
+        amount,
+        memo: `دفع موعد طبي`,
+        metadata: { purpose: 'APPOINTMENT', appointmentId: apt.id },
+        approvePayload: {
+          purpose:       'APPOINTMENT',
+          amount,
+          appointmentId: apt.id,
+          paymentType:   apt.isDepositPaid ? 'FULL' : paymentType,
+        },
+      })
+      onRefresh?.()
+    } catch (e) {
+      setPayError(piPaymentErrorMessage(e))
+    } finally {
+      setPaying(false)
+    }
+  }
+
   const date = new Date(apt.scheduledAt)
   return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
@@ -175,12 +215,19 @@ function AppointmentCard({
 
           {apt.fee && (
             <p className="text-emerald-400 text-xs mt-1">
-              الرسوم: {apt.fee} ر.س {apt.isPaid ? '✅ مدفوع' : '⏳ غير مدفوع'}
+              الرسوم: {apt.fee} π {apt.isPaid ? '✅ مدفوع' : '⏳ غير مدفوع'}
             </p>
           )}
+          {payError && <p className="text-red-400 text-xs mt-1">{payError}</p>}
         </div>
 
         <div className="flex flex-col gap-2 flex-shrink-0">
+          {!apt.isPaid && apt.fee && ['PENDING', 'CONFIRMED'].includes(apt.status) && (
+            <button onClick={handlePiPay} disabled={paying}
+              className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 rounded-lg text-xs transition-all disabled:opacity-50">
+              {paying ? 'جاري الدفع...' : '🟣 ادفع Pi'}
+            </button>
+          )}
           {onCancel && ['PENDING','CONFIRMED'].includes(apt.status) && (
             <button onClick={onCancel}
               className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg text-xs transition-all">

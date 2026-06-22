@@ -1,13 +1,14 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Navbar from '@/components/common/Navbar'
+import Link from 'next/link'
+import DoctorSubpageLayout from '@/components/doctor/DoctorSubpageLayout'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 
 const policies = [
-  { key: 'PAY_BEFORE_BOOKING', label: 'دفع كامل قبل الحجز', icon: '💳', description: 'يدفع المريض المبلغ كاملاً عند الحجز' },
-  { key: 'DEPOSIT_AND_PAY_LATER', label: 'إيداع مسبق + دفع لاحق', icon: '💰', description: 'يدفع المريض نسبة عند الحجز والباقي بعد الخدمة' },
-  { key: 'PAY_ON_SERVICE', label: 'دفع بعد الخدمة', icon: '🤝', description: 'يدفع المريض بعد انتهاء الموعد (افتراضي)' },
+  { key: 'PAY_BEFORE_BOOKING', label: 'دفع كامل قبل الحجز', icon: '💳', description: 'يدفع المريض المبلغ كاملاً بـ Pi عند الحجز' },
+  { key: 'DEPOSIT_AND_PAY_LATER', label: 'إيداع مسبق + دفع لاحق', icon: '💰', description: 'إيداع Pi عند الحجز والباقي بعد الخدمة' },
+  { key: 'PAY_ON_SERVICE', label: 'دفع بعد الخدمة', icon: '🤝', description: 'يدفع المريض بـ Pi بعد انتهاء الموعد (افتراضي)' },
 ]
 
 export default function DoctorPaymentSettingsPage() {
@@ -58,14 +59,15 @@ export default function DoctorPaymentSettingsPage() {
   )
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <Navbar locale="ar" />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">إعدادات الدفع 💳</h1>
-          <p className="text-slate-400 text-sm mt-1">حدد سياسة الدفع الخاصة بك</p>
+    <DoctorSubpageLayout title="إعدادات الدفع 💳" subtitle="سياسة الدفع — عملة Pi فقط">
+        <div className="mb-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/25">
+          <p className="text-purple-300 text-sm">
+            🟣 المنصة تقبل <strong>عملة Pi الرقمية فقط</strong>. رسوم الاستشارة تُعرض بالـ Pi ويُدفع عبر Pi Browser.
+          </p>
+          <p className="text-slate-400 text-xs mt-2">
+            يُخصم <strong className="text-warning">5%</strong> عمولة المنصة تلقائياً من كل مبلغ يتقاضاه الطبيب — يُضاف الباقي (95%) لرصيدك فوراً.
+          </p>
         </div>
-
         {message && (
           <div className={`mb-6 px-4 py-3 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
             {message.text}
@@ -116,11 +118,23 @@ export default function DoctorPaymentSettingsPage() {
           <p className="text-blue-400 text-sm">ℹ️ لا يمكن تغيير سياسة الدفع إذا كان لديك مواعيد قيد الانتظار</p>
         </div>
 
-        <button onClick={handleSave} disabled={isSaving}
-          className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all">
-          {isSaving ? 'جاري الحفظ...' : 'حفظ إعدادات الدفع'}
-        </button>
-      </div>
-    </div>
+        <div className="flex flex-col sm:flex-row gap-3">
+          <button onClick={handleSave} disabled={isSaving}
+            className="flex-1 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition-all">
+            {isSaving ? 'جاري الحفظ...' : 'حفظ إعدادات الدفع'}
+          </button>
+          <Link href="/dashboard/doctor/schedule"
+            className="flex-1 py-3 rounded-xl text-center font-medium text-sm border border-white/10 text-slate-300 hover:text-white hover:bg-white/5 transition-all">
+            ← العودة إلى جدول المواعيد
+          </Link>
+        </div>
+
+        {message?.type === 'success' && (
+          <Link href="/dashboard/doctor/schedule"
+            className="mt-4 block w-full py-3 rounded-xl text-center bg-primary hover:bg-primary-400 text-white font-semibold text-sm transition-all shadow-glow-primary">
+            متابعة إلى جدول المواعيد →
+          </Link>
+        )}
+    </DoctorSubpageLayout>
   )
 }

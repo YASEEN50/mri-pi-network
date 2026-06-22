@@ -4,7 +4,7 @@
 import { requireAuth }    from '@/infrastructure/auth/providers/role-guard'
 import { prisma, db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
-import { Role }           from '@prisma/client'
+import { Role, ApprovalStatus } from '@prisma/client'
 import { computeUploadStage } from '@/lib/verification/document-types'
 
 export async function GET() {
@@ -14,9 +14,41 @@ export async function GET() {
 
     const doctor = await prisma.doctorProfile.findUnique({
       where:  { userId: auth.context.userId },
-      select: { id: true },
+      select: { id: true, approvalStatus: true },
     })
     if (!doctor) return ok(null)
+
+    // اعتماد الملف الشخصي = موثق (حتى لو جلسة v2 غير نشطة)
+    if (doctor.approvalStatus === ApprovalStatus.APPROVED) {
+      return ok({
+        verificationStatus: 'APPROVED',
+        pipelinePhase:      'verified',
+        currentStage:       'COMPLETE',
+        uploadStage:        'submitted',
+        profileApproved:    true,
+        message:            'تم اعتماد حسابك',
+        documents:          [],
+        jobs:               [],
+        steps: {
+          degreeUploaded: true, licenseUploaded: true, licenseProcessed: true,
+          dataflowUploaded: true, identityUploaded: true, selfieUploaded: true,
+          credentialsUploaded: true, faceVerified: true, submitted: true,
+        },
+      })
+    }
+
+    if (doctor.approvalStatus === ApprovalStatus.REJECTED) {
+      return ok({
+        verificationStatus: 'REJECTED',
+        pipelinePhase:      'rejected',
+        currentStage:       'REJECTED',
+        uploadStage:        'submitted',
+        profileApproved:    false,
+        message:            'تم رفض طلبك',
+        documents:          [],
+        jobs:               [],
+      })
+    }
 
     // ── جلب الـ session النشطة مع كل تفاصيلها ────────────────────────
     const session = await db.verificationSession.findFirst({

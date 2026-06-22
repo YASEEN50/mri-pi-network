@@ -50,7 +50,9 @@ export default withAuth(
     // ── DOCTOR ─────────────────────────────────────────────
     if (pathname.startsWith('/doctor') || pathname.startsWith('/dashboard/doctor')) {
       if (role !== Role.DOCTOR) return NextResponse.redirect(new URL('/unauthorized', req.url))
-      if (approvalStatus !== ApprovalStatus.APPROVED && !pathname.startsWith('/doctor/pending')) {
+      const doctorPendingOk =
+        pathname.startsWith('/doctor/pending') || pathname.startsWith('/doctor/verify')
+      if (approvalStatus !== ApprovalStatus.APPROVED && !doctorPendingOk) {
         return NextResponse.redirect(new URL('/doctor/pending', req.url))
       }
     }

@@ -100,45 +100,9 @@ export interface ProcessPaymentResult {
 }
 
 export async function processPayment(input: ProcessPaymentInput): Promise<ProcessPaymentResult> {
-  const isSandbox = process.env.PI_SANDBOX === 'true'
-  const platformFee = input.amountTotal * 0.05
-  const receiverAmount = input.amountTotal - platformFee
-
-  try {
-    let txHash: string
-    if (isSandbox) {
-      const result = await piPaymentService.createPayment({
-        amount: input.amountTotal,
-        memo: input.memo,
-        metadata: { appointmentId: input.appointmentId, userId: input.userId, description: input.memo },
-        uid: input.userId,
-      })
-      txHash = `SIMULATED_${result.paymentId}`
-    } else {
-      txHash = `PI_PENDING_${Date.now()}`
-    }
-
-    const transaction = await prisma.transaction.create({
-      data: {
-        userId: input.userId,
-        doctorId: input.doctorId,
-        appointmentId: input.appointmentId,
-        type: input.type,
-        status: isSandbox ? 'COMPLETED' : 'PENDING',
-        amountTotal: input.amountTotal,
-        platformFee,
-        receiverAmount,
-        payerWallet: input.payerWallet,
-        receiverWallet: input.receiverWallet,
-        txHash,
-      },
-    })
-
-    return { success: true, transactionId: transaction.id, txHash }
-  } catch (err) {
-    console.error('[processPayment] Error:', err)
-    return { success: false, error: 'فشل في معالجة الدفع' }
-  }
+  // لا يُستخدم للتفعيل المباشر — الدفع عبر Pi SDK (approve + complete)
+  console.warn('[processPayment] deprecated direct call blocked', { type: input.type })
+  return { success: false, error: 'يجب الدفع عبر Pi Network' }
 }
 
 export async function completePayment(transactionId: string, txHash: string): Promise<boolean> {

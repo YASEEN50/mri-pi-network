@@ -1,8 +1,11 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Navbar from '@/components/common/Navbar'
+import Link from 'next/link'
+import DoctorSubpageLayout from '@/components/doctor/DoctorSubpageLayout'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { payWithPi, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
+import { isPiBrowser } from '@/lib/pi/pi-auth-client'
 
 interface PremioSettings { monthlyPrice: number; yearlyPrice: number; lifetimePrice: number; isMonthlyEnabled: boolean; isYearlyEnabled: boolean; isLifetimeEnabled: boolean }
 interface ActivePremio { type: string; status: string; expiryDate: string | null; startDate: string }
@@ -32,24 +35,38 @@ export default function DoctorPremioPage() {
   }
 
   async function handleSubscribe() {
-    if (!selectedPlan) return
+    if (!selectedPlan || !settings) return
+
+    let price = 0
+    let label = ''
+    if (selectedPlan === 'MONTHLY') { price = settings.monthlyPrice; label = 'شهري' }
+    else if (selectedPlan === 'YEARLY') { price = settings.yearlyPrice; label = 'سنوي' }
+    else if (selectedPlan === 'LIFETIME') { price = settings.lifetimePrice; label = 'مدى الحياة' }
+    else return
+
+    if (!isPiBrowser()) {
+      setMessage({ type: 'error', text: 'يجب فتح هذه الصفحة داخل Pi Browser للدفع بعملة Pi' })
+      return
+    }
+
     setIsPaying(true)
     setMessage(null)
     try {
-      const res = await fetch('/api/payment/premio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ planType: selectedPlan }),
+      await payWithPi({
+        amount: price,
+        memo:   `اشتراك بريميو ${label}`,
+        metadata: { purpose: 'PREMIO', planType: selectedPlan },
+        approvePayload: {
+          purpose:  'PREMIO',
+          amount:   price,
+          planType: selectedPlan as 'MONTHLY' | 'YEARLY' | 'LIFETIME',
+        },
       })
-      const data = await res.json()
-      if (data.success && !data.data?.error) {
-        setMessage({ type: 'success', text: data.data?.message || '💎 تم تفعيل البريميو بنجاح!' })
-        fetchData()
-      } else {
-        setMessage({ type: 'error', text: data.data?.message || 'حدث خطأ' })
-      }
-    } catch { setMessage({ type: 'error', text: 'حدث خطأ في الاتصال' }) }
-    finally { setIsPaying(false) }
+      setMessage({ type: 'success', text: '💎 تم الدفع وتفعيل البريميو بنجاح!' })
+      fetchData()
+    } catch (err) {
+      setMessage({ type: 'error', text: piPaymentErrorMessage(err) })
+    } finally { setIsPaying(false) }
   }
 
   const premioTypeLabel = (type: string) => ({ MONTHLY: 'شهري', YEARLY: 'سنوي', LIFETIME: 'مدى الحياة', FREE_GIFT: 'هدية مجانية 🎁' }[type] ?? type)
@@ -67,19 +84,18 @@ export default function DoctorPremioPage() {
   )
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <Navbar locale="ar" />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">البريميو 💎</h1>
-          <p className="text-slate-400 text-sm mt-1">ارقَ بتجربتك على المنصة</p>
-        </div>
-
+    <DoctorSubpageLayout title="البريميو 💎" subtitle="الدفع حصرياً بعملة Pi">
         {message && (
           <div className={`mb-6 px-4 py-3 rounded-xl text-sm font-medium ${message.type === 'success' ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border border-red-500/20 text-red-400'}`}>
             {message.text}
           </div>
         )}
+
+        <div className="mb-6 p-4 rounded-xl bg-purple-500/10 border border-purple-500/25">
+          <p className="text-purple-300 text-sm">
+            🟣 جميع المدفوعات على المنصة — بما فيها البريميو — تتم <strong>فقط</strong> بعملة <strong>Pi</strong> داخل Pi Browser.
+          </p>
+        </div>
 
         {activePremio && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-6">
@@ -122,7 +138,7 @@ export default function DoctorPremioPage() {
                         <p className="text-slate-400 text-xs mt-0.5">{plan.desc}</p>
                       </div>
                     </div>
-                    <p className="text-white font-bold">{plan.price} Pi</p>
+                    <p className="text-white font-bold">{plan.price} π</p>
                   </div>
                 </button>
               ))}
@@ -130,11 +146,14 @@ export default function DoctorPremioPage() {
 
             <button onClick={handleSubscribe} disabled={!selectedPlan || isPaying}
               className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-all">
-              {isPaying ? 'جاري الدفع...' : selectedPlan ? `الاشتراك في الخطة ${plans.find(p => p.key === selectedPlan)?.label}` : 'اختر خطة للمتابعة'}
+              {isPaying ? 'جاري الدفع عبر Pi...' : selectedPlan ? `ادفع ${plans.find(p => p.key === selectedPlan)?.price} π — ${plans.find(p => p.key === selectedPlan)?.label}` : 'اختر خطة للمتابعة'}
             </button>
           </>
         )}
-      </div>
-    </div>
+
+        {!activePremio && plans.length === 0 && (
+          <p className="text-slate-400 text-sm text-center py-8">لم يفعّل المالك خطط البريميو بعد.</p>
+        )}
+    </DoctorSubpageLayout>
   )
 }

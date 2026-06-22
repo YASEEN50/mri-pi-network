@@ -2,7 +2,7 @@
 // src/app/profile/page.tsx
 
 import SettingsTab from '@/components/profile/SettingsTab'
-import DoctorVerificationPanel from '@/components/profile/DoctorVerificationPanel'
+import DoctorDocumentsSidebar from '@/components/profile/DoctorDocumentsSidebar'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useRef } from 'react'
@@ -53,10 +53,10 @@ export default function ProfilePage() {
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const avatarInputRef = useRef<HTMLInputElement>(null)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
-  const [activeTab, setActiveTab] = useState<'info' | 'health' | 'settings' | 'verification'>(() => {
+  const [activeTab, setActiveTab] = useState<'info' | 'health' | 'settings'>(() => {
     if (typeof window !== 'undefined') {
       const p = new URLSearchParams(window.location.search).get('tab')
-      if (p === 'verification' || p === 'health' || p === 'settings') return p
+      if (p === 'health' || p === 'settings') return p
     }
     return 'info'
   })
@@ -177,7 +177,7 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-slate-950" dir="rtl">
       <Navbar locale="ar" />
-      <div className="max-w-2xl mx-auto px-4 sm:px-6 py-12">
+      <div className={`mx-auto px-4 sm:px-6 py-12 ${isDoctor ? 'max-w-6xl' : 'max-w-2xl'}`}>
 
         {/* Header Card */}
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6 mb-6">
@@ -276,12 +276,19 @@ export default function ProfilePage() {
           </div>
         )}
 
+        <div className={`${isDoctor ? 'flex flex-col lg:flex-row gap-6 items-start' : ''}`}>
+
+        {isDoctor && (
+          <DoctorDocumentsSidebar approvalStatus={session.user.approvalStatus ?? undefined} />
+        )}
+
+        <div className={isDoctor ? 'flex-1 min-w-0 w-full' : 'w-full'}>
+
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           {[
             { key: 'info' as const, label: 'المعلومات', icon: '👤' },
             ...(isClient ? [{ key: 'health' as const, label: 'الصحة', icon: '🏥' }] : []),
-            ...(isDoctor ? [{ key: 'verification' as const, label: 'التحقق الطبي', icon: '🔐' }] : []),
             { key: 'settings' as const, label: 'الإعدادات', icon: '⚙️' },
           ].map(tab => (
             <button key={tab.key} onClick={() => setActiveTab(tab.key)}
@@ -464,12 +471,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-
-        {/* Tab: التحقق الطبي (للأطباء فقط) */}
-        {activeTab === 'verification' && isDoctor && (
-          <DoctorVerificationPanel />
-        )}
-
         {/* Tab: الإعدادات */}
         {activeTab === 'settings' && (
           <div className="space-y-4">
@@ -533,6 +534,9 @@ export default function ProfilePage() {
             {isSaving ? 'جاري الحفظ...' : 'حفظ التغييرات'}
           </button>
         )}
+
+        </div>
+        </div>
 
       </div>
     </div>

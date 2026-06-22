@@ -37,6 +37,7 @@ export default function DoctorAnalyticsPage() {
     { label: 'قيد الانتظار',      value: o.pendingCount ?? 0,       color: 'text-amber-400',   sub: `${o.cancelledTotal ?? 0} ملغي` },
     { label: 'متوسط التقييم',     value: data?.reviews?.average ?? 0, color: 'text-yellow-400', sub: `${data?.reviews?.total ?? 0} تقييم` },
     { label: 'المنشورات',         value: data?.publications?.total ?? 0, color: 'text-violet-400', sub: 'منشورات نشطة' },
+    { label: 'رصيد Pi',           value: `${(data?.earnings?.piBalance ?? 0).toFixed(2)} π`, color: 'text-purple-400', sub: `بعد خصم 5% عمولة` },
   ]
 
   const STATUS_COLORS: Record<string, string> = {

@@ -68,7 +68,9 @@ enum DayOfWeek {
 
 enum PublicationStatus {
   DRAFT
+  PENDING_REVIEW
   PUBLISHED
+  REJECTED
   ARCHIVED
 }
 
@@ -321,6 +323,7 @@ model DoctorProfile {
   totalReviews          Int            @default(0)
   averageRating         Decimal        @default(0) @db.Decimal(3, 2)
   totalAppointments     Int            @default(0)
+  piBalance             Decimal        @default(0) @db.Decimal(12, 4) // رصيد Pi بعد خصم عمولة المنصة
 
   // Soft delete
   deletedAt             DateTime?

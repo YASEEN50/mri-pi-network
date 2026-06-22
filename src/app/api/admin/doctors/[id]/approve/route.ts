@@ -4,6 +4,10 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
+import {
+  finalizeVerificationOnProfileApproval,
+  finalizeVerificationOnProfileRejection,
+} from '@/lib/verification/lifecycle'
 
 const ActionSchema = z.object({
   action: z.enum(['approve', 'reject']),
@@ -35,6 +39,12 @@ export async function POST(
         updatedAt: new Date(),
       },
     })
+
+    if (action === 'approve') {
+      await finalizeVerificationOnProfileApproval(id)
+    } else {
+      await finalizeVerificationOnProfileRejection(id, auth.context.userId, notes)
+    }
 
     // إشعار للطبيب
     const doctor = await prisma.doctorProfile.findUnique({

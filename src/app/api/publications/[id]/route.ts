@@ -4,6 +4,7 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role, PublicationStatus } from '@prisma/client'
+import { notifyAdminsPublicationPendingReview } from '@/lib/notifications/service'
 
 export async function GET(
   _req: NextRequest,
@@ -29,7 +30,6 @@ export async function GET(
       return ok({ error: true, message: 'المنشور غير موجود' })
     }
 
-    // زيادة عداد المشاهدات
     await prisma.publication.update({
       where: { id },
       data:  { viewCount: { increment: 1 } },
@@ -81,22 +81,45 @@ export async function PATCH(
     const pub = await prisma.publication.findFirst({ where: { id, deletedAt: null } })
     if (!pub || pub.doctorId !== doctor?.id) return ok({ error: true, message: 'غير مصرح' })
 
-    await prisma.publication.update({
+    const updateData: Record<string, unknown> = {
+      ...(body.title    && { title:   body.title }),
+      ...(body.summary  !== undefined && { summary: body.summary }),
+      ...(body.content  && { content: body.content }),
+      ...(body.tags     && { tags:    body.tags }),
+      ...(body.coverUrl && { coverUrl: body.coverUrl }),
+    }
+
+    if (body.publish !== undefined) {
+      if (body.publish) {
+        if (pub.status === PublicationStatus.PUBLISHED) {
+          // already live
+        } else if (pub.status !== PublicationStatus.PENDING_REVIEW) {
+          updateData.status = PublicationStatus.PENDING_REVIEW
+          updateData.publishedAt = null
+        }
+      } else if (pub.status === PublicationStatus.PUBLISHED) {
+        updateData.status = PublicationStatus.DRAFT
+        updateData.publishedAt = null
+      } else if (pub.status !== PublicationStatus.PENDING_REVIEW) {
+        updateData.status = PublicationStatus.DRAFT
+        updateData.publishedAt = null
+      }
+    }
+
+    const updated = await prisma.publication.update({
       where: { id },
-      data: {
-        ...(body.title       && { title:   body.title }),
-        ...(body.summary     && { summary: body.summary }),
-        ...(body.content     && { content: body.content }),
-        ...(body.tags        && { tags:    body.tags }),
-        ...(body.coverUrl    && { coverUrl: body.coverUrl }),
-        ...(body.publish !== undefined && {
-          status:      body.publish ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT,
-          publishedAt: body.publish ? new Date() : null,
-        }),
-      },
+      data:  updateData,
     })
 
-    return ok({ message: 'تم تحديث المنشور' })
+    if (
+      body.publish === true &&
+      updated.status === PublicationStatus.PENDING_REVIEW &&
+      pub.status !== PublicationStatus.PENDING_REVIEW
+    ) {
+      await notifyAdminsPublicationPendingReview(updated.id, updated.doctorId, updated.title)
+    }
+
+    return ok({ message: 'تم تحديث المنشور', status: updated.status })
   } catch (err) {
     console.error('[PATCH /api/publications/[id]]', err)
     return serverError()

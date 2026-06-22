@@ -11,6 +11,7 @@ interface Stats {
   totalClients: number
   pendingDoctors: number
   pendingFacilities: number
+  pendingPublications: number
   totalAppointments: number
   completedAppointments: number
   totalReviews: number
@@ -44,6 +45,7 @@ export default function AdminDashboard() {
     { title: 'إجمالي الأطباء', value: stats?.totalDoctors ?? 0, icon: '👨‍⚕️', color: 'border-emerald-500/30 bg-emerald-500/10', textColor: 'text-emerald-400', link: '/admin/doctors' },
     { title: 'أطباء بانتظار الموافقة', value: stats?.pendingDoctors ?? 0, icon: '⏳', color: 'border-amber-500/30 bg-amber-500/10', textColor: 'text-amber-400', link: '/dashboard/admin/pending', urgent: (stats?.pendingDoctors ?? 0) > 0 },
     { title: 'منشآت بانتظار الموافقة', value: stats?.pendingFacilities ?? 0, icon: '🏥', color: 'border-blue-500/30 bg-blue-500/10', textColor: 'text-blue-400', link: '/dashboard/admin/verification', urgent: (stats?.pendingFacilities ?? 0) > 0 },
+    { title: 'منشورات بانتظار المراجعة', value: stats?.pendingPublications ?? 0, icon: '📝', color: 'border-orange-500/30 bg-orange-500/10', textColor: 'text-orange-400', link: '/admin/publications', urgent: (stats?.pendingPublications ?? 0) > 0 },
     { title: 'إجمالي المواعيد', value: stats?.totalAppointments ?? 0, icon: '📅', color: 'border-purple-500/30 bg-purple-500/10', textColor: 'text-purple-400', link: '#' },
     { title: 'مواعيد مكتملة', value: stats?.completedAppointments ?? 0, icon: '✅', color: 'border-teal-500/30 bg-teal-500/10', textColor: 'text-teal-400', link: '#' },
     { title: 'إجمالي التقييمات', value: stats?.totalReviews ?? 0, icon: '⭐', color: 'border-yellow-500/30 bg-yellow-500/10', textColor: 'text-yellow-400', link: '#' },
@@ -77,6 +79,7 @@ export default function AdminDashboard() {
           <h2 className="text-lg font-bold text-white mb-4">الإجراءات السريعة</h2>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
+              { label: 'مراجعة المنشورات', icon: '📝', href: '/admin/publications' },
               { label: 'مراجعة الأطباء', icon: '👨‍⚕️', href: '/dashboard/admin/pending' },
               { label: 'التحقق من الأطباء', icon: '🔐', href: '/admin/verification-v2' },
               { label: 'أحداث الاحتيال',     icon: '🚨', href: '/admin/fraud-events' },

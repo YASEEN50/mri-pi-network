@@ -113,7 +113,7 @@ export default function DoctorOnboardingPage() {
       const data = await res.json()
       if (!res.ok || data.data?.error) { setError(data.data?.message || 'حدث خطأ'); return }
       await update({ isProfileComplete: true })
-      router.push('/doctor/pending')
+      router.push('/profile')
     } catch { setError('حدث خطأ في الاتصال') }
     finally { setIsLoading(false) }
   }
@@ -269,7 +269,9 @@ export default function DoctorOnboardingPage() {
                   + إضافة شهادة
                 </button>
               </div>
-              <p className="text-slate-400 text-xs mb-4">أضف شهاداتك الجامعية والتخصصية. ستُراجع من قبل الفريق.</p>
+              <p className="text-slate-400 text-xs mb-4">
+                أدخل بيانات الشهادة هنا (اسم، جهة الإصدار). <strong className="text-accent">رفع صور المستندات</strong> يكون في الخطوة التالية: شهادة، رخصة، Dataflow، هوية، وسيلفي.
+              </p>
 
               {credentials.map((c, i) => (
                 <div key={i} className="rounded-xl p-4 space-y-3"
@@ -379,7 +381,7 @@ export default function DoctorOnboardingPage() {
               <div className="rounded-xl p-4"
                 style={{background:'rgba(245,158,11,0.08)',border:'1px solid rgba(245,158,11,0.2)'}}>
                 <p className="text-amber-400 text-xs">
-                  ⚠️ بعد الإرسال سيراجع الفريق بياناتك خلال 1-3 أيام عمل وسيتم إشعارك بالنتيجة.
+                  ⚠️ بعد الإرسال ستُوجَّه إلى الملف الشخصي لرفع الشهادات والوثائق من الشريط الجانبي.
                 </p>
               </div>
             </div>

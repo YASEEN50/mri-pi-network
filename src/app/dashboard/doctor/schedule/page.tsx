@@ -5,6 +5,7 @@ import { useAppointments } from '@/hooks/useAppointments'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import { useSession } from 'next-auth/react'
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -15,15 +16,21 @@ const STATUS_COLORS: Record<string, string> = {
 
 export default function DoctorSchedulePage() {
   const t = useTranslations()
+  const { data: session } = useSession()
   const { appointments, total, isLoading, confirmAppointment, completeAppointment } = useAppointments()
 
+  const profileApproved = session?.user?.approvalStatus === 'APPROVED'
   const [verifState, setVerifState] = useState<string | null>(null)
   useEffect(() => {
+    if (profileApproved) {
+      setVerifState('APPROVED')
+      return
+    }
     fetch('/api/doctor/verification-status')
       .then(r => r.json())
       .then(d => setVerifState(d.data?.verificationStatus ?? 'UNVERIFIED'))
       .catch(() => {})
-  }, [])
+  }, [profileApproved])
 
   if (isLoading) return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -38,9 +45,9 @@ export default function DoctorSchedulePage() {
     <div className="min-h-screen bg-slate-950" dir="rtl">
       <Navbar locale="ar" />
       {/* Verification Banner */}
-      {verifState && !['APPROVED'].includes(verifState) && (
+      {verifState && !['APPROVED'].includes(verifState) && !profileApproved && (
         <div className="max-w-4xl mx-auto px-4 pt-4">
-          <Link href="/profile?tab=verification">
+          <Link href="/profile">
             <div className="flex items-center justify-between rounded-xl px-4 py-3 transition-all hover:opacity-90"
               style={{
                 background: verifState === 'ADMIN_REVIEW' || verifState === 'PENDING_HUMAN'
@@ -100,7 +107,7 @@ export default function DoctorSchedulePage() {
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
             💬 المحادثات
           </Link>
-          <Link href="/doctor/verify"
+          <Link href="/profile"
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
             🔐 التحقق
           </Link>

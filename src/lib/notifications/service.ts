@@ -173,3 +173,67 @@ export async function notifyDoctorRejected(doctorId: string, reason?: string) {
     { doctorId },
   )
 }
+
+/** منشور طبي جديد بانتظار المراجعة → إشعار للأدمن */
+export async function notifyAdminsPublicationPendingReview(
+  publicationId: string,
+  doctorId: string,
+  title: string,
+) {
+  const doctor = await prisma.doctorProfile.findUnique({
+    where:  { id: doctorId },
+    select: { firstName: true, lastName: true },
+  })
+  const name = doctor ? `د. ${doctor.firstName} ${doctor.lastName}`.trim() : 'طبيب'
+
+  const admins = await prisma.user.findMany({
+    where: {
+      role:      { in: [Role.ADMIN, Role.OWNER] },
+      isActive:  true,
+      deletedAt: null,
+    },
+    select: { id: true },
+  })
+  if (admins.length === 0) return
+
+  await prisma.notification.createMany({
+    data: admins.map(a => ({
+      userId: a.id,
+      title:  '📝 منشور جديد بانتظار المراجعة',
+      body:   `${name} أرسل منشوراً: «${title.slice(0, 80)}»`,
+      type:   'PUBLICATION_PENDING_REVIEW',
+      data:   { publicationId, doctorId },
+    })),
+  })
+}
+
+export async function notifyDoctorPublicationApproved(
+  userId: string,
+  publicationId: string,
+  title: string,
+) {
+  await createInApp(
+    userId,
+    '✅ تمت الموافقة على منشورك',
+    `تم نشر منشورك «${title.slice(0, 80)}» بعد مراجعة الإدارة.`,
+    'PUBLICATION_APPROVED',
+    { publicationId },
+  )
+}
+
+export async function notifyDoctorPublicationRejected(
+  userId: string,
+  publicationId: string,
+  title: string,
+  notes?: string,
+) {
+  await createInApp(
+    userId,
+    '❌ تم رفض المنشور',
+    notes
+      ? `تم رفض منشورك «${title.slice(0, 60)}». السبب: ${notes}`
+      : `تم رفض منشورك «${title.slice(0, 60)}». يمكنك تعديله وإعادة الإرسال.`,
+    'PUBLICATION_REJECTED',
+    { publicationId, notes: notes ?? null },
+  )
+}

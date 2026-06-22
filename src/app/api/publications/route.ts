@@ -5,6 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { ok, created, fromAppError, serverError } from '@/lib/api-response'
 import { Role, PublicationType, PublicationStatus } from '@prisma/client'
 import { z } from 'zod'
+import {
+  notifyAdminsPublicationPendingReview,
+} from '@/lib/notifications/service'
 
 const CreateSchema = z.object({
   title:   z.string().min(5).max(300),
@@ -16,6 +19,10 @@ const CreateSchema = z.object({
   publish: z.boolean().default(false),
 })
 
+function resolveDoctorSubmitStatus(publish: boolean): PublicationStatus {
+  return publish ? PublicationStatus.PENDING_REVIEW : PublicationStatus.DRAFT
+}
+
 // GET — جلب المنشورات العامة أو منشورات الطبيب
 export async function GET(req: NextRequest) {
   try {
@@ -26,10 +33,9 @@ export async function GET(req: NextRequest) {
     const mine   = req.nextUrl.searchParams.get('mine') === 'true'
     const skip   = (page - 1) * limit
 
-    let where: any = { deletedAt: null }
+    let where: Record<string, unknown> = { deletedAt: null }
 
     if (mine) {
-      // الطبيب يرى منشوراته (مسودة + منشورة)
       const auth = await requireAuth({ roles: [Role.DOCTOR] })
       if (!auth.success) return fromAppError(auth.error)
       const doctor = await prisma.doctorProfile.findUnique({
@@ -37,7 +43,6 @@ export async function GET(req: NextRequest) {
       })
       where.doctorId = doctor?.id
     } else {
-      // الزوار يرون المنشورة فقط
       where.status = PublicationStatus.PUBLISHED
     }
 
@@ -55,7 +60,7 @@ export async function GET(req: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { publishedAt: 'desc' },
+        orderBy: { updatedAt: 'desc' },
         include: {
           doctor: { select: { firstName: true, lastName: true, specialization: true, avatarUrl: true } },
         },
@@ -64,7 +69,7 @@ export async function GET(req: NextRequest) {
     ])
 
     return ok(
-      publications.map((p: any) => ({
+      publications.map((p) => ({
         id:          p.id,
         title:       p.title,
         summary:     p.summary,
@@ -88,7 +93,7 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST — نشر مقال طبي
+// POST — إرسال مقال طبي (مسودة أو للمراجعة)
 export async function POST(req: NextRequest) {
   try {
     const auth = await requireAuth({ roles: [Role.DOCTOR] })
@@ -103,6 +108,8 @@ export async function POST(req: NextRequest) {
     })
     if (!doctor) return ok({ error: true, message: 'ملف الطبيب غير موجود' })
 
+    const status = resolveDoctorSubmitStatus(parsed.data.publish)
+
     const pub = await prisma.publication.create({
       data: {
         doctorId:    doctor.id,
@@ -112,10 +119,23 @@ export async function POST(req: NextRequest) {
         type:        parsed.data.type,
         tags:        parsed.data.tags,
         coverUrl:    parsed.data.coverUrl,
-        status:      parsed.data.publish ? PublicationStatus.PUBLISHED : PublicationStatus.DRAFT,
-        publishedAt: parsed.data.publish ? new Date() : null,
+        status,
+        publishedAt: null,
       },
     })
+
+    if (status === PublicationStatus.PENDING_REVIEW) {
+      await notifyAdminsPublicationPendingReview(pub.id, doctor.id, pub.title)
+      await prisma.notification.create({
+        data: {
+          userId: auth.context.userId,
+          title:  '📝 تم إرسال المنشور للمراجعة',
+          body:   'سيُراجع فريق الإدارة منشورك ويصلك إشعار بالنتيجة.',
+          type:   'PUBLICATION_SUBMITTED',
+          data:   { publicationId: pub.id },
+        },
+      }).catch(() => {})
+    }
 
     return created({ id: pub.id, status: pub.status })
   } catch (err) {

@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
+import DoctorSubpageLayout from '@/components/doctor/DoctorSubpageLayout'
 
 interface Pub { id: string; title: string; type: string; status: string; viewCount: number; likeCount: number; publishedAt?: string; createdAt: string }
 
@@ -15,13 +15,21 @@ const TYPE_OPTS = [
   { v: 'ANNOUNCEMENT', l: 'إعلان' },
 ]
 
+const STATUS_LABELS: Record<string, { label: string; cls: string }> = {
+  DRAFT:          { label: 'مسودة',           cls: 'bg-white/5 border-white/10 text-slate-400' },
+  PENDING_REVIEW: { label: 'قيد المراجعة',    cls: 'bg-amber-500/10 border-amber-500/20 text-amber-400' },
+  PUBLISHED:      { label: 'منشور',           cls: 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' },
+  REJECTED:       { label: 'مرفوض',           cls: 'bg-red-500/10 border-red-500/20 text-red-400' },
+  ARCHIVED:       { label: 'مؤرشف',           cls: 'bg-white/5 border-white/10 text-slate-500' },
+}
+
 export default function DoctorPublicationsPage() {
   const { data: session, status } = useSession()
   const router  = useRouter()
   const [pubs,    setPubs]    = useState<Pub[]>([])
   const [loading, setLoading] = useState(true)
   const [showNew, setShowNew] = useState(false)
-  const [form,    setForm]    = useState({ title: '', summary: '', content: '', type: 'ARTICLE', tags: '', publish: false })
+  const [form,    setForm]    = useState({ title: '', summary: '', content: '', type: 'ARTICLE', tags: '', publish: true })
   const [saving,  setSaving]  = useState(false)
   const [msg,     setMsg]     = useState('')
 
@@ -55,20 +63,27 @@ export default function DoctorPublicationsPage() {
       const data = await res.json()
       if (data.data?.id) {
         setShowNew(false)
-        setForm({ title: '', summary: '', content: '', type: 'ARTICLE', tags: '', publish: false })
-        setMsg('✅ تم نشر المقال بنجاح')
+        setForm({ title: '', summary: '', content: '', type: 'ARTICLE', tags: '', publish: true })
+        const st = data.data.status
+        setMsg(
+          st === 'PENDING_REVIEW'
+            ? '✅ تم إرسال المنشور للمراجعة — سيصلك إشعار بعد موافقة الإدارة'
+            : '✅ تم حفظ المسودة',
+        )
         fetchPubs()
-        setTimeout(() => setMsg(''), 3000)
+        setTimeout(() => setMsg(''), 5000)
       }
     } catch {}
     finally { setSaving(false) }
   }
 
-  async function togglePublish(id: string, published: boolean) {
+  async function togglePublish(id: string, currentStatus: string) {
+    if (currentStatus === 'PENDING_REVIEW') return
+    const publish = !['PUBLISHED'].includes(currentStatus)
     await fetch(`/api/publications/${id}`, {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ publish: !published }),
+      body:    JSON.stringify({ publish }),
     })
     fetchPubs()
   }
@@ -79,15 +94,16 @@ export default function DoctorPublicationsPage() {
     fetchPubs()
   }
 
+  function actionLabel(status: string) {
+    if (status === 'PUBLISHED') return 'إخفاء'
+    if (status === 'PENDING_REVIEW') return 'قيد المراجعة'
+    if (status === 'REJECTED') return 'إعادة الإرسال'
+    return 'إرسال للمراجعة'
+  }
+
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <Navbar locale="ar" />
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white">منشوراتي الطبية</h1>
-            <p className="text-slate-400 text-sm mt-1">{pubs.length} منشور</p>
-          </div>
+    <DoctorSubpageLayout title="منشوراتي الطبية" subtitle={`${pubs.length} منشور`}>
+        <div className="flex justify-end mb-6">
           <button onClick={() => setShowNew(true)}
             className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-medium rounded-xl transition-all hover:from-emerald-400">
             + منشور جديد
@@ -95,6 +111,10 @@ export default function DoctorPublicationsPage() {
         </div>
 
         {msg && <div className="mb-4 px-4 py-3 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-sm rounded-xl">{msg}</div>}
+
+        <div className="mb-6 p-4 rounded-xl bg-blue-500/5 border border-blue-500/20">
+          <p className="text-blue-400 text-sm">ℹ️ جميع المنشورات تمر بمراجعة الإدارة قبل الظهور للجمهور.</p>
+        </div>
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -108,13 +128,13 @@ export default function DoctorPublicationsPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {pubs.map(pub => (
+            {pubs.map(pub => {
+              const st = STATUS_LABELS[pub.status] ?? STATUS_LABELS.DRAFT
+              return (
               <div key={pub.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 flex items-center gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1">
-                    <span className={`text-xs px-2 py-0.5 rounded-full border ${pub.status === 'PUBLISHED' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-white/5 border-white/10 text-slate-400'}`}>
-                      {pub.status === 'PUBLISHED' ? 'منشور' : 'مسودة'}
-                    </span>
+                    <span className={`text-xs px-2 py-0.5 rounded-full border ${st.cls}`}>{st.label}</span>
                     <span className="text-slate-500 text-xs">{pub.type === 'ARTICLE' ? 'مقال' : pub.type === 'RESEARCH' ? 'بحث' : pub.type}</span>
                   </div>
                   <h3 className="text-white font-medium text-sm truncate">{pub.title}</h3>
@@ -131,12 +151,16 @@ export default function DoctorPublicationsPage() {
                       👁
                     </Link>
                   )}
-                  <button onClick={() => togglePublish(pub.id, pub.status === 'PUBLISHED')}
-                    className={`px-3 py-1.5 rounded-lg text-xs border transition-all
+                  <button
+                    onClick={() => togglePublish(pub.id, pub.status)}
+                    disabled={pub.status === 'PENDING_REVIEW'}
+                    className={`px-3 py-1.5 rounded-lg text-xs border transition-all disabled:opacity-60 disabled:cursor-not-allowed
                       ${pub.status === 'PUBLISHED'
                         ? 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
-                        : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30'}`}>
-                    {pub.status === 'PUBLISHED' ? 'إخفاء' : 'نشر'}
+                        : pub.status === 'PENDING_REVIEW'
+                          ? 'bg-amber-500/10 border-amber-500/20 text-amber-400'
+                          : 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/30'}`}>
+                    {actionLabel(pub.status)}
                   </button>
                   <button onClick={() => deletePub(pub.id)}
                     className="p-1.5 text-red-400/50 hover:text-red-400 transition-colors text-sm">
@@ -144,11 +168,10 @@ export default function DoctorPublicationsPage() {
                   </button>
                 </div>
               </div>
-            ))}
+            )})}
           </div>
         )}
 
-        {/* Modal إنشاء منشور */}
         {showNew && (
           <div className="fixed inset-0 bg-black/70 flex items-start justify-center z-50 overflow-y-auto py-8 px-4">
             <div className="bg-slate-900 border border-white/[0.08] rounded-2xl p-6 w-full max-w-2xl" dir="rtl">
@@ -190,13 +213,13 @@ export default function DoctorPublicationsPage() {
                     className={`w-10 h-5 rounded-full transition-all relative ${form.publish ? 'bg-emerald-500' : 'bg-white/20'}`}>
                     <div className={`absolute top-0.5 w-4 h-4 bg-white rounded-full shadow transition-all ${form.publish ? 'right-0.5' : 'left-0.5'}`} />
                   </div>
-                  <span className="text-slate-300 text-sm">نشر فوراً</span>
+                  <span className="text-slate-300 text-sm">إرسال للمراجعة (موصى به)</span>
                 </label>
               </div>
               <div className="flex gap-3 mt-6">
                 <button onClick={handleCreate} disabled={saving || !form.title || form.content.length < 50}
                   className="flex-1 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 disabled:opacity-50 text-white font-semibold rounded-xl text-sm transition-all">
-                  {saving ? 'جاري الحفظ...' : form.publish ? 'نشر المقال' : 'حفظ كمسودة'}
+                  {saving ? 'جاري الحفظ...' : form.publish ? 'إرسال للمراجعة' : 'حفظ كمسودة'}
                 </button>
                 <button onClick={() => setShowNew(false)}
                   className="flex-1 py-3 bg-white/5 border border-white/10 text-slate-300 rounded-xl text-sm">
@@ -206,7 +229,6 @@ export default function DoctorPublicationsPage() {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </DoctorSubpageLayout>
   )
 }

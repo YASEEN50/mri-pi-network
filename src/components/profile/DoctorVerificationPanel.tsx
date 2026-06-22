@@ -530,7 +530,26 @@ export default function DoctorVerificationPanel() {
     </div>
   )
 
-  // Active steps: license / credentials / face
+  // Active steps: redirect to full 5-step verify flow
+  if (['UNVERIFIED', 'PENDING_AI', 'REVERIFY_REQUIRED'].includes(state)) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-2xl p-6 text-center mpi-card">
+          <div className="text-4xl mb-3">🔐</div>
+          <h3 className="text-white text-lg font-bold mb-2">التحقق من الهوية الطبية</h3>
+          <p className="text-slate-400 text-sm mb-5 leading-relaxed">
+            يتطلب 5 مستندات: الشهادة الجامعية، رخصة المزاولة، Dataflow، الهوية، والسيلفي.
+          </p>
+          <a href="/doctor/verify"
+            className="inline-block w-full py-3 rounded-xl bg-primary hover:bg-primary-400 text-white font-semibold text-sm transition-all shadow-glow-primary">
+            ابدأ رفع المستندات →
+          </a>
+        </div>
+      </div>
+    )
+  }
+
+  // Legacy 3-step uploads (in progress)
   return (
     <div className="space-y-4">
       <ProgressBar state={state} />

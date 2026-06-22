@@ -110,9 +110,11 @@ export default function DoctorPendingPage() {
 
                 <div className="space-y-2 mb-4">
                   {[
-                    '📋 صورة رخصة مزاولة المهنة',
-                    '🎓 صور الشهادات العلمية',
-                    '🪪 صورة شخصية + صورة هوية رسمية',
+                    '🎓 الشهادة الجامعية',
+                    '📋 شهادة مزاولة المهنة',
+                    '📊 نتيجة Dataflow',
+                    '🪪 الهوية (اسم مطابق للشهادة)',
+                    '🤳 صورة سيلفي',
                   ].map(item => (
                     <div key={item} className="flex items-center gap-2">
                       <span className="text-sm">{item}</span>
@@ -120,7 +122,7 @@ export default function DoctorPendingPage() {
                   ))}
                 </div>
 
-                <Link href="/doctor/verify"
+                <Link href="/profile"
                   className="block w-full py-3.5 rounded-xl text-center text-white font-semibold text-sm transition-all"
                   style={{background:'linear-gradient(135deg,#f59e0b,#ef4444)'}}>
                   🔐 رفع مستندات التحقق الآن

@@ -498,3 +498,42 @@ export async function syncLegacyVerificationOnRejected(doctorId: string): Promis
 }
 
 
+
+/** موافقة الأدمن من صفحة الطبيب — مزامنة جلسة v2 + السجل القديم */
+export async function finalizeVerificationOnProfileApproval(
+  doctorId: string,
+): Promise<void> {
+  await db.verificationSession.updateMany({
+    where: { doctorId, isActive: true },
+    data: {
+      currentState: 'APPROVED',
+      isActive:     false,
+      completedAt:  new Date(),
+      updatedAt:    new Date(),
+    },
+  })
+  await syncLegacyVerificationOnApproved(doctorId)
+}
+
+
+
+export async function finalizeVerificationOnProfileRejection(
+  doctorId: string,
+  reviewerId: string,
+  notes?: string,
+): Promise<void> {
+  await db.verificationSession.updateMany({
+    where: { doctorId, isActive: true },
+    data: {
+      currentState:    'REJECTED',
+      isActive:        false,
+      rejectionReason: notes ?? 'رفض من المشرف',
+      rejectedBy:      reviewerId,
+      rejectedAt:      new Date(),
+      completedAt:     new Date(),
+      updatedAt:       new Date(),
+    },
+  })
+  await syncLegacyVerificationOnRejected(doctorId)
+}
+

@@ -11,7 +11,7 @@ export async function GET() {
 
     const doctor = await prisma.doctorProfile.findUnique({
       where: { userId: auth.context.userId },
-      select: { id: true },
+      select: { id: true, piBalance: true },
     })
     if (!doctor) return ok(null)
 
@@ -33,6 +33,7 @@ export async function GET() {
       recentAppointments,
       appointmentsByDay,
       prevMonthAppointments,
+      earningsSum,
     ] = await Promise.all([
       prisma.appointment.count({ where: { doctorId: doctor.id, deletedAt: null } }),
       prisma.appointment.count({ where: { doctorId: doctor.id, deletedAt: null, createdAt: { gte: monthStart } } }),
@@ -55,6 +56,14 @@ export async function GET() {
         _count:  { id: true },
       }),
       prisma.appointment.count({ where: { doctorId: doctor.id, deletedAt: null, createdAt: { gte: prevMonthStart, lt: monthStart } } }),
+      prisma.transaction.aggregate({
+        where: {
+          doctorId: doctor.id,
+          status:   'COMPLETED',
+          type:     { in: ['APPOINTMENT_FEE', 'DEPOSIT', 'FINAL_PAYMENT'] },
+        },
+        _sum: { receiverAmount: true, platformFee: true },
+      }),
     ])
 
     const completionRate = totalAppointments > 0 ? Math.round((completedTotal / totalAppointments) * 100) : 0
@@ -79,6 +88,11 @@ export async function GET() {
       },
       publications: {
         total: totalPublications,
+      },
+      earnings: {
+        piBalance:     Number(doctor.piBalance),
+        totalReceived: Number(earningsSum._sum.receiverAmount ?? 0),
+        platformFees:  Number(earningsSum._sum.platformFee ?? 0),
       },
       appointmentsByStatus: Object.fromEntries(
         appointmentsByDay.map((g: any) => [g.status, g._count.id])
