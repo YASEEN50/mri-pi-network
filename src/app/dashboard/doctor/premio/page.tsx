@@ -4,7 +4,7 @@ import Link from 'next/link'
 import DoctorSubpageLayout from '@/components/doctor/DoctorSubpageLayout'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import { payWithPi, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
+import { payForPremioPlan, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
 
 interface PremioSettings { monthlyPrice: number; yearlyPrice: number; lifetimePrice: number; isMonthlyEnabled: boolean; isYearlyEnabled: boolean; isLifetimeEnabled: boolean }
 interface ActivePremio { type: string; status: string; expiryDate: string | null; startDate: string }
@@ -46,16 +46,11 @@ export default function DoctorPremioPage() {
     setIsPaying(true)
     setMessage(null)
     try {
-      await payWithPi({
-        amount: price,
-        memo:   `اشتراك بريميو ${label}`,
-        metadata: { purpose: 'PREMIO', planType: selectedPlan },
-        approvePayload: {
-          purpose:  'PREMIO',
-          amount:   price,
-          planType: selectedPlan as 'MONTHLY' | 'YEARLY' | 'LIFETIME',
-        },
-      })
+      await payForPremioPlan(
+        selectedPlan as 'MONTHLY' | 'YEARLY' | 'LIFETIME',
+        price,
+        label,
+      )
       setMessage({ type: 'success', text: '💎 تم الدفع وتفعيل البريميو بنجاح!' })
       fetchData()
     } catch (err) {

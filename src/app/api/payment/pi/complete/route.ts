@@ -7,6 +7,8 @@ import { prisma } from '@/lib/prisma'
 import { piPaymentService } from '@/infrastructure/pi-network/pi-payment.service'
 import { fulfillPremioPurchase, fulfillAppointmentPayment } from '@/lib/payment/fulfill'
 import { settleDoctorPayment } from '@/lib/payment/platform-fee'
+import { getPiNetworkApiKey } from '@/lib/pi/pi-api-key'
+
 import { z } from 'zod'
 
 const CompleteSchema = z.object({
@@ -16,6 +18,10 @@ const CompleteSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
+    if (!getPiNetworkApiKey()) {
+      return ok({ error: true, message: 'PI_NETWORK_API_KEY غير مُعدّ على الخادم' })
+    }
+
     const auth = await requireAuth()
     if (!auth.success) return fromAppError(auth.error)
 

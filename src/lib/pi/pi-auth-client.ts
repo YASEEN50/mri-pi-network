@@ -2,15 +2,12 @@
 
 import { signIn } from 'next-auth/react'
 import { resolvePiSandbox } from '@/lib/pi/sandbox-detect'
+import { PI_AUTH_SCOPES } from '@/lib/pi/pi-scopes'
+import { resolveIncompletePiPayment } from '@/lib/pi/resolve-incomplete-payment'
 
-const PI_SCOPES = ['username'] as const
 export const PI_SKIP_AUTO_LOGIN_KEY = 'pi_skip_auto_login'
 
 let initSandbox: boolean | null = null
-
-function onIncompletePaymentFound(payment: unknown): void {
-  console.warn('[Pi] Incomplete payment found:', payment)
-}
 
 /** Heuristics: Pi Browser WebView, sandbox iframe, or native Pi SDK present */
 export function isPiBrowser(): boolean {
@@ -93,7 +90,7 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Pr
   }
 }
 
-/** await Pi.init fully before authenticate (username scope) */
+/** await Pi.init fully before authenticate (username + payments scopes) */
 export async function initPiSdk(forcedSandbox?: boolean): Promise<void> {
   await waitForPiSdk(15_000)
   const sandbox = forcedSandbox ?? await resolvePiSandbox()
@@ -106,7 +103,7 @@ export async function authenticateWithPi(): Promise<PiAuthResult> {
   try {
     await initPiSdk()
     return await withTimeout(
-      Promise.resolve(window.Pi!.authenticate([...PI_SCOPES], onIncompletePaymentFound)),
+      Promise.resolve(window.Pi!.authenticate([...PI_AUTH_SCOPES], resolveIncompletePiPayment)),
       30_000,
       'PI_AUTH_TIMEOUT',
     )
@@ -114,7 +111,7 @@ export async function authenticateWithPi(): Promise<PiAuthResult> {
     if (err instanceof Error && err.message === 'PI_AUTH_TIMEOUT' && initSandbox === false) {
       initSandbox = null
       await initPiSdk(true)
-      return window.Pi!.authenticate([...PI_SCOPES], onIncompletePaymentFound)
+      return window.Pi!.authenticate([...PI_AUTH_SCOPES], resolveIncompletePiPayment)
     }
     throw err
   }

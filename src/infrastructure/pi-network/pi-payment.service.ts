@@ -3,6 +3,7 @@
 // =============================================================================
 
 import { prisma } from '@/lib/prisma'
+import { getPiNetworkApiKey } from '@/lib/pi/pi-api-key'
 import {
   IPiPaymentService,
   CreatePiPaymentInput,
@@ -32,9 +33,7 @@ class RealPiPaymentService implements IPiPaymentService {
   private readonly apiKey: string
   private readonly baseUrl = 'https://api.minepi.com'
 
-  constructor() {
-    const apiKey = process.env.PI_API_KEY
-    if (!apiKey) throw new Error('PI_API_KEY is not set')
+  constructor(apiKey: string) {
     this.apiKey = apiKey
   }
 
@@ -48,16 +47,25 @@ class RealPiPaymentService implements IPiPaymentService {
 
   async approvePayment(paymentId: string): Promise<void> {
     const res = await fetch(`${this.baseUrl}/v2/payments/${paymentId}/approve`, {
-      method: 'POST', headers: this.headers,
+      method: 'POST',
+      headers: this.headers,
     })
-    if (!res.ok) throw new Error(`Pi approve failed: ${res.status}`)
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Pi approve failed: ${res.status} ${body}`)
+    }
   }
 
   async completePayment(paymentId: string, txid: string): Promise<PiPaymentResult> {
     const res = await fetch(`${this.baseUrl}/v2/payments/${paymentId}/complete`, {
-      method: 'POST', headers: this.headers, body: JSON.stringify({ txid }),
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({ txid }),
     })
-    if (!res.ok) throw new Error(`Pi complete failed: ${res.status}`)
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Pi complete failed: ${res.status} ${body}`)
+    }
     const data = await res.json()
     return { paymentId, txid, status: 'COMPLETED', amount: data.amount, createdAt: new Date(data.created_at) }
   }
@@ -75,8 +83,11 @@ class RealPiPaymentService implements IPiPaymentService {
 }
 
 function createPiPaymentService(): IPiPaymentService {
-  const isSandbox = process.env.PI_SANDBOX === 'true'
-  return isSandbox ? new SimulatedPiPaymentService() : new RealPiPaymentService()
+  const apiKey = getPiNetworkApiKey()
+  if (apiKey) return new RealPiPaymentService(apiKey)
+  if (process.env.PI_SANDBOX === 'true') return new SimulatedPiPaymentService()
+  console.warn('[Pi Payment] PI_NETWORK_API_KEY not set — using simulation')
+  return new SimulatedPiPaymentService()
 }
 
 export const piPaymentService = createPiPaymentService()
@@ -100,7 +111,6 @@ export interface ProcessPaymentResult {
 }
 
 export async function processPayment(input: ProcessPaymentInput): Promise<ProcessPaymentResult> {
-  // لا يُستخدم للتفعيل المباشر — الدفع عبر Pi SDK (approve + complete)
   console.warn('[processPayment] deprecated direct call blocked', { type: input.type })
   return { success: false, error: 'يجب الدفع عبر Pi Network' }
 }

@@ -15,7 +15,16 @@ window.PiAuth = (function () {
     try { sessionStorage.removeItem(SKIP_KEY) } catch (e) {}
   }
 
-  function onIncompletePaymentFound() {}
+  function onIncompletePaymentFound(payment) {
+    fetch('/api/payment/pi/incomplete', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ payment: payment }),
+    }).catch(function (e) { console.error('[PiAuth] incomplete payment', e) })
+  }
+
+  var PI_SCOPES = ['username', 'payments']
 
   function withTimeout(promise, ms, code) {
     return new Promise(function (resolve, reject) {
@@ -103,7 +112,7 @@ window.PiAuth = (function () {
 
   function callAuthenticate() {
     return withTimeout(
-      Promise.resolve(window.Pi.authenticate(['username'], onIncompletePaymentFound)),
+      Promise.resolve(window.Pi.authenticate(PI_SCOPES, onIncompletePaymentFound)),
       30000,
       'PI_AUTH_TIMEOUT'
     )

@@ -1,13 +1,9 @@
 'use client'
-// src/lib/pi/pi-payment-client.ts — دفع Pi عبر SDK (approve + complete)
+// src/lib/pi/pi-payment-client.ts — Premio U2A via Pi.createPayment
 
 import { initPiSdk, isPiBrowserReady } from '@/lib/pi/pi-auth-client'
-
-const PI_PAYMENT_SCOPES = ['username', 'payments'] as const
-
-function onIncompletePaymentFound(payment: unknown): void {
-  console.warn('[Pi] Incomplete payment:', payment)
-}
+import { PI_AUTH_SCOPES, PREMIO_PRODUCT } from '@/lib/pi/pi-scopes'
+import { resolveIncompletePiPayment } from '@/lib/pi/resolve-incomplete-payment'
 
 export async function requirePiBrowserForPayment(): Promise<void> {
   const ready = await isPiBrowserReady()
@@ -19,7 +15,9 @@ export async function requirePiBrowserForPayment(): Promise<void> {
 export async function authenticateForPiPayments(): Promise<void> {
   await requirePiBrowserForPayment()
   await initPiSdk()
-  await window.Pi!.authenticate([...PI_PAYMENT_SCOPES], onIncompletePaymentFound)
+  await Promise.resolve(
+    window.Pi!.authenticate([...PI_AUTH_SCOPES], resolveIncompletePiPayment),
+  )
 }
 
 export interface PiPayApprovePayload {
@@ -54,6 +52,7 @@ export async function payWithPi(options: PiPayOptions): Promise<{ paymentId: str
             const res = await fetch('/api/payment/pi/approve', {
               method:  'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body:    JSON.stringify({
                 paymentId,
                 ...options.approvePayload,
@@ -72,6 +71,7 @@ export async function payWithPi(options: PiPayOptions): Promise<{ paymentId: str
             const res = await fetch('/api/payment/pi/complete', {
               method:  'POST',
               headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
               body:    JSON.stringify({ paymentId, txid }),
             })
             const data = await res.json()
@@ -85,9 +85,30 @@ export async function payWithPi(options: PiPayOptions): Promise<{ paymentId: str
           }
         },
         onCancel: () => reject(new Error('PAYMENT_CANCELLED')),
-        onError:  (error: Error) => reject(error),
+        onError:  (error: Error, payment?: unknown) => {
+          if (payment) resolveIncompletePiPayment(payment)
+          reject(error)
+        },
       },
     )
+  })
+}
+
+/** Premio subscription payment (U2A) */
+export async function payForPremioPlan(
+  planType: 'MONTHLY' | 'YEARLY' | 'LIFETIME',
+  price: number,
+  label: string,
+): Promise<{ paymentId: string; txid: string }> {
+  return payWithPi({
+    amount: price,
+    memo: `${PREMIO_PRODUCT.memoPrefix} ${label}`,
+    metadata: { purpose: PREMIO_PRODUCT.purpose, planType },
+    approvePayload: {
+      purpose: PREMIO_PRODUCT.purpose,
+      amount: price,
+      planType,
+    },
   })
 }
 
