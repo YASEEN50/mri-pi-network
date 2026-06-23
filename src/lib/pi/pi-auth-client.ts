@@ -39,12 +39,11 @@ export function isPiBrowser(): boolean {
 
 /** Wait until Pi SDK is available (native inject or script load) */
 export async function isPiBrowserReady(timeoutMs = 12_000): Promise<boolean> {
-  if (!isPiBrowser()) return false
   try {
     await waitForPiSdk(timeoutMs)
     return typeof window.Pi !== 'undefined'
   } catch {
-    return false
+    return isPiBrowser()
   }
 }
 
@@ -79,11 +78,14 @@ async function waitForPiSdk(timeoutMs = 8000): Promise<void> {
 
 /** await Pi.init fully before authenticate (username scope) */
 export async function initPiSdk(): Promise<void> {
-  await waitForPiSdk()
-  await window.Pi!.init({
-    version: '2.0',
-    sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-  })
+  await waitForPiSdk(15_000)
+  let sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true'
+  try {
+    const res = await fetch('/api/pi-config', { cache: 'no-store' })
+    const data = await res.json()
+    if (typeof data.sandbox === 'boolean') sandbox = data.sandbox
+  } catch { /* use env */ }
+  await window.Pi!.init({ version: '2.0', sandbox })
 }
 
 export async function authenticateWithPi(): Promise<PiAuthResult> {
@@ -100,6 +102,22 @@ async function exchangePiTokenForSession(accessToken: string): Promise<{ ok: boo
     return { ok: false, error: 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى' }
   }
   return { ok: true }
+}
+
+/** App load: always Pi.authenticate; establish session only when allowed */
+export async function runPiAuthOnLoad(establishSession = true): Promise<PiAuthResult | null> {
+  try {
+    await waitForPiSdk(15_000)
+    const authResult = await authenticateWithPi()
+    if (!establishSession || shouldSkipPiAutoLogin()) return authResult
+    await requestCookieAccess()
+    const result = await exchangePiTokenForSession(authResult.accessToken)
+    if (result.ok) clearExplicitLogout()
+    return authResult
+  } catch (err) {
+    console.warn('[Pi Auth] runOnLoad', err)
+    return null
+  }
 }
 
 export async function signInWithPiNetwork(): Promise<{

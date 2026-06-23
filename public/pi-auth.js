@@ -7,7 +7,7 @@ window.PiAuth = (function () {
   }
 
   function markSkipAuto() {
-    try { sessionStorage.setItem(SKIP_KEY, '1') } catch (e) {}
+    try { sessionStorage.setItem(SKIP_KEY, '1' } catch (e) {}
   }
 
   function clearSkipAuto() {
@@ -48,6 +48,7 @@ window.PiAuth = (function () {
       })
   }
 
+  /** Always await init then authenticate — required for Pi App Studio verification */
   function authenticatePi() {
     return initPi().then(function () {
       return window.Pi.authenticate(['username'], function () {})
@@ -100,18 +101,30 @@ window.PiAuth = (function () {
       })
   }
 
-  function tryAutoSignIn() {
-    if (shouldSkipAuto()) return Promise.resolve(false)
-    return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-      .then(function (r) { return r.json() })
-      .then(function (s) {
-        if (s && s.user) {
-          window.location.href = '/dashboard'
-          return true
-        }
-        return signIn().then(function () { return true })
+  /** App load: always Pi.authenticate; session only if not skipped */
+  function runOnLoad() {
+    return authenticatePi()
+      .then(function (auth) {
+        if (!auth || !auth.accessToken) return null
+        if (shouldSkipAuto()) return auth
+        return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+          .then(function (r) { return r.json() })
+          .then(function (s) {
+            if (s && s.user) {
+              window.location.href = '/dashboard'
+              return auth
+            }
+            return establishSession(auth.accessToken).then(function () { return auth })
+          })
       })
-      .catch(function () { return false })
+      .catch(function (err) {
+        console.warn('[PiAuth] runOnLoad', err)
+        return null
+      })
+  }
+
+  function tryAutoSignIn() {
+    return runOnLoad().then(function (auth) { return !!auth })
   }
 
   function signOut(redirectTo) {
@@ -121,7 +134,9 @@ window.PiAuth = (function () {
 
   return {
     signIn: signIn,
+    runOnLoad: runOnLoad,
     tryAutoSignIn: tryAutoSignIn,
+    authenticatePi: authenticatePi,
     shouldSkipAuto: shouldSkipAuto,
     markSkipAuto: markSkipAuto,
     clearSkipAuto: clearSkipAuto,

@@ -4,6 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تسجيل الدخول — MRI</title>
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script src="/pi-auth.js"></script>
   <style>
     body { margin:0; padding:24px; background:#0f172a; color:#e2e8f0; font-family:Arial,Tahoma,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
     .card { width:100%; max-width:420px; background:#1e293b; border-radius:16px; padding:28px 22px; text-align:center; }
@@ -15,7 +17,6 @@
     .err { color:#f87171; font-size:0.8rem; margin-top:12px; min-height:1.2em; }
     .back { display:inline-block; margin-top:14px; color:#94a3b8; font-size:0.85rem; text-decoration:none; }
   </style>
-  <script src="/pi-auth.js"></script>
 </head>
 <body>
   <div class="card">
@@ -39,31 +40,23 @@
       hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
     }
 
-    function timeout(ms, msg) {
-      return new Promise(function (_, reject) {
-        setTimeout(function () { reject(new Error(msg)) }, ms)
-      })
-    }
-
-    function runSignIn() {
+    function runManual() {
       errEl.textContent = ''
       btn.disabled = true
       btn.textContent = 'جاري التحقق...'
-      return Promise.race([
-        window.PiAuth.signIn(),
-        timeout(45000, 'انتهت المهلة — وافق على طلب Pi أو أعد المحاولة'),
-      ]).catch(function (e) {
+      window.PiAuth.signIn().catch(function (e) {
         fail(e.message || 'حدث خطأ')
       })
     }
 
-    btn.addEventListener('click', runSignIn)
+    btn.addEventListener('click', runManual)
 
-    if (!window.PiAuth.shouldSkipAuto()) {
-      runSignIn()
-    } else {
-      hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
-    }
+    window.PiAuth.runOnLoad().then(function (auth) {
+      if (!auth) {
+        hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
+        btn.disabled = false
+      }
+    })
   })()
   </script>
 </body>

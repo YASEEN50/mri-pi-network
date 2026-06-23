@@ -5,9 +5,8 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import {
   isPiBrowserReady,
-  signInWithPiNetwork,
+  runPiAuthOnLoad,
   shouldSkipPiAutoLogin,
-  clearExplicitLogout,
 } from '@/lib/pi/pi-auth-client'
 import PiLoginButton from '@/components/auth/PiLoginButton'
 
@@ -19,20 +18,18 @@ export function PiAuthProvider({ children }: { children: React.ReactNode }) {
   const [autoLoading, setAutoLoading] = useState(false)
 
   useEffect(() => {
-    isPiBrowserReady().then(setInPi)
+    isPiBrowserReady(15_000).then(setInPi)
   }, [])
 
   useEffect(() => {
-    if (!inPi || status !== 'unauthenticated') return
-    if (shouldSkipPiAutoLogin() || autoStarted.current) return
+    if (!inPi || autoStarted.current) return
     autoStarted.current = true
     setAutoLoading(true)
 
-    signInWithPiNetwork()
-      .then((result) => {
+    runPiAuthOnLoad(status === 'unauthenticated')
+      .then((auth) => {
         setAutoLoading(false)
-        if (result.ok) {
-          clearExplicitLogout()
+        if (auth && !shouldSkipPiAutoLogin() && status === 'unauthenticated') {
           router.push('/dashboard')
           router.refresh()
         }

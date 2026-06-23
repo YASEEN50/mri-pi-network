@@ -4,24 +4,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MRI</title>
+<script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <script src="/pi-auth.js"></script>
 </head>
 <body bgcolor="#0f172a" text="#ffffff" style="margin:0;padding:20px;font-family:Arial,sans-serif;text-align:center;">
 <noscript><p style="color:#fff;font-size:20px;">MRI - enable JavaScript</p></noscript>
 <h1 style="color:#00ff88;font-size:28px;">MRI</h1>
-<p id="status" style="color:#ccc;">منصة طبية موثوقة</p>
-<a href="/pi-login.html" style="display:block;max-width:300px;margin:12px auto;padding:14px;background:#7c3aed;color:#fff;text-decoration:none;border-radius:8px;">تسجيل الدخول Pi</a>
+<p id="status" style="color:#ccc;">جاري تسجيل الدخول بـ Pi...</p>
+<button id="piBtn" type="button" style="display:block;max-width:300px;width:100%;margin:12px auto;padding:14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">π تسجيل الدخول</button>
 <a href="/pi-email.html" style="display:block;max-width:300px;margin:12px auto;padding:14px;background:#475569;color:#fff;text-decoration:none;border-radius:8px;">الدخول بالبريد</a>
 <a href="/pi-register.html" style="display:block;max-width:300px;margin:12px auto;padding:14px;background:#334155;color:#ccc;text-decoration:none;border-radius:8px;">حساب جديد</a>
 <script>
 (function () {
   var statusEl = document.getElementById('status')
-  if (!window.PiAuth.shouldSkipAuto()) {
+  var piBtn = document.getElementById('piBtn')
+
+  piBtn.addEventListener('click', function () {
+    piBtn.disabled = true
     statusEl.textContent = 'جاري تسجيل الدخول بـ Pi...'
-    window.PiAuth.tryAutoSignIn().then(function (ok) {
-      if (!ok) statusEl.textContent = 'منصة طبية موثوقة'
+    window.PiAuth.signIn().catch(function () {
+      statusEl.textContent = 'منصة طبية موثوقة'
+      piBtn.disabled = false
     })
-  }
+  })
+
+  window.PiAuth.runOnLoad().then(function (auth) {
+    if (!auth) statusEl.textContent = 'منصة طبية موثوقة'
+  })
 })()
 </script>
 </body>
