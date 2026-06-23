@@ -45,7 +45,7 @@ const nextConfig = {
       { source: '/pi-shell.js', headers: piHeaders },
       { source: '/pi-shell.css', headers: piHeaders },
       {
-        source: '/((?!pi[-a-z0-9]*\\.(html|js|css)|test-pi\\.txt).*)',
+        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-app\\.html|pi-profile\\.html|pi-dashboard\\.html|pi-appointments\\.html|pi-doctors\\.html|pi-doctor\\.html|pi-owner\\.html|pi-select-role\\.html|pi-shell\\.js|pi-shell\\.css|test-pi\\.txt).*)',
         headers: securityHeaders,
       },
     ]
