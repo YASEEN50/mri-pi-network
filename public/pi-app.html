@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>MRI — لوحة الدخول</title>
+</head>
+<body style="margin:0;padding:24px;background:#0f172a;color:#fff;font-family:Arial,Tahoma,sans-serif;text-align:center;">
+<h1 style="color:#10b981;font-size:24px;">MRI</h1>
+<p id="user" style="color:#94a3b8;margin:12px 0;">جاري التحقق...</p>
+<div id="menu" style="display:none;max-width:320px;margin:0 auto;">
+  <a href="/dashboard" style="display:block;margin:10px 0;padding:14px;background:#059669;color:#fff;text-decoration:none;border-radius:10px;">لوحة التحكم</a>
+  <a href="/doctors" style="display:block;margin:10px 0;padding:14px;background:#334155;color:#fff;text-decoration:none;border-radius:10px;">الأطباء</a>
+  <a href="/profile" style="display:block;margin:10px 0;padding:14px;background:#334155;color:#fff;text-decoration:none;border-radius:10px;">الملف الشخصي</a>
+  <a href="/api/auth/signout?callbackUrl=/" style="display:block;margin:10px 0;padding:12px;color:#94a3b8;text-decoration:none;font-size:14px;">تسجيل الخروج</a>
+</div>
+<p id="err" style="color:#f87171;"></p>
+<script>
+fetch('/api/auth/session', { credentials: 'include' })
+  .then(function (r) { return r.json() })
+  .then(function (s) {
+    if (!s || !s.user) {
+      window.location.href = '/'
+      return
+    }
+    document.getElementById('user').textContent = 'مرحباً ' + (s.user.name || s.user.email || 'بك')
+    document.getElementById('menu').style.display = 'block'
+  })
+  .catch(function () {
+    document.getElementById('err').textContent = 'تعذر التحقق من الجلسة'
+    document.getElementById('user').textContent = ''
+  })
+</script>
+</body>
+</html>

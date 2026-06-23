@@ -4,16 +4,14 @@ import { NextResponse } from 'next/server'
 import type { NextFetchEvent, NextRequest } from 'next/server'
 import { Role, ApprovalStatus } from '@prisma/client'
 
-const PI_UA = /pibrowser|pi browser|pinetwork|minepi/i
-
 const ONBOARDING_PATHS = ['/select-role', '/onboarding']
 const PROFILE_EXEMPT_PATHS = ['/select-role', '/onboarding', '/owner', '/admin']
 
-/** Pi Portal requires root domain only — rewrite (not redirect) to static HTML at same URL. */
-function piBrowserRewrite(req: NextRequest): NextResponse | null {
-  const ua = req.headers.get('user-agent') ?? ''
-  if (!PI_UA.test(ua)) return null
-  const { pathname } = req.nextUrl
+/** Pi Portal requires root domain — always serve static HTML at / (unless ?site=full). */
+function piStaticRewrite(req: NextRequest): NextResponse | null {
+  const { pathname, searchParams } = req.nextUrl
+  if (searchParams.get('site') === 'full') return null
+
   if (pathname === '/') return NextResponse.rewrite(new URL('/pi.html', req.url))
   if (pathname === '/login') return NextResponse.rewrite(new URL('/pi-login.html', req.url))
   if (pathname === '/register') return NextResponse.rewrite(new URL('/pi-register.html', req.url))
@@ -92,7 +90,7 @@ const authMiddleware = withAuth(
 )
 
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  const piRewrite = piBrowserRewrite(req)
+  const piRewrite = piStaticRewrite(req)
   if (piRewrite) return piRewrite
 
   if (isProtectedPath(req.nextUrl.pathname)) {

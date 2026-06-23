@@ -25,7 +25,7 @@ const nextConfig = {
     ]
     return [
       {
-        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|test-pi\\.txt).*)',
+        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-app\\.html|test-pi\\.txt).*)',
         headers: securityHeaders,
       },
     ]
