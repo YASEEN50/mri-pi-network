@@ -4,32 +4,59 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>دخول بالبريد — MRI</title>
-  <style>
-    body { margin:0; padding:24px; background:#0f172a; color:#e2e8f0; font-family:Arial,Tahoma,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { width:100%; max-width:420px; background:#1e293b; border-radius:16px; padding:28px 22px; }
-    h1 { font-size:1.2rem; color:#fff; margin:0 0 16px; text-align:center; }
-    label { display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px; }
-    input { width:100%; padding:12px; margin-bottom:14px; border-radius:8px; border:1px solid #475569; background:#0f172a; color:#fff; font-size:1rem; box-sizing:border-box; }
-    .btn { width:100%; padding:14px; border-radius:10px; border:none; font-size:1rem; font-weight:600; cursor:pointer; background:#059669; color:#fff; }
-    .btn:disabled { opacity:0.6; }
-    .link { display:block; text-align:center; margin-top:14px; color:#94a3b8; font-size:0.85rem; text-decoration:none; }
-    .err { color:#f87171; font-size:0.8rem; margin-top:10px; text-align:center; min-height:1.2em; }
-  </style>
+  <link rel="stylesheet" href="/pi-login.css" />
 </head>
-<body>
-  <div class="card">
-    <h1>تسجيل الدخول بالبريد</h1>
-    <form id="form">
-      <label for="email">البريد الإلكتروني</label>
-      <input id="email" type="email" required autocomplete="email" dir="ltr" />
-      <label for="password">كلمة المرور</label>
-      <input id="password" type="password" required autocomplete="current-password" dir="ltr" />
-      <button class="btn" type="submit" id="submitBtn">تسجيل الدخول</button>
-    </form>
-    <p id="err" class="err"></p>
-    <a class="link" href="/pi-register.html">ليس لديك حساب؟ سجّل الآن</a>
-    <a class="link" href="/">← الرئيسية</a>
+<body class="pi-auth-page">
+  <div class="pi-auth-bg"></div>
+  <div class="pi-auth-glow"></div>
+  <div class="pi-auth-glow-orb"></div>
+
+  <div class="pi-auth-wrap">
+    <div class="pi-auth-brand">
+      <div class="pi-auth-logo" aria-hidden="true">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      </div>
+      <h1 class="pi-auth-title">MRI</h1>
+      <p class="pi-auth-subtitle">تسجيل الدخول بالبريد الإلكتروني</p>
+    </div>
+
+    <div class="pi-auth-card">
+      <h2>مرحباً بعودتك</h2>
+      <p class="pi-auth-hint">أدخل بيانات حسابك للمتابعة</p>
+
+      <form id="form">
+        <label class="pi-auth-label" for="email">البريد الإلكتروني</label>
+        <div class="pi-auth-input-wrap">
+          <input id="email" class="pi-auth-input" type="email" required autocomplete="email" dir="ltr" placeholder="example@email.com" />
+        </div>
+
+        <div class="pi-auth-row">
+          <label class="pi-auth-label" for="password" style="margin:0">كلمة المرور</label>
+          <a class="pi-auth-link" href="/forgot-password?site=full">نسيت كلمة المرور؟</a>
+        </div>
+        <div class="pi-auth-input-wrap">
+          <input id="password" class="pi-auth-input has-toggle" type="password" required autocomplete="current-password" dir="ltr" placeholder="••••••••" />
+          <button type="button" class="pi-auth-input-toggle" id="togglePwd" aria-label="إظهار كلمة المرور">👁</button>
+        </div>
+
+        <button class="pi-auth-btn pi-auth-btn-email" type="submit" id="submitBtn">تسجيل الدخول</button>
+      </form>
+
+      <div class="pi-auth-trust">
+        <span>🔒 اتصال آمن</span>
+        <span>✓ موثوق</span>
+      </div>
+    </div>
+
+    <p id="err" class="pi-auth-error"></p>
+
+    <a class="pi-auth-footer-link" href="/pi-register.html">ليس لديك حساب؟ <strong style="color:var(--pi-accent)">سجّل الآن</strong></a>
+    <a class="pi-auth-back pi-auth-text-center" href="/" style="display:block">← العودة للرئيسية</a>
   </div>
+
   <script>
   function requestCookieAccess() {
     if (document.requestStorageAccess) {
@@ -50,13 +77,20 @@
       })
   }
 
+  document.getElementById('togglePwd').addEventListener('click', function () {
+    var input = document.getElementById('password')
+    var show = input.type === 'password'
+    input.type = show ? 'text' : 'password'
+    this.textContent = show ? '🙈' : '👁'
+  })
+
   document.getElementById('form').addEventListener('submit', function (e) {
     e.preventDefault()
     var btn = document.getElementById('submitBtn')
     var err = document.getElementById('err')
     err.textContent = ''
     btn.disabled = true
-    btn.textContent = 'جاري الدخول...'
+    btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري الدخول...'
     requestCookieAccess()
       .then(function () { return fetch('/api/auth/csrf', { credentials: 'include' }) })
       .then(function (r) {

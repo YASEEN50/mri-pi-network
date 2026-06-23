@@ -1,9 +1,10 @@
 <!DOCTYPE html>
-<html lang="ar">
+<html lang="ar" dir="rtl">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MRI</title>
+<title>MRI — تسجيل الدخول</title>
+<link rel="stylesheet" href="/pi-login.css">
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
 <script>
 (function () {
@@ -23,35 +24,82 @@
 </script>
 <script src="/pi-auth.js"></script>
 </head>
-<body bgcolor="#0f172a" text="#ffffff" style="margin:0;padding:20px;font-family:Arial,sans-serif;text-align:center;">
-<noscript><p style="color:#fff;font-size:20px;">MRI - enable JavaScript</p></noscript>
-<h1 style="color:#00ff88;font-size:28px;">MRI</h1>
-<p id="status" style="color:#ccc;">جاري تسجيل الدخول بـ Pi...</p>
-<button id="piBtn" type="button" style="display:block;max-width:300px;width:100%;margin:12px auto;padding:14px;background:#7c3aed;color:#fff;border:none;border-radius:8px;font-size:1rem;font-weight:600;cursor:pointer;">π تسجيل الدخول</button>
-<a href="/pi-email.html" style="display:block;max-width:300px;margin:12px auto;padding:14px;background:#475569;color:#fff;text-decoration:none;border-radius:8px;">الدخول بالبريد</a>
-<a href="/pi-register.html" style="display:block;max-width:300px;margin:12px auto;padding:14px;background:#334155;color:#ccc;text-decoration:none;border-radius:8px;">حساب جديد</a>
+<body class="pi-auth-page">
+<div class="pi-auth-bg"></div>
+<div class="pi-auth-glow"></div>
+<div class="pi-auth-glow-orb"></div>
+
+<div class="pi-auth-wrap">
+  <div class="pi-auth-brand">
+    <div class="pi-auth-logo" aria-hidden="true">
+      <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round"
+          d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+      </svg>
+    </div>
+    <h1 class="pi-auth-title">MRI</h1>
+    <p class="pi-auth-subtitle">منصة طبية موثوقة</p>
+  </div>
+
+  <div class="pi-auth-card">
+    <h2>مرحباً بك</h2>
+    <p id="status" class="pi-auth-hint">جاري التحقق بـ Pi Network...</p>
+
+    <button id="piBtn" type="button" class="pi-auth-btn pi-auth-btn-pi">
+      <span>π</span> تسجيل الدخول بـ Pi
+    </button>
+
+    <div class="pi-auth-divider">أو</div>
+
+    <a href="/pi-email.html" class="pi-auth-btn pi-auth-btn-outline">📧 الدخول بالبريد الإلكتروني</a>
+    <a href="/pi-register.html" class="pi-auth-btn pi-auth-btn-outline">إنشاء حساب جديد</a>
+
+    <div class="pi-auth-trust">
+      <span>🔒 اتصال آمن</span>
+      <span>🟣 Pi Network</span>
+      <span>✓ موثوق</span>
+    </div>
+  </div>
+
+  <p id="err" class="pi-auth-error"></p>
+</div>
+
 <script>
 (function () {
   var statusEl = document.getElementById('status')
   var piBtn = document.getElementById('piBtn')
+  var errEl = document.getElementById('err')
+
+  function setLoading(loading) {
+    if (loading) {
+      statusEl.className = 'pi-auth-hint loading pi-auth-status'
+      statusEl.innerHTML = '<span class="pi-auth-spinner"></span> جاري تسجيل الدخول بـ Pi...'
+    }
+  }
 
   piBtn.addEventListener('click', function () {
     piBtn.disabled = true
-    statusEl.textContent = 'جاري تسجيل الدخول بـ Pi...'
-    window.PiAuth.signIn().catch(function () {
-      statusEl.textContent = 'منصة طبية موثوقة'
+    errEl.textContent = ''
+    setLoading(true)
+    window.PiAuth.signIn().catch(function (e) {
+      statusEl.className = 'pi-auth-hint'
+      statusEl.textContent = 'اضغط π ووافق على طلب المصادقة في Pi Network'
+      errEl.textContent = e && e.message ? e.message : 'فشل تسجيل الدخول'
       piBtn.disabled = false
     })
   })
 
   window.PiAuth.runOnLoad().then(function (auth) {
     if (auth && auth.accessToken) {
-      statusEl.textContent = 'تم التحقق — جاري الدخول...'
+      statusEl.className = 'pi-auth-hint loading pi-auth-status'
+      statusEl.innerHTML = '<span class="pi-auth-spinner"></span> تم التحقق — جاري الدخول...'
     } else {
-      statusEl.textContent = 'منصة طبية موثوقة — اضغط π لتسجيل الدخول'
+      statusEl.className = 'pi-auth-hint'
+      statusEl.textContent = 'اضغط π ووافق على طلب المصادقة في Pi Network'
     }
   }).catch(function () {
-    statusEl.textContent = 'منصة طبية موثوقة — اضغط π لتسجيل الدخول'
+    statusEl.className = 'pi-auth-hint'
+    statusEl.textContent = 'اضغط π ووافق على طلب المصادقة في Pi Network'
   })
 })()
 </script>
