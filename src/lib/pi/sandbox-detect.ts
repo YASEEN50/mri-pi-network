@@ -6,6 +6,7 @@ export function detectPiSandboxClient(): boolean {
   try {
     const hostRef = `${window.location.hostname} ${document.referrer || ''}`
     if (/sandbox\.minepi/i.test(hostRef)) return true
+    if (/\.pinet\.com$/i.test(window.location.hostname)) return false
   } catch { /* ignore */ }
 
   const mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent)

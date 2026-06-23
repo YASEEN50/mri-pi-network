@@ -1,14 +1,25 @@
-// src/middleware.ts
+// src/middleware.ts — Edge-safe (no @prisma/client imports)
 import { withAuth, NextRequestWithAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
 import type { NextFetchEvent, NextRequest } from 'next/server'
-import { Role, ApprovalStatus } from '@prisma/client'
+
+const Role = {
+  OWNER: 'OWNER',
+  ADMIN: 'ADMIN',
+  DOCTOR: 'DOCTOR',
+  FACILITY: 'FACILITY',
+  CLIENT: 'CLIENT',
+} as const
+
+const ApprovalStatus = {
+  APPROVED: 'APPROVED',
+} as const
 
 const ONBOARDING_PATHS = ['/select-role', '/onboarding']
 const PROFILE_EXEMPT_PATHS = ['/select-role', '/onboarding', '/owner', '/admin']
 
 const PI_FRAME_CSP =
-  "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network"
+  "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network https://pinet.com https://*.pinet.com"
 
 function applyPiWebViewHeaders(res: NextResponse): NextResponse {
   res.headers.delete('X-Frame-Options')
@@ -35,7 +46,8 @@ function piStaticRewrite(req: NextRequest): NextResponse | null {
 
 function isPiRequest(req: NextRequest): boolean {
   const ua = req.headers.get('user-agent') ?? ''
-  return /PiBrowser|pibrowser|pi browser|pinetwork|minepi/i.test(ua)
+  const host = req.headers.get('host') ?? ''
+  return /PiBrowser|pibrowser|pi browser|pinetwork|minepi/i.test(ua) || /\.pinet\.com$/i.test(host)
 }
 
 function isProtectedPath(pathname: string): boolean {
@@ -49,8 +61,8 @@ const authMiddleware = withAuth(
     const token = req.nextauth.token
     if (!token) return NextResponse.redirect(new URL('/login', req.url))
 
-    const role = token.role as Role
-    const approvalStatus = token.approvalStatus as ApprovalStatus | null
+    const role = token.role as string
+    const approvalStatus = token.approvalStatus as string | null | undefined
     const isProfileComplete = token.isProfileComplete as boolean
 
     if (pathname.startsWith('/owner') && role !== Role.OWNER) {
@@ -110,18 +122,23 @@ const authMiddleware = withAuth(
 )
 
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  const piRewrite = piStaticRewrite(req)
-  if (piRewrite) return piRewrite
+  try {
+    const piRewrite = piStaticRewrite(req)
+    if (piRewrite) return piRewrite
 
-  let res: NextResponse
-  if (isProtectedPath(req.nextUrl.pathname)) {
-    res = authMiddleware(req as NextRequestWithAuth, event) as NextResponse
-  } else {
-    res = NextResponse.next()
+    let res: NextResponse
+    if (isProtectedPath(req.nextUrl.pathname)) {
+      res = authMiddleware(req as NextRequestWithAuth, event) as NextResponse
+    } else {
+      res = NextResponse.next()
+    }
+
+    if (isPiRequest(req)) applyPiWebViewHeaders(res)
+    return res
+  } catch (err) {
+    console.error('[middleware]', err)
+    return NextResponse.next()
   }
-
-  if (isPiRequest(req)) applyPiWebViewHeaders(res)
-  return res
 }
 
 export const config = {

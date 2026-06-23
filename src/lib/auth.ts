@@ -88,7 +88,7 @@ function crossSiteAuthCookies(): NextAuthOptions['cookies'] {
       options: httpOnly,
     },
     csrfToken: {
-      name: '__Host-next-auth.csrf-token',
+      name: '__Secure-next-auth.csrf-token',
       options: httpOnly,
     },
     pkceCodeVerifier: {

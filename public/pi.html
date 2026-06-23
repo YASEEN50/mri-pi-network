@@ -10,6 +10,7 @@
   function detectSandbox() {
     try {
       if (/sandbox\.minepi/i.test(location.hostname)) return true
+      if (/\.pinet\.com$/i.test(location.hostname)) return false
     } catch (e) {}
     var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
     try { if (window.self !== window.top && !mobile) return true } catch (e) { if (!mobile) return true }

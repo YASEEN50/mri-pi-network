@@ -67,6 +67,7 @@ window.PiAuth = (function () {
     try {
       var hostRef = location.hostname + ' ' + (document.referrer || '')
       if (/sandbox\.minepi/i.test(hostRef)) return true
+      if (/\.pinet\.com$/i.test(location.hostname)) return false
     } catch (e) {}
 
     var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')

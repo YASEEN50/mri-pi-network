@@ -14,10 +14,10 @@ const nextConfig = {
   // Security headers — skip static Pi entry files (Pi WebView can be sensitive to these)
   async headers() {
     const piHeaders = [
-      { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network" },
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network https://pinet.com https://*.pinet.com" },
     ]
     const securityHeaders = [
-      { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network" },
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network https://pinet.com https://*.pinet.com" },
       { key: 'X-Content-Type-Options', value: 'nosniff' },
       // No X-Frame-Options — Pi Browser loads apps inside sandbox.minepi.com iframe
       { key: 'X-XSS-Protection',       value: '1; mode=block' },
