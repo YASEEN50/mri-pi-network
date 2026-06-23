@@ -4,11 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>تسجيل الدخول — MRI</title>
+  <link rel="stylesheet" href="/pi-login.css" />
   <script src="https://sdk.minepi.com/pi-sdk.js"></script>
   <script>
   (function () {
     function detectSandbox() {
-      try { if (/sandbox\.minepi/i.test(location.hostname)) return true } catch (e) {}
+      try {
+        if (/sandbox\.minepi/i.test(location.hostname)) return true
+        if (/\.pinet\.com$/i.test(location.hostname)) return false
+      } catch (e) {}
       var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
       try { if (window.self !== window.top && !mobile) return true } catch (e) { if (!mobile) return true }
       return false
@@ -19,56 +23,87 @@
   })()
   </script>
   <script src="/pi-auth.js"></script>
-  <style>
-    body { margin:0; padding:24px; background:#0f172a; color:#e2e8f0; font-family:Arial,Tahoma,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
-    .card { width:100%; max-width:420px; background:#1e293b; border-radius:16px; padding:28px 22px; text-align:center; }
-    h1 { font-size:1.2rem; color:#fff; margin:0 0 8px; }
-    p { font-size:0.875rem; color:#94a3b8; margin:0 0 20px; line-height:1.5; }
-    .btn { width:100%; padding:14px; border-radius:10px; border:none; font-size:1rem; font-weight:600; cursor:pointer; background:#7c3aed; color:#fff; margin-bottom:10px; }
-    .btn:disabled { opacity:0.6; cursor:wait; }
-    .btn2 { display:block; width:100%; padding:12px; border-radius:10px; background:#334155; color:#fff; text-decoration:none; font-size:0.9rem; box-sizing:border-box; }
-    .err { color:#f87171; font-size:0.8rem; margin-top:12px; min-height:1.2em; }
-    .back { display:inline-block; margin-top:14px; color:#94a3b8; font-size:0.85rem; text-decoration:none; }
-  </style>
 </head>
-<body>
-  <div class="card">
-    <h1>تسجيل الدخول بـ Pi</h1>
-    <p id="hint">جاري التحقق تلقائياً...</p>
-    <button id="loginBtn" class="btn" type="button">π تسجيل الدخول</button>
-    <a class="btn2" href="/pi-email.html">الدخول بالبريد الإلكتروني</a>
-    <p id="err" class="err"></p>
-    <a class="back" href="/">← الرئيسية</a>
+<body class="pi-auth-page">
+  <div class="pi-auth-bg"></div>
+  <div class="pi-auth-glow"></div>
+  <div class="pi-auth-glow-orb"></div>
+
+  <div class="pi-auth-wrap">
+    <div class="pi-auth-brand">
+      <div class="pi-auth-logo" aria-hidden="true">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      </div>
+      <h1 class="pi-auth-title">MRI</h1>
+      <p class="pi-auth-subtitle">تسجيل الدخول بـ Pi Network</p>
+    </div>
+
+    <div class="pi-auth-card">
+      <h2>مرحباً بك</h2>
+      <p id="hint" class="pi-auth-hint">جاري التحقق بـ Pi Network...</p>
+
+      <button id="loginBtn" type="button" class="pi-auth-btn pi-auth-btn-pi">
+        <span>π</span> تسجيل الدخول بـ Pi
+      </button>
+
+      <div class="pi-auth-divider">أو</div>
+
+      <a href="/pi-email.html" class="pi-auth-btn pi-auth-btn-outline">📧 الدخول بالبريد الإلكتروني</a>
+
+      <div class="pi-auth-trust">
+        <span>🔒 اتصال آمن</span>
+        <span>🟣 Pi Network</span>
+        <span>✓ موثوق</span>
+      </div>
+    </div>
+
+    <p id="err" class="pi-auth-error"></p>
+    <a class="pi-auth-back pi-auth-text-center" href="/" style="display:block">← العودة للرئيسية</a>
   </div>
+
   <script>
   (function () {
     var btn = document.getElementById('loginBtn')
     var errEl = document.getElementById('err')
     var hintEl = document.getElementById('hint')
 
+    function setLoading() {
+      hintEl.className = 'pi-auth-hint loading pi-auth-status'
+      hintEl.innerHTML = '<span class="pi-auth-spinner"></span> جاري تسجيل الدخول بـ Pi...'
+    }
+
     function fail(msg) {
       errEl.textContent = msg
       btn.disabled = false
-      btn.textContent = 'π تسجيل الدخول'
+      btn.innerHTML = '<span>π</span> تسجيل الدخول بـ Pi'
+      hintEl.className = 'pi-auth-hint'
       hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
     }
 
-    function runManual() {
+    btn.addEventListener('click', function () {
       errEl.textContent = ''
       btn.disabled = true
-      btn.textContent = 'جاري التحقق...'
+      btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري التحقق...'
+      setLoading()
       window.PiAuth.signIn().catch(function (e) {
         fail(e.message || 'حدث خطأ')
       })
-    }
-
-    btn.addEventListener('click', runManual)
+    })
 
     window.PiAuth.runOnLoad().then(function (auth) {
-      if (!auth) {
+      if (auth && auth.accessToken) {
+        setLoading()
+        hintEl.innerHTML = '<span class="pi-auth-spinner"></span> تم التحقق — جاري الدخول...'
+      } else {
+        hintEl.className = 'pi-auth-hint'
         hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
-        btn.disabled = false
       }
+    }).catch(function () {
+      hintEl.className = 'pi-auth-hint'
+      hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
     })
   })()
   </script>
