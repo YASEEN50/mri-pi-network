@@ -31,22 +31,11 @@ const nextConfig = {
     ]
   },
 
-  // Pi Browser: lightweight static entry (Next.js bundle is heavy in Pi WebView)
+  // Pi Browser: serve static HTML at root URL (Pi Portal disallows paths in App URL)
   async redirects() {
-    const piUa = '(?i).*(PiBrowser|pibrowser|pi browser|pinetwork|minepi).*'
     return [
-      {
-        source: '/',
-        has: [{ type: 'header', key: 'user-agent', value: piUa }],
-        destination: '/pi.html',
-        permanent: false,
-      },
-      {
-        source: '/login',
-        has: [{ type: 'header', key: 'user-agent', value: piUa }],
-        destination: '/pi-login.html',
-        permanent: false,
-      },
+      { source: '/privacypolicy', destination: '/privacy', permanent: true },
+      { source: '/terms-of-service', destination: '/terms', permanent: true },
     ]
   },
 

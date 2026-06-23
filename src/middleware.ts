@@ -9,12 +9,13 @@ const PI_UA = /pibrowser|pi browser|pinetwork|minepi/i
 const ONBOARDING_PATHS = ['/select-role', '/onboarding']
 const PROFILE_EXEMPT_PATHS = ['/select-role', '/onboarding', '/owner', '/admin']
 
-function piBrowserRedirect(req: NextRequest): NextResponse | null {
+/** Pi Portal requires root domain only — rewrite (not redirect) to static HTML at same URL. */
+function piBrowserRewrite(req: NextRequest): NextResponse | null {
   const ua = req.headers.get('user-agent') ?? ''
   if (!PI_UA.test(ua)) return null
   const { pathname } = req.nextUrl
-  if (pathname === '/') return NextResponse.redirect(new URL('/pi.html', req.url))
-  if (pathname === '/login') return NextResponse.redirect(new URL('/pi-login.html', req.url))
+  if (pathname === '/') return NextResponse.rewrite(new URL('/pi.html', req.url))
+  if (pathname === '/login') return NextResponse.rewrite(new URL('/pi-login.html', req.url))
   return null
 }
 
@@ -90,8 +91,8 @@ const authMiddleware = withAuth(
 )
 
 export default function middleware(req: NextRequest, event: NextFetchEvent) {
-  const piRedirect = piBrowserRedirect(req)
-  if (piRedirect) return piRedirect
+  const piRewrite = piBrowserRewrite(req)
+  if (piRewrite) return piRewrite
 
   if (isProtectedPath(req.nextUrl.pathname)) {
     return authMiddleware(req as NextRequestWithAuth, event)
