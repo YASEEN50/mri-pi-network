@@ -2,12 +2,12 @@
 
 import Script from 'next/script'
 
-/** Load Pi SDK after the page paints — avoids blocking Pi Browser WebView on first paint. */
+/** Load Pi SDK early — needed for payments in Pi WebView iframe */
 export function PiSdkScript() {
   return (
     <Script
       src="https://sdk.minepi.com/pi-sdk.js"
-      strategy="afterInteractive"
+      strategy="beforeInteractive"
     />
   )
 }

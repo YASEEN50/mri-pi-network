@@ -9,12 +9,43 @@ function onIncompletePaymentFound(payment: unknown): void {
   console.warn('[Pi] Incomplete payment found:', payment)
 }
 
-/** Pi SDK is loaded afterInteractive; require Pi Browser — not desktop Chrome with window.Pi stub */
+/** Heuristics: Pi Browser WebView, sandbox iframe, or native Pi SDK present */
 export function isPiBrowser(): boolean {
   if (typeof window === 'undefined') return false
-  if (typeof window.Pi === 'undefined') return false
+
+  if (typeof window.Pi !== 'undefined') return true
+
   const ua = navigator.userAgent.toLowerCase()
-  return /pibrowser|pi browser|pinetwork|minepi/.test(ua)
+  if (/pibrowser|pi browser|pinetwork|minepi|pi app|pi\s+browser/i.test(ua)) return true
+
+  try {
+    const ref = (document.referrer || '').toLowerCase()
+    if (/minepi\.com|pi\.network|sandbox\.minepi/.test(ref)) return true
+  } catch { /* ignore */ }
+
+  // Pi Browser embeds apps in a cross-origin iframe from minepi.com
+  try {
+    if (window.self !== window.top) {
+      const ref = (document.referrer || '').toLowerCase()
+      if (ref === '' || /minepi|pi\.network/.test(ref)) return true
+    }
+  } catch {
+    // cross-origin parent — typical Pi embed
+    return true
+  }
+
+  return false
+}
+
+/** Wait until Pi SDK is available (native inject or script load) */
+export async function isPiBrowserReady(timeoutMs = 12_000): Promise<boolean> {
+  if (!isPiBrowser()) return false
+  try {
+    await waitForPiSdk(timeoutMs)
+    return typeof window.Pi !== 'undefined'
+  } catch {
+    return false
+  }
 }
 
 export function markExplicitLogout(): void {

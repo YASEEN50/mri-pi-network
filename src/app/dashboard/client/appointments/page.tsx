@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/useAuth'
 import { useState } from 'react'
 import Link from 'next/link'
 import { payWithPi, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
-import { isPiBrowser } from '@/lib/pi/pi-auth-client'
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -144,10 +143,6 @@ function AppointmentCard({
 
   async function handlePiPay() {
     if (!apt.fee || apt.isPaid) return
-    if (!isPiBrowser()) {
-      setPayError('افتح الصفحة في Pi Browser للدفع بـ Pi')
-      return
-    }
     setPaying(true)
     setPayError(null)
     try {

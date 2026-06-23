@@ -5,7 +5,6 @@ import DoctorSubpageLayout from '@/components/doctor/DoctorSubpageLayout'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { payWithPi, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
-import { isPiBrowser } from '@/lib/pi/pi-auth-client'
 
 interface PremioSettings { monthlyPrice: number; yearlyPrice: number; lifetimePrice: number; isMonthlyEnabled: boolean; isYearlyEnabled: boolean; isLifetimeEnabled: boolean }
 interface ActivePremio { type: string; status: string; expiryDate: string | null; startDate: string }
@@ -43,11 +42,6 @@ export default function DoctorPremioPage() {
     else if (selectedPlan === 'YEARLY') { price = settings.yearlyPrice; label = 'سنوي' }
     else if (selectedPlan === 'LIFETIME') { price = settings.lifetimePrice; label = 'مدى الحياة' }
     else return
-
-    if (!isPiBrowser()) {
-      setMessage({ type: 'error', text: 'يجب فتح هذه الصفحة داخل Pi Browser للدفع بعملة Pi' })
-      return
-    }
 
     setIsPaying(true)
     setMessage(null)

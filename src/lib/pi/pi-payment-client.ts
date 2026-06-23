@@ -1,7 +1,7 @@
 'use client'
 // src/lib/pi/pi-payment-client.ts — دفع Pi عبر SDK (approve + complete)
 
-import { initPiSdk, isPiBrowser } from '@/lib/pi/pi-auth-client'
+import { initPiSdk, isPiBrowserReady } from '@/lib/pi/pi-auth-client'
 
 const PI_PAYMENT_SCOPES = ['username', 'payments'] as const
 
@@ -9,17 +9,15 @@ function onIncompletePaymentFound(payment: unknown): void {
   console.warn('[Pi] Incomplete payment:', payment)
 }
 
-export function requirePiBrowserForPayment(): void {
-  if (!isPiBrowser()) {
+export async function requirePiBrowserForPayment(): Promise<void> {
+  const ready = await isPiBrowserReady()
+  if (!ready) {
     throw new Error('PI_BROWSER_REQUIRED')
-  }
-  if (typeof window.Pi === 'undefined') {
-    throw new Error('PI_SDK_UNAVAILABLE')
   }
 }
 
 export async function authenticateForPiPayments(): Promise<void> {
-  requirePiBrowserForPayment()
+  await requirePiBrowserForPayment()
   await initPiSdk()
   await window.Pi!.authenticate([...PI_PAYMENT_SCOPES], onIncompletePaymentFound)
 }
@@ -41,7 +39,6 @@ export interface PiPayOptions {
 }
 
 export async function payWithPi(options: PiPayOptions): Promise<{ paymentId: string; txid: string }> {
-  requirePiBrowserForPayment()
   await authenticateForPiPayments()
 
   return new Promise((resolve, reject) => {
@@ -97,7 +94,7 @@ export async function payWithPi(options: PiPayOptions): Promise<{ paymentId: str
 export function piPaymentErrorMessage(err: unknown): string {
   if (err instanceof Error) {
     if (err.message === 'PI_BROWSER_REQUIRED') {
-      return 'الدفع متاح فقط داخل Pi Browser بعملة Pi'
+      return 'تعذّر تهيئة Pi للدفع. تأكد أنك داخل Pi Browser ثم أعد تحميل الصفحة.'
     }
     if (err.message === 'PI_SDK_UNAVAILABLE') {
       return 'Pi SDK غير متوفر. افتح التطبيق من Pi Browser'
