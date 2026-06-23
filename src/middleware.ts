@@ -16,6 +16,7 @@ function piBrowserRewrite(req: NextRequest): NextResponse | null {
   const { pathname } = req.nextUrl
   if (pathname === '/') return NextResponse.rewrite(new URL('/pi.html', req.url))
   if (pathname === '/login') return NextResponse.rewrite(new URL('/pi-login.html', req.url))
+  if (pathname === '/register') return NextResponse.rewrite(new URL('/pi-register.html', req.url))
   return null
 }
 

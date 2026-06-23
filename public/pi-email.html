@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>دخول بالبريد — MRI</title>
+  <style>
+    body { margin:0; padding:24px; background:#0f172a; color:#e2e8f0; font-family:Arial,Tahoma,sans-serif; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+    .card { width:100%; max-width:420px; background:#1e293b; border-radius:16px; padding:28px 22px; }
+    h1 { font-size:1.2rem; color:#fff; margin:0 0 16px; text-align:center; }
+    label { display:block; font-size:0.8rem; color:#94a3b8; margin-bottom:4px; }
+    input { width:100%; padding:12px; margin-bottom:14px; border-radius:8px; border:1px solid #475569; background:#0f172a; color:#fff; font-size:1rem; box-sizing:border-box; }
+    .btn { width:100%; padding:14px; border-radius:10px; border:none; font-size:1rem; font-weight:600; cursor:pointer; background:#059669; color:#fff; }
+    .btn:disabled { opacity:0.6; }
+    .link { display:block; text-align:center; margin-top:14px; color:#94a3b8; font-size:0.85rem; text-decoration:none; }
+    .err { color:#f87171; font-size:0.8rem; margin-top:10px; text-align:center; min-height:1.2em; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>تسجيل الدخول بالبريد</h1>
+    <form id="form">
+      <label for="email">البريد الإلكتروني</label>
+      <input id="email" type="email" required autocomplete="email" dir="ltr" />
+      <label for="password">كلمة المرور</label>
+      <input id="password" type="password" required autocomplete="current-password" dir="ltr" />
+      <button class="btn" type="submit" id="submitBtn">تسجيل الدخول</button>
+    </form>
+    <p id="err" class="err"></p>
+    <a class="link" href="/pi-register.html">ليس لديك حساب؟ سجّل الآن</a>
+    <a class="link" href="/">← الرئيسية</a>
+  </div>
+  <script>
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault()
+    var btn = document.getElementById('submitBtn')
+    var err = document.getElementById('err')
+    err.textContent = ''
+    btn.disabled = true
+    btn.textContent = 'جاري الدخول...'
+    fetch('/api/auth/csrf', { credentials: 'include' })
+      .then(function (r) { return r.json() })
+      .then(function (csrf) {
+        return fetch('/api/auth/callback/credentials', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            csrfToken: csrf.csrfToken,
+            email: document.getElementById('email').value,
+            password: document.getElementById('password').value,
+            callbackUrl: '/dashboard',
+            json: 'true',
+          }).toString(),
+        })
+      })
+      .then(function (r) { return r.json() })
+      .then(function (data) {
+        if (data.error) throw new Error('البريد أو كلمة المرور غير صحيحة')
+        window.location.href = data.url || '/dashboard'
+      })
+      .catch(function (ex) {
+        err.textContent = ex.message || 'حدث خطأ'
+        btn.disabled = false
+        btn.textContent = 'تسجيل الدخول'
+      })
+  })
+  </script>
+</body>
+</html>
