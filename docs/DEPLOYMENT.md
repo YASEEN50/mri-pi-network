@@ -54,10 +54,30 @@ npm run vercel-build
 وهو ينفّذ:
 
 1. `prisma generate`
-2. `prisma migrate deploy`
-3. `next build`
+2. `next build`
 
-ملف `vercel.json` يحدد `buildCommand` ومهل الـ API routes للعمال.
+> **ملاحظة:** `prisma migrate deploy` **لا يُشغَّل تلقائياً** أثناء النشر على Vercel (تجنّب خطأ P1002 مع Neon).  
+> عند تغيير `prisma/schema.prisma` شغّل الهجرة يدوياً **قبل** النشر:
+
+```bash
+# من جهازك (مع DIRECT_URL و DATABASE_URL في .env)
+npm run db:migrate:prod
+```
+
+أو فعّل الهجرة في البناء مؤقتاً في Vercel:
+
+- `buildCommand`: `npm run vercel-build:migrate`
+- أو أضف `SKIP_MIGRATE_DEPLOY=1` إذا استخدمت `vercel-build:migrate` وفشل P1002 بدون تغييرات schema
+
+### إعداد Neon (مهم لـ P1002)
+
+| المتغير | مثال |
+|---------|------|
+| `DATABASE_URL` | `postgresql://...@ep-xxx-**pooler**.region.aws.neon.tech/neondb?sslmode=require` |
+| `DIRECT_URL` | `postgresql://...@ep-xxx.region.aws.neon.tech/neondb?sslmode=require&connect_timeout=30` |
+
+- `DIRECT_URL` **بدون** `-pooler` في اسم المضيف.
+- من لوحة Neon: Connection string → **Direct connection** لـ `DIRECT_URL`.
 
 ## 4. التخزين على Vercel
 
@@ -94,7 +114,7 @@ npm run dev
 
 | المشكلة | الحل |
 |---------|------|
-| فشل `migrate deploy` (P1002 / advisory lock) | أضف `DIRECT_URL` (رابط بدون pooler). لا تشغّل نشرين متزامنين. |
+| فشل `migrate deploy` (P1002 / advisory lock) | أضف `DIRECT_URL` (رابط بدون pooler). النشر العادي لا يشغّل migrate — شغّله يدوياً عند تغيير schema. |
 | فشل `migrate deploy` (عام) | تأكد من `DATABASE_URL` و`DIRECT_URL` وصلاحيات Neon |
 | OCR لا يعمل | `GOOGLE_CLOUD_VISION_API_KEY` + `WORKER_SECRET` + `NEXTAUTH_URL` |
 | 401 على workers | `x-worker-secret` يجب أن يطابق `WORKER_SECRET` |
