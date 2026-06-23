@@ -170,6 +170,7 @@ window.PiAuth = (function () {
   }
 
   function signIn() {
+    clearSkipAuto()
     return requestCookieAccess()
       .then(authenticatePi)
       .then(function (auth) {
@@ -178,25 +179,20 @@ window.PiAuth = (function () {
       })
   }
 
-  /** App load: always Pi.authenticate; session only if not skipped */
+  /** On load: resume existing session only — manual button for new login */
   function runOnLoad() {
-    return authenticatePi()
-      .then(function (auth) {
-        if (!auth || !auth.accessToken) return null
-        if (shouldSkipAuto()) return auth
-        return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-          .then(function (r) { return r.json() })
-          .then(function (s) {
-            if (s && s.user) {
-              window.location.href = '/dashboard'
-              return auth
-            }
-            return establishSession(auth.accessToken).then(function () { return auth })
-          })
+    return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (s) {
+        if (s && s.user) {
+          window.location.href = '/dashboard'
+          return { mode: 'redirecting' }
+        }
+        return { mode: 'idle' }
       })
       .catch(function (err) {
         console.warn('[PiAuth] runOnLoad', err)
-        return null
+        return { mode: 'idle' }
       })
   }
 

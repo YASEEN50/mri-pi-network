@@ -128,20 +128,19 @@ async function exchangePiTokenForSession(accessToken: string): Promise<{ ok: boo
   return { ok: true }
 }
 
-/** App load: always Pi.authenticate; establish session only when allowed */
-export async function runPiAuthOnLoad(establishSession = true): Promise<PiAuthResult | null> {
+/** On load: redirect if session exists; never auto-authenticate Pi */
+export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
   try {
-    await waitForPiSdk(15_000)
-    const authResult = await authenticateWithPi()
-    if (!establishSession || shouldSkipPiAutoLogin()) return authResult
-    await requestCookieAccess()
-    const result = await exchangePiTokenForSession(authResult.accessToken)
-    if (result.ok) clearExplicitLogout()
-    return authResult
+    const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+    const session = await res.json()
+    if (session?.user) {
+      if (typeof window !== 'undefined') window.location.href = '/dashboard'
+      return 'redirecting'
+    }
   } catch (err) {
     console.warn('[Pi Auth] runOnLoad', err)
-    return null
   }
+  return 'idle'
 }
 
 export async function signInWithPiNetwork(): Promise<{
@@ -154,6 +153,7 @@ export async function signInWithPiNetwork(): Promise<{
   }
 
   try {
+    clearExplicitLogout()
     await requestCookieAccess()
     const authResult = await authenticateWithPi()
     await requestCookieAccess()

@@ -43,7 +43,7 @@
 
   <div class="pi-auth-card">
     <h2>مرحباً بك</h2>
-    <p id="status" class="pi-auth-hint">جاري التحقق بـ Pi Network...</p>
+    <p id="status" class="pi-auth-hint">اضغط π ووافق على طلب المصادقة في Pi Network</p>
 
     <button id="piBtn" type="button" class="pi-auth-btn pi-auth-btn-pi">
       <span>π</span> تسجيل الدخول بـ Pi
@@ -89,13 +89,10 @@
     })
   })
 
-  window.PiAuth.runOnLoad().then(function (auth) {
-    if (auth && auth.accessToken) {
+  window.PiAuth.runOnLoad().then(function (result) {
+    if (result && result.mode === 'redirecting') {
       statusEl.className = 'pi-auth-hint loading pi-auth-status'
-      statusEl.innerHTML = '<span class="pi-auth-spinner"></span> تم التحقق — جاري الدخول...'
-    } else {
-      statusEl.className = 'pi-auth-hint'
-      statusEl.textContent = 'اضغط π ووافق على طلب المصادقة في Pi Network'
+      statusEl.innerHTML = '<span class="pi-auth-spinner"></span> جلسة نشطة — جاري الدخول...'
     }
   }).catch(function () {
     statusEl.className = 'pi-auth-hint'

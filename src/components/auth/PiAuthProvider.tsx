@@ -1,18 +1,15 @@
 'use client'
 
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import {
   isPiBrowserReady,
   runPiAuthOnLoad,
-  shouldSkipPiAutoLogin,
 } from '@/lib/pi/pi-auth-client'
 import PiLoginButton from '@/components/auth/PiLoginButton'
 
 export function PiAuthProvider({ children }: { children: React.ReactNode }) {
   const { status } = useSession()
-  const router = useRouter()
   const autoStarted = useRef(false)
   const [inPi, setInPi] = useState(false)
   const [autoLoading, setAutoLoading] = useState(false)
@@ -26,18 +23,10 @@ export function PiAuthProvider({ children }: { children: React.ReactNode }) {
     autoStarted.current = true
     setAutoLoading(true)
 
-    runPiAuthOnLoad(status === 'unauthenticated')
-      .then((auth) => {
-        setAutoLoading(false)
-        if (auth && !shouldSkipPiAutoLogin() && status === 'unauthenticated') {
-          router.push('/dashboard')
-          router.refresh()
-        }
-      })
-      .catch(() => {
-        setAutoLoading(false)
-      })
-  }, [inPi, status, router])
+    runPiAuthOnLoad()
+      .then(() => setAutoLoading(false))
+      .catch(() => setAutoLoading(false))
+  }, [inPi])
 
   const showPiSignIn = inPi && status === 'unauthenticated'
 
