@@ -2,7 +2,7 @@ export default function AuthRouteLayout({ children }: { children: React.ReactNod
   return (
     <>
       {/* eslint-disable-next-line @next/next/no-css-tags */}
-      <link rel="stylesheet" href="/pi-login.css" />
+      <link rel="stylesheet" href="/pi-login.css?v=2" />
       {children}
     </>
   )

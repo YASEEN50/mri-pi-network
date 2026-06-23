@@ -36,40 +36,43 @@ body.pi-auth-page,
   overflow-x: hidden;
 }
 
-/* Medical silhouettes — faint at edges, clear in center (login card zone) */
+/* Medical silhouettes — visible at edges, clear center for login card */
 .pi-auth-medical {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background: url('/pi-auth-medical-bg.svg') center / min(1280px, 115%) no-repeat;
-  opacity: 0.42;
-  filter: blur(0.4px);
+  background: url('/pi-auth-medical-bg.svg') center / cover no-repeat;
+  opacity: 0.85;
   -webkit-mask-image: radial-gradient(
-    ellipse 58% 52% at 50% 46%,
+    ellipse 48% 44% at 50% 46%,
     transparent 0%,
-    transparent 38%,
-    rgba(0, 0, 0, 0.35) 58%,
-    black 88%
+    transparent 32%,
+    rgba(0, 0, 0, 0.5) 55%,
+    black 100%
   );
   mask-image: radial-gradient(
-    ellipse 58% 52% at 50% 46%,
+    ellipse 48% 44% at 50% 46%,
     transparent 0%,
-    transparent 38%,
-    rgba(0, 0, 0, 0.35) 58%,
-    black 88%
+    transparent 32%,
+    rgba(0, 0, 0, 0.5) 55%,
+    black 100%
   );
 }
 
-/* Dark scrim keeps contrast readable over medical layer */
+/* Vignette: darkens center only — edges stay open so medical art shows */
 .pi-auth-scrim {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 0;
-  background:
-    radial-gradient(ellipse 72% 58% at 50% 44%, rgba(10, 15, 30, 0.55) 0%, rgba(10, 15, 30, 0.88) 72%),
-    linear-gradient(165deg, rgba(10, 15, 30, 0.72) 0%, rgba(10, 15, 30, 0.92) 100%);
+  background: radial-gradient(
+    ellipse 52% 48% at 50% 46%,
+    rgba(10, 15, 30, 0.72) 0%,
+    rgba(10, 15, 30, 0.38) 45%,
+    rgba(10, 15, 30, 0.08) 72%,
+    transparent 100%
+  );
 }
 
 .pi-auth-bg {
@@ -447,14 +450,11 @@ body.pi-auth-page,
 @media (max-width: 380px) {
   .pi-auth-card { padding: 22px 16px; }
   .pi-auth-title { font-size: 1.5rem; }
-  .pi-auth-medical {
-    opacity: 0.3;
-    background-size: 200% auto;
-  }
+  .pi-auth-medical { opacity: 0.7; }
 }
 
 @media (prefers-reduced-transparency: reduce) {
-  .pi-auth-medical { opacity: 0.18; filter: none; }
+  .pi-auth-medical { opacity: 0.45; }
 }
 
 /* Steps & role selection (register / forgot-password) */
