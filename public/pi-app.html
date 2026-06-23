@@ -4,10 +4,11 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MRI — لوحة الدخول</title>
+  <script src="/pi-auth.js"></script>
   <style>
     body { margin:0; padding:24px; background:#0f172a; color:#fff; font-family:Arial,Tahoma,sans-serif; text-align:center; }
     h1 { color:#10b981; font-size:24px; }
-    .btn { display:block; max-width:320px; margin:10px auto; padding:14px; border-radius:10px; color:#fff; text-decoration:none; font-weight:600; }
+    .btn { display:block; max-width:320px; margin:10px auto; padding:14px; border-radius:10px; color:#fff; text-decoration:none; font-weight:600; border:none; font-size:1rem; cursor:pointer; width:100%; max-width:320px; }
     .btn1 { background:#059669; }
     .btn2 { background:#334155; }
     .muted { color:#94a3b8; font-size:14px; }
@@ -21,24 +22,49 @@
     <a href="/dashboard" class="btn btn1">لوحة التحكم</a>
     <a href="/doctors" class="btn btn2">الأطباء — حجز موعد</a>
     <a href="/profile" class="btn btn2">الملف الشخصي</a>
-    <a href="/api/auth/signout?callbackUrl=/" class="btn muted">تسجيل الخروج</a>
+    <button type="button" id="logoutBtn" class="btn muted">تسجيل الخروج</button>
   </div>
+  <button id="piBtn" class="btn btn2" style="display:none;margin-top:12px">π تسجيل الدخول بـ Pi</button>
   <p id="err" class="err"></p>
   <script>
-  fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-    .then(function (r) { return r.json() })
-    .then(function (s) {
-      if (!s || !s.user) {
-        window.location.href = '/'
-        return
-      }
-      document.getElementById('user').textContent = 'مرحباً ' + (s.user.name || s.user.email || s.user.piUsername || 'بك')
-      document.getElementById('menu').style.display = 'block'
+  (function () {
+    var logoutBtn = document.getElementById('logoutBtn')
+    var piBtn = document.getElementById('piBtn')
+
+    logoutBtn.addEventListener('click', function () {
+      window.PiAuth.signOut('/')
     })
-    .catch(function () {
-      document.getElementById('err').textContent = 'تعذر التحقق من الجلسة'
-      document.getElementById('user').textContent = ''
+
+    piBtn.addEventListener('click', function () {
+      piBtn.disabled = true
+      piBtn.textContent = 'جاري التحقق...'
+      window.PiAuth.signIn().catch(function (e) {
+        document.getElementById('err').textContent = e.message || 'فشل الدخول'
+        piBtn.disabled = false
+        piBtn.textContent = 'π تسجيل الدخول بـ Pi'
+      })
     })
+
+    fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (s) {
+        if (!s || !s.user) {
+          document.getElementById('user').textContent = 'لم يتم تسجيل الدخول'
+          piBtn.style.display = 'block'
+          if (!window.PiAuth.shouldSkipAuto()) {
+            window.PiAuth.tryAutoSignIn()
+          }
+          return
+        }
+        document.getElementById('user').textContent = 'مرحباً ' + (s.user.name || s.user.email || s.user.piUsername || 'بك')
+        document.getElementById('menu').style.display = 'block'
+      })
+      .catch(function () {
+        document.getElementById('err').textContent = 'تعذر التحقق من الجلسة'
+        document.getElementById('user').textContent = ''
+        piBtn.style.display = 'block'
+      })
+  })()
   </script>
 </body>
 </html>

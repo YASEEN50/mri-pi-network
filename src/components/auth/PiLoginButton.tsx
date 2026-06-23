@@ -8,12 +8,16 @@ interface PiLoginButtonProps {
   callbackUrl?: string
   onSuccess?: () => void
   onError?: (error: string) => void
+  compact?: boolean
+  disabled?: boolean
 }
 
 export default function PiLoginButton({
   callbackUrl = '/dashboard',
   onSuccess,
   onError,
+  compact = false,
+  disabled = false,
 }: PiLoginButtonProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
@@ -44,8 +48,12 @@ export default function PiLoginButton({
       <button
         type="button"
         onClick={handlePiLogin}
-        disabled={isLoading}
-        className="w-full flex items-center justify-center gap-3 bg-[#6B21A8]/20 hover:bg-[#6B21A8]/30 border border-[#a855f7]/30 hover:border-[#a855f7]/50 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 text-sm group"
+        disabled={isLoading || disabled}
+        className={
+          compact
+            ? 'w-full flex items-center justify-center gap-2 bg-[#6B21A8]/30 hover:bg-[#6B21A8]/40 border border-[#a855f7]/30 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-2.5 px-4 rounded-xl transition-all text-sm'
+            : 'w-full flex items-center justify-center gap-3 bg-[#6B21A8]/20 hover:bg-[#6B21A8]/30 border border-[#a855f7]/30 hover:border-[#a855f7]/50 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 px-6 rounded-xl transition-all duration-200 text-sm group'
+        }
       >
         {isLoading ? (
           <>
@@ -67,9 +75,11 @@ export default function PiLoginButton({
 
       {error && <p className="text-center text-red-400 text-xs">{error}</p>}
 
-      <p className="text-center text-slate-500 text-xs">
-        يتطلب Pi Browser مثبتاً على جهازك
-      </p>
+      {!compact && (
+        <p className="text-center text-slate-500 text-xs">
+          يتطلب Pi Browser مثبتاً على جهازك
+        </p>
+      )}
     </div>
   )
 }

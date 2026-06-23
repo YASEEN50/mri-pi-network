@@ -17,7 +17,6 @@ export function PiAuthProvider({ children }: { children: React.ReactNode }) {
   const autoStarted = useRef(false)
   const [inPi, setInPi] = useState(false)
   const [autoLoading, setAutoLoading] = useState(false)
-  const [autoFailed, setAutoFailed] = useState(false)
 
   useEffect(() => {
     isPiBrowserReady().then(setInPi)
@@ -36,36 +35,29 @@ export function PiAuthProvider({ children }: { children: React.ReactNode }) {
           clearExplicitLogout()
           router.push('/dashboard')
           router.refresh()
-        } else {
-          setAutoFailed(true)
         }
       })
       .catch(() => {
         setAutoLoading(false)
-        setAutoFailed(true)
       })
   }, [inPi, status, router])
 
-  const showManual =
-    inPi &&
-    status === 'unauthenticated' &&
-    (autoFailed || shouldSkipPiAutoLogin()) &&
-    !autoLoading
+  const showPiSignIn = inPi && status === 'unauthenticated'
 
   return (
     <>
       {children}
-      {autoLoading && (
+      {showPiSignIn && autoLoading && (
         <div
-          className="fixed bottom-6 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-purple-900/90 border border-purple-500/30 px-4 py-3 text-center text-sm text-purple-100"
+          className="fixed bottom-28 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-purple-900/90 border border-purple-500/30 px-4 py-3 text-center text-sm text-purple-100"
           role="status"
         >
           جاري تسجيل الدخول بـ Pi Network...
         </div>
       )}
-      {showManual && (
-        <div className="fixed bottom-6 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-slate-900/95 border border-white/10 p-4 shadow-xl">
-          <PiLoginButton callbackUrl="/dashboard" />
+      {showPiSignIn && (
+        <div className="fixed bottom-6 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-slate-900/95 border border-white/10 p-3 shadow-xl">
+          <PiLoginButton callbackUrl="/dashboard" compact disabled={autoLoading} />
         </div>
       )}
     </>

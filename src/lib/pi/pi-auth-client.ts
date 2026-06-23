@@ -60,6 +60,13 @@ export function shouldSkipPiAutoLogin(): boolean {
   try { return sessionStorage.getItem(PI_SKIP_AUTO_LOGIN_KEY) === '1' } catch { return false }
 }
 
+async function requestCookieAccess(): Promise<void> {
+  if (typeof document === 'undefined') return
+  if (document.requestStorageAccess) {
+    try { await document.requestStorageAccess() } catch { /* ignore */ }
+  }
+}
+
 async function waitForPiSdk(timeoutMs = 8000): Promise<void> {
   const started = Date.now()
   while (!window.Pi) {
@@ -105,7 +112,9 @@ export async function signInWithPiNetwork(): Promise<{
   }
 
   try {
+    await requestCookieAccess()
     const authResult = await authenticateWithPi()
+    await requestCookieAccess()
     return exchangePiTokenForSession(authResult.accessToken)
   } catch (err) {
     console.error('[Pi Auth]', err)

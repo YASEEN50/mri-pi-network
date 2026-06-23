@@ -6,6 +6,14 @@ window.PiAuth = (function () {
     try { return sessionStorage.getItem(SKIP_KEY) === '1' } catch (e) { return false }
   }
 
+  function markSkipAuto() {
+    try { sessionStorage.setItem(SKIP_KEY, '1') } catch (e) {}
+  }
+
+  function clearSkipAuto() {
+    try { sessionStorage.removeItem(SKIP_KEY) } catch (e) {}
+  }
+
   function loadSdk() {
     if (window.Pi) return Promise.resolve()
     return new Promise(function (resolve, reject) {
@@ -36,7 +44,7 @@ window.PiAuth = (function () {
       .then(getSandbox)
       .then(function (sandbox) {
         if (!window.Pi) throw new Error('Pi Browser غير متوفر')
-        return Promise.resolve(window.Pi.init({ version: '2.0', sandbox: sandbox }))
+        return window.Pi.init({ version: '2.0', sandbox: sandbox })
       })
   }
 
@@ -51,6 +59,7 @@ window.PiAuth = (function () {
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (s && s.user) {
+          clearSkipAuto()
           window.location.href = '/dashboard'
           return
         }
@@ -83,7 +92,8 @@ window.PiAuth = (function () {
   }
 
   function signIn() {
-    return authenticatePi()
+    return requestCookieAccess()
+      .then(authenticatePi)
       .then(function (auth) {
         if (!auth || !auth.accessToken) throw new Error('لم يتم استلام رمز Pi')
         return establishSession(auth.accessToken)
@@ -104,5 +114,17 @@ window.PiAuth = (function () {
       .catch(function () { return false })
   }
 
-  return { signIn: signIn, tryAutoSignIn: tryAutoSignIn, shouldSkipAuto: shouldSkipAuto }
+  function signOut(redirectTo) {
+    markSkipAuto()
+    window.location.href = '/api/auth/signout?callbackUrl=' + encodeURIComponent(redirectTo || '/')
+  }
+
+  return {
+    signIn: signIn,
+    tryAutoSignIn: tryAutoSignIn,
+    shouldSkipAuto: shouldSkipAuto,
+    markSkipAuto: markSkipAuto,
+    clearSkipAuto: clearSkipAuto,
+    signOut: signOut,
+  }
 })()
