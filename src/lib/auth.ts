@@ -64,10 +64,54 @@ async function getApprovalStatus(userId: string, role: Role): Promise<ApprovalSt
   return null
 }
 
+import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
+
+/** Pi Browser embeds apps in a cross-site iframe — default SameSite=Lax cookies are not stored. */
+const useCrossSiteCookies =
+  process.env.NODE_ENV === 'production' || process.env.NEXTAUTH_CROSS_SITE === 'true'
+
+function crossSiteAuthCookies(): NextAuthOptions['cookies'] {
+  const opts = {
+    sameSite: 'none' as const,
+    path: '/',
+    secure: true,
+    partitioned: true,
+  }
+  const httpOnly = { httpOnly: true, ...opts }
+  return {
+    sessionToken: {
+      name: '__Secure-next-auth.session-token',
+      options: httpOnly,
+    },
+    callbackUrl: {
+      name: '__Secure-next-auth.callback-url',
+      options: httpOnly,
+    },
+    csrfToken: {
+      name: '__Host-next-auth.csrf-token',
+      options: httpOnly,
+    },
+    pkceCodeVerifier: {
+      name: '__Secure-next-auth.pkce.code_verifier',
+      options: httpOnly,
+    },
+    state: {
+      name: '__Secure-next-auth.state',
+      options: httpOnly,
+    },
+    nonce: {
+      name: '__Secure-next-auth.nonce',
+      options: httpOnly,
+    },
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login', error: '/login', newUser: '/select-role' },
+  useSecureCookies: process.env.NODE_ENV === 'production',
+  ...(useCrossSiteCookies ? { cookies: crossSiteAuthCookies() } : {}),
 
   providers: [
     CredentialsProvider({
@@ -139,4 +183,3 @@ export const authOptions: NextAuthOptions = {
   },
 }
 
-import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'

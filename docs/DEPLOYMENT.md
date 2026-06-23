@@ -41,6 +41,7 @@
 - **Development URL**: نفس رابط الإنتاج عند الاختبار من الهاتف (ليس `localhost`).
 - عطّل **Vercel Deployment Protection** أثناء التحقق من النطاق في Pi.
 - الصفحات الخفيفة: `/pi.html`, `/pi-login.html`, `/pi-app.html` — تجنّب `/dashboard` داخل Pi WebView.
+- **تسجيل الدخول في Pi Browser** يتطلب كوكيز `SameSite=None` (مُفعّلة تلقائياً في الإنتاج). حساب المؤسس/الأدمن: استخدم **البريد الإلكتروني** (`pi-email.html`) وليس Pi.
 
 ## 3. البناء (Build)
 

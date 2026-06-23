@@ -17,11 +17,12 @@
 </div>
 <p id="err" style="color:#f87171;"></p>
 <script>
-fetch('/api/auth/session', { credentials: 'include' })
+fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
   .then(function (r) { return r.json() })
   .then(function (s) {
     if (!s || !s.user) {
-      window.location.href = '/'
+      document.getElementById('user').textContent = 'لم يتم العثور على جلسة نشطة'
+      document.getElementById('err').textContent = 'سجّل الدخول من الرئيسية. حساب المؤسس/الأدمن: استخدم البريد الإلكتروني وليس Pi.'
       return
     }
     document.getElementById('user').textContent = 'مرحباً ' + (s.user.name || s.user.email || 'بك')
