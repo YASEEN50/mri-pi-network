@@ -31,6 +31,16 @@
 | `R2_*` | عند R2 | Cloudflare R2 للملفات |
 | `UPSTASH_REDIS_REST_URL` | مُوصى | Rate limiting |
 | `UPSTASH_REDIS_REST_TOKEN` | مُوصى | Rate limiting |
+| `NEXT_PUBLIC_PI_SANDBOX` | Pi | `true` للاختبار (Testnet)، `false` للإنتاج |
+| `PI_SANDBOX` | Pi | نفس قيمة `NEXT_PUBLIC_PI_SANDBOX` على الخادم |
+| `PI_API_KEY` | Pi | مفتاح التطبيق من [Pi Developer Portal](https://develop.pi) |
+
+### Pi Browser
+
+- **App URL** في Pi Portal: جذر النطاق فقط (مثل `https://your-app.vercel.app`) بدون مسارات.
+- **Development URL**: نفس رابط الإنتاج عند الاختبار من الهاتف (ليس `localhost`).
+- عطّل **Vercel Deployment Protection** أثناء التحقق من النطاق في Pi.
+- الصفحات الخفيفة: `/pi.html`, `/pi-login.html`, `/pi-app.html` — تجنّب `/dashboard` داخل Pi WebView.
 
 ## 3. البناء (Build)
 

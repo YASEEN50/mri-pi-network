@@ -56,8 +56,8 @@
     function getSandbox() {
       return fetch('/api/pi-config', { cache: 'no-store' })
         .then(function (r) { return r.json() })
-        .then(function (d) { return d.sandbox !== false })
-        .catch(function () { return true })
+        .then(function (d) { return d.sandbox === true })
+        .catch(function () { return false })
     }
 
     btn.addEventListener('click', function () {

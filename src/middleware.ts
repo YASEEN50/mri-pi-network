@@ -119,6 +119,7 @@ export const config = {
   matcher: [
     '/',
     '/login',
+    '/register',
     '/owner/:path*',
     '/admin/:path*',
     '/doctor/:path*',

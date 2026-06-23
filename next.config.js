@@ -28,6 +28,8 @@ const nextConfig = {
     ]
     return [
       { source: '/', headers: piHeaders },
+      { source: '/login', headers: piHeaders },
+      { source: '/register', headers: piHeaders },
       { source: '/pi.html', headers: piHeaders },
       { source: '/pi-login.html', headers: piHeaders },
       { source: '/pi-email.html', headers: piHeaders },

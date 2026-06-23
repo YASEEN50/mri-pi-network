@@ -7,13 +7,15 @@ export const PI_BROWSER_REDIRECT_SCRIPT = `
       return;
     }
     var path = location.pathname;
-    if (path !== '/' && path !== '/login') return;
+    if (path !== '/' && path !== '/login' && path !== '/register') return;
     function go() {
       var ua = navigator.userAgent || '';
       var isPiUa = /PiBrowser|pibrowser|pi browser|pinetwork|minepi/i.test(ua);
       var hasPi = typeof window.Pi !== 'undefined';
       if (isPiUa || hasPi) {
-        location.replace(path === '/login' ? '/pi-login.html' : '/pi.html');
+        if (path === '/login') location.replace('/pi-login.html');
+        else if (path === '/register') location.replace('/pi-register.html');
+        else location.replace('/pi.html');
       }
     }
     go();

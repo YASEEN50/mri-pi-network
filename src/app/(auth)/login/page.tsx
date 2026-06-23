@@ -1,13 +1,13 @@
 'use client'
 // src/app/(auth)/login/page.tsx
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PiLoginButton from '@/components/auth/PiLoginButton'
 import { Input, Button, Alert } from '@/components/ui'
-import { clearExplicitLogout } from '@/lib/pi/pi-auth-client'
+import { clearExplicitLogout, isPiBrowser } from '@/lib/pi/pi-auth-client'
 
 const errorMessages: Record<string, string> = {
   INVALID_CREDENTIALS: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
@@ -19,7 +19,16 @@ const errorMessages: Record<string, string> = {
 export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard'
+  const paramCallback = searchParams.get('callbackUrl')
+  const [callbackUrl, setCallbackUrl] = useState('/dashboard')
+
+  useEffect(() => {
+    if (paramCallback) {
+      setCallbackUrl(paramCallback)
+      return
+    }
+    if (isPiBrowser()) setCallbackUrl('/pi-app.html')
+  }, [paramCallback])
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
