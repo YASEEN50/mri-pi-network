@@ -7,14 +7,29 @@ import { Role, ApprovalStatus } from '@prisma/client'
 const ONBOARDING_PATHS = ['/select-role', '/onboarding']
 const PROFILE_EXEMPT_PATHS = ['/select-role', '/onboarding', '/owner', '/admin']
 
+const PI_FRAME_CSP =
+  "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network"
+
+function applyPiWebViewHeaders(res: NextResponse): NextResponse {
+  res.headers.delete('X-Frame-Options')
+  res.headers.set('Content-Security-Policy', PI_FRAME_CSP)
+  return res
+}
+
 /** Pi Portal requires root domain — always serve static HTML at / (unless ?site=full). */
 function piStaticRewrite(req: NextRequest): NextResponse | null {
   const { pathname, searchParams } = req.nextUrl
   if (searchParams.get('site') === 'full') return null
 
-  if (pathname === '/') return NextResponse.rewrite(new URL('/pi.html', req.url))
-  if (pathname === '/login') return NextResponse.rewrite(new URL('/pi-login.html', req.url))
-  if (pathname === '/register') return NextResponse.rewrite(new URL('/pi-register.html', req.url))
+  if (pathname === '/') {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi.html', req.url)))
+  }
+  if (pathname === '/login') {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-login.html', req.url)))
+  }
+  if (pathname === '/register') {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-register.html', req.url)))
+  }
   return null
 }
 
