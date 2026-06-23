@@ -35,13 +35,24 @@
 | `PI_SANDBOX` | Pi | نفس قيمة `NEXT_PUBLIC_PI_SANDBOX` على الخادم |
 | `PI_API_KEY` | Pi | مفتاح التطبيق من [Pi Developer Portal](https://develop.pi) |
 
-### Pi Browser
+### Pi Browser (التطبيق الكامل)
 
-- **App URL** في Pi Portal: جذر النطاق فقط (مثل `https://your-app.vercel.app`) بدون مسارات.
-- **Development URL**: نفس رابط الإنتاج عند الاختبار من الهاتف (ليس `localhost`).
-- عطّل **Vercel Deployment Protection** أثناء التحقق من النطاق في Pi.
-- الصفحات الخفيفة: `/pi.html`, `/pi-login.html`, `/pi-app.html` — تجنّب `/dashboard` داخل Pi WebView.
-- **تسجيل الدخول في Pi Browser** يتطلب كوكيز `SameSite=None` (مُفعّلة تلقائياً في الإنتاج). حساب المؤسس/الأدمن: استخدم **البريد الإلكتروني** (`pi-email.html`) وليس Pi.
+التطبيق مبني **للعمل داخل Pi Browser** عبر صفحات خفيفة (`pi-*.html`) متصلة بنفس الـ APIs:
+
+| الصفحة | الوظيفة |
+|--------|---------|
+| `/pi-app.html` | الرئيسية بعد الدخول |
+| `/pi-profile.html` | الملف الشخصي (تعديل + كلمة مرور) |
+| `/pi-appointments.html` | المواعيد |
+| `/pi-doctors.html` | البحث عن أطباء |
+| `/pi-owner.html` | لوحة المؤسس/الأدمن |
+
+المسارات `/profile`, `/dashboard`, `/doctors` تُوجّه تلقائياً إلى نسخ Pi (ما لم تُضف `?site=full`).
+
+- **App URL** في Pi Portal: جذر النطاق فقط.
+- **Development URL**: نفس رابط الإنتاج عند الاختبار من الهاتف.
+- كوكيز الجلسة: `SameSite=None; Partitioned` (مُفعّلة في الإنتاج).
+- حساب المؤسس/الأدمن: **الدخول بالبريد** (`pi-email.html`).
 
 ## 3. البناء (Build)
 

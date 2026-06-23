@@ -35,8 +35,17 @@ const nextConfig = {
       { source: '/pi-email.html', headers: piHeaders },
       { source: '/pi-register.html', headers: piHeaders },
       { source: '/pi-app.html', headers: piHeaders },
+      { source: '/pi-profile.html', headers: piHeaders },
+      { source: '/pi-dashboard.html', headers: piHeaders },
+      { source: '/pi-appointments.html', headers: piHeaders },
+      { source: '/pi-doctors.html', headers: piHeaders },
+      { source: '/pi-doctor.html', headers: piHeaders },
+      { source: '/pi-owner.html', headers: piHeaders },
+      { source: '/pi-select-role.html', headers: piHeaders },
+      { source: '/pi-shell.js', headers: piHeaders },
+      { source: '/pi-shell.css', headers: piHeaders },
       {
-        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-app\\.html|test-pi\\.txt).*)',
+        source: '/((?!pi[-a-z0-9]*\\.(html|js|css)|test-pi\\.txt).*)',
         headers: securityHeaders,
       },
     ]

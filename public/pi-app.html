@@ -1,37 +1,51 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>MRI — لوحة الدخول</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MRI — الرئيسية</title>
+  <link rel="stylesheet" href="/pi-shell.css" />
 </head>
-<body style="margin:0;padding:24px;background:#0f172a;color:#fff;font-family:Arial,Tahoma,sans-serif;text-align:center;">
-<h1 style="color:#10b981;font-size:24px;">MRI</h1>
-<p id="user" style="color:#94a3b8;margin:12px 0;">جاري التحقق...</p>
-<div id="menu" style="display:none;max-width:320px;margin:0 auto;">
-  <p style="color:#64748b;font-size:13px;margin:0 0 12px;line-height:1.5;">أنت مسجّل الدخول. للتصفح الكامل استخدم متصفحاً خارج Pi.</p>
-  <a href="/?site=full" style="display:block;margin:10px 0;padding:14px;background:#059669;color:#fff;text-decoration:none;border-radius:10px;">الموقع الكامل</a>
-  <a href="/pi-email.html" style="display:block;margin:10px 0;padding:14px;background:#334155;color:#fff;text-decoration:none;border-radius:10px;">الدخول بالبريد</a>
-  <a href="/" style="display:block;margin:10px 0;padding:14px;background:#334155;color:#fff;text-decoration:none;border-radius:10px;">الرئيسية</a>
-  <a href="/api/auth/signout?callbackUrl=/" style="display:block;margin:10px 0;padding:12px;color:#94a3b8;text-decoration:none;font-size:14px;">تسجيل الخروج</a>
-</div>
-<p id="err" style="color:#f87171;"></p>
-<script>
-fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-  .then(function (r) { return r.json() })
-  .then(function (s) {
-    if (!s || !s.user) {
-      document.getElementById('user').textContent = 'لم يتم العثور على جلسة نشطة'
-      document.getElementById('err').textContent = 'سجّل الدخول من الرئيسية. حساب المؤسس/الأدمن: استخدم البريد الإلكتروني وليس Pi.'
+<body class="pi-app">
+  <header class="pi-header">
+    <h1>MRI</h1>
+  </header>
+  <main class="pi-main" id="main">
+    <div class="pi-loading">جاري التحميل...</div>
+  </main>
+  <nav class="pi-nav" id="pi-nav"></nav>
+  <script src="/pi-shell.js"></script>
+  <script>
+  PiApp.requireSession().then(function (session) {
+    if (!session) return
+    var u = session.user
+    var main = document.getElementById('main')
+
+    if (!u.isProfileComplete && u.role !== 'OWNER' && u.role !== 'ADMIN') {
+      window.location.href = '/pi-select-role.html'
       return
     }
-    document.getElementById('user').textContent = 'مرحباً ' + (s.user.name || s.user.email || 'بك')
-    document.getElementById('menu').style.display = 'block'
+
+    PiApp.renderNav('home', u.role)
+
+    var name = u.name || u.email || u.piUsername || 'بك'
+    var links = [
+      { href: '/pi-profile.html', label: 'الملف الشخصي', cls: 'pi-btn-primary', icon: '👤' },
+      { href: PiApp.dashboardPath(u.role), label: u.role === 'OWNER' || u.role === 'ADMIN' ? 'لوحة الإدارة' : 'مواعيدي', cls: 'pi-btn-secondary', icon: '📅' },
+      { href: '/pi-doctors.html', label: 'البحث عن أطباء', cls: 'pi-btn-secondary', icon: '👨‍⚕️' },
+    ]
+
+    main.innerHTML =
+      '<div class="pi-card" style="text-align:center">' +
+        '<p style="font-size:1.1rem;color:#fff;margin:0 0 4px">مرحباً ' + PiApp.esc(name) + '</p>' +
+        '<span class="pi-badge">' + PiApp.esc(PiApp.roleLabel(u.role)) + '</span>' +
+        (u.piUsername ? '<p class="pi-muted" style="margin-top:8px">@' + PiApp.esc(u.piUsername) + '</p>' : '') +
+      '</div>' +
+      links.map(function (l) {
+        return '<a class="pi-btn ' + l.cls + '" href="' + l.href + '">' + l.icon + ' ' + l.label + '</a>'
+      }).join('') +
+      '<a class="pi-btn pi-btn-secondary" href="/api/auth/signout?callbackUrl=/">تسجيل الخروج</a>'
   })
-  .catch(function () {
-    document.getElementById('err').textContent = 'تعذر التحقق من الجلسة'
-    document.getElementById('user').textContent = ''
-  })
-</script>
+  </script>
 </body>
 </html>

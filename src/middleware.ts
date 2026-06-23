@@ -16,20 +16,41 @@ function applyPiWebViewHeaders(res: NextResponse): NextResponse {
   return res
 }
 
-/** Pi Portal requires root domain — always serve static HTML at / (unless ?site=full). */
+/** Pi Portal requires root domain — serve lightweight Pi app pages (unless ?site=full). */
 function piStaticRewrite(req: NextRequest): NextResponse | null {
   const { pathname, searchParams } = req.nextUrl
   if (searchParams.get('site') === 'full') return null
 
-  if (pathname === '/') {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi.html', req.url)))
+  const exact: Record<string, string> = {
+    '/': '/pi.html',
+    '/login': '/pi-login.html',
+    '/register': '/pi-register.html',
+    '/profile': '/pi-profile.html',
+    '/dashboard': '/pi-dashboard.html',
+    '/doctors': '/pi-doctors.html',
+    '/owner': '/pi-owner.html',
+    '/select-role': '/pi-select-role.html',
   }
-  if (pathname === '/login') {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-login.html', req.url)))
+
+  if (exact[pathname]) {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL(exact[pathname], req.url)))
   }
-  if (pathname === '/register') {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-register.html', req.url)))
+
+  if (pathname.startsWith('/dashboard/')) {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-dashboard.html', req.url)))
   }
+
+  const doctorMatch = pathname.match(/^\/doctors\/([^/]+)$/)
+  if (doctorMatch) {
+    const url = new URL('/pi-doctor.html', req.url)
+    url.searchParams.set('id', doctorMatch[1])
+    return applyPiWebViewHeaders(NextResponse.rewrite(url))
+  }
+
+  if (pathname.startsWith('/owner/')) {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-owner.html', req.url)))
+  }
+
   return null
 }
 
@@ -120,13 +141,18 @@ export const config = {
     '/',
     '/login',
     '/register',
+    '/profile',
+    '/doctors',
+    '/doctors/:path*',
+    '/dashboard',
+    '/dashboard/:path*',
+    '/owner',
     '/owner/:path*',
+    '/select-role',
+    '/select-role/:path*',
     '/admin/:path*',
     '/doctor/:path*',
     '/facility/:path*',
-    '/select-role',
-    '/select-role/:path*',
     '/onboarding/:path*',
-    '/dashboard/:path*',
   ],
 }
