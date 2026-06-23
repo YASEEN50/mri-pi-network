@@ -65,6 +65,7 @@ async function getApprovalStatus(userId: string, role: Role): Promise<ApprovalSt
 }
 
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
+import { resolvePiLoginUser } from '@/lib/auth/account-linking'
 
 /** Pi Browser embeds apps in a cross-site iframe — default SameSite=Lax cookies are not stored. */
 const useCrossSiteCookies =
@@ -142,14 +143,19 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.accessToken) throw new Error('MISSING_PI_TOKEN')
         const piUser = await verifyPiAccessToken(credentials.accessToken)
         if (!piUser) throw new Error('INVALID_PI_TOKEN')
-        const user = await prisma.user.upsert({
-          where: { piUid: piUser.uid },
-          update: { piUsername: piUser.username, updatedAt: new Date() },
-          create: { piUid: piUser.uid, piUsername: piUser.username, role: Role.CLIENT, isActive: true },
-        })
+        const user = await resolvePiLoginUser(piUser)
         const isProfileComplete = await getProfileCompleteness(user.id, user.role)
         const approvalStatus = await getApprovalStatus(user.id, user.role)
-        return { id: user.id, email: user.email, name: piUser.username, role: user.role, approvalStatus, piUid: user.piUid, piUsername: user.piUsername, isProfileComplete }
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.piUsername ?? piUser.username,
+          role: user.role,
+          approvalStatus,
+          piUid: user.piUid,
+          piUsername: user.piUsername,
+          isProfileComplete,
+        }
       },
     }),
   ],
@@ -163,11 +169,23 @@ export const authOptions: NextAuthOptions = {
         token.piUid = user.piUid ?? undefined
         token.piUsername = user.piUsername ?? undefined
         token.isProfileComplete = user.isProfileComplete
+        if (user.email) (token as { email?: string }).email = user.email
       }
       if (trigger === 'update' && session) {
         if (session.role) token.role = session.role
         if (session.approvalStatus !== undefined) token.approvalStatus = session.approvalStatus
         if (session.isProfileComplete !== undefined) token.isProfileComplete = session.isProfileComplete
+        if ((session as { refreshProfile?: boolean }).refreshProfile && token.id) {
+          const dbUser = await prisma.user.findFirst({
+            where: { id: token.id as string, deletedAt: null },
+            select: { email: true, piUid: true, piUsername: true, role: true },
+          })
+          if (dbUser) {
+            token.piUid = dbUser.piUid ?? undefined
+            token.piUsername = dbUser.piUsername ?? undefined
+            if (dbUser.email) (token as { email?: string }).email = dbUser.email
+          }
+        }
       }
       return token
     },
@@ -178,6 +196,9 @@ export const authOptions: NextAuthOptions = {
       session.user.piUid = token.piUid
       session.user.piUsername = token.piUsername
       session.user.isProfileComplete = token.isProfileComplete
+      if ((token as { email?: string }).email) {
+        session.user.email = (token as { email?: string }).email
+      }
       return session
     },
   },

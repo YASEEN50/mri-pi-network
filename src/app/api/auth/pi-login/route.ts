@@ -4,8 +4,8 @@ import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, parseBody, serverError } from '@/lib/api-response'
 import { PiLoginSchema } from '@/lib/validations/auth.schema'
 import { UnauthorizedError } from '@/core/errors'
-import { Role } from '@prisma/client'
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
+import { resolvePiLoginUser } from '@/lib/auth/account-linking'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,15 +16,10 @@ export async function POST(req: NextRequest) {
     const piUser = await verifyPiAccessToken(parsed.data.accessToken)
     if (!piUser) return fromAppError(new UnauthorizedError('فشل التحقق من حساب Pi Network'))
 
-    const user = await prisma.user.upsert({
-      where: { piUid: piUser.uid },
-      update: { piUsername: piUser.username, updatedAt: new Date() },
-      create: {
-        piUid:      piUser.uid,
-        piUsername: piUser.username,
-        role:       Role.CLIENT,
-        isActive:   true,
-      },
+    const user = await resolvePiLoginUser(piUser)
+
+    const fullUser = await prisma.user.findUniqueOrThrow({
+      where: { id: user.id },
       include: {
         clientProfile:   { select: { id: true } },
         doctorProfile:   { select: { id: true } },
@@ -32,13 +27,13 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    const isProfileComplete = !!(user.clientProfile || user.doctorProfile || user.facilityProfile)
+    const isProfileComplete = !!(fullUser.clientProfile || fullUser.doctorProfile || fullUser.facilityProfile)
 
     return ok({
-      userId:            user.id,
-      piUid:             user.piUid,
-      piUsername:        user.piUsername,
-      role:              user.role,
+      userId:            fullUser.id,
+      piUid:             fullUser.piUid,
+      piUsername:        fullUser.piUsername,
+      role:              fullUser.role,
       isNewUser:         !isProfileComplete,
       isProfileComplete,
     })

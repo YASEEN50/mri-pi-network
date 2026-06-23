@@ -5,6 +5,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
+import { resolvePiLoginUser } from '@/lib/auth/account-linking'
 import { PiSdkService } from './pi-sdk.service'
 import { Role } from '@prisma/client'
 
@@ -34,14 +35,7 @@ export class PiAuthService {
 
     if (!user) {
       isNewUser = true
-      user = await prisma.user.create({
-        data: {
-          piUid: piUser.uid,
-          piUsername: piUser.username,
-          role: Role.CLIENT, // سيُحدَّث في select-role
-          isActive: true,
-        },
-      })
+      user = await resolvePiLoginUser(piUser)
     } else if (user.piUsername !== piUser.username) {
       // تحديث اسم المستخدم إذا تغيّر
       user = await prisma.user.update({

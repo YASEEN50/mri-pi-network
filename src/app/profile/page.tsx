@@ -500,7 +500,11 @@ export default function ProfilePage() {
               </div>
             </div>
 
-           <SettingsTab userEmail={session.user.email} />
+           <SettingsTab
+             userEmail={session.user.email}
+             piUsername={session.user.piUsername}
+             piUid={session.user.piUid}
+           />
             {/* روابط سريعة */}
             <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
               <h3 className="text-white font-semibold mb-4">روابط سريعة</h3>
