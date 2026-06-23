@@ -22,7 +22,7 @@ interface PiAuthResult {
 }
 
 interface PiSDK {
-  init(config: { version: string; sandbox?: boolean }): Promise<void> | void
+  init(config: { version: string; sandbox?: boolean }): Promise<void>
   authenticate(
     scopes:                   string[],
     onIncompletePaymentFound: (payment: unknown) => void

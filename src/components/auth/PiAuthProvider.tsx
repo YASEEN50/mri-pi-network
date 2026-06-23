@@ -1,6 +1,73 @@
 'use client'
 
-/** Pi auth is triggered explicitly via PiLoginButton — not on every page load. */
+import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { useEffect, useRef, useState } from 'react'
+import {
+  isPiBrowserReady,
+  signInWithPiNetwork,
+  shouldSkipPiAutoLogin,
+  clearExplicitLogout,
+} from '@/lib/pi/pi-auth-client'
+import PiLoginButton from '@/components/auth/PiLoginButton'
+
 export function PiAuthProvider({ children }: { children: React.ReactNode }) {
-  return <>{children}</>
+  const { status } = useSession()
+  const router = useRouter()
+  const autoStarted = useRef(false)
+  const [inPi, setInPi] = useState(false)
+  const [autoLoading, setAutoLoading] = useState(false)
+  const [autoFailed, setAutoFailed] = useState(false)
+
+  useEffect(() => {
+    isPiBrowserReady().then(setInPi)
+  }, [])
+
+  useEffect(() => {
+    if (!inPi || status !== 'unauthenticated') return
+    if (shouldSkipPiAutoLogin() || autoStarted.current) return
+    autoStarted.current = true
+    setAutoLoading(true)
+
+    signInWithPiNetwork()
+      .then((result) => {
+        setAutoLoading(false)
+        if (result.ok) {
+          clearExplicitLogout()
+          router.push('/dashboard')
+          router.refresh()
+        } else {
+          setAutoFailed(true)
+        }
+      })
+      .catch(() => {
+        setAutoLoading(false)
+        setAutoFailed(true)
+      })
+  }, [inPi, status, router])
+
+  const showManual =
+    inPi &&
+    status === 'unauthenticated' &&
+    (autoFailed || shouldSkipPiAutoLogin()) &&
+    !autoLoading
+
+  return (
+    <>
+      {children}
+      {autoLoading && (
+        <div
+          className="fixed bottom-6 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-purple-900/90 border border-purple-500/30 px-4 py-3 text-center text-sm text-purple-100"
+          role="status"
+        >
+          جاري تسجيل الدخول بـ Pi Network...
+        </div>
+      )}
+      {showManual && (
+        <div className="fixed bottom-6 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-slate-900/95 border border-white/10 p-4 shadow-xl">
+          <PiLoginButton callbackUrl="/dashboard" />
+        </div>
+      )}
+    </>
+  )
 }

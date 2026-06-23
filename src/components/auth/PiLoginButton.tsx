@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { isPiBrowser, signInWithPiNetwork, clearExplicitLogout } from '@/lib/pi/pi-auth-client'
+import { signInWithPiNetwork, clearExplicitLogout } from '@/lib/pi/pi-auth-client'
 
 interface PiLoginButtonProps {
   callbackUrl?: string
@@ -20,13 +20,6 @@ export default function PiLoginButton({
   const [error, setError] = useState('')
 
   async function handlePiLogin() {
-    if (!isPiBrowser()) {
-      const msg = 'Pi Browser غير متوفر. يرجى فتح التطبيق داخل Pi Browser'
-      setError(msg)
-      onError?.(msg)
-      return
-    }
-
     setIsLoading(true)
     setError('')
 

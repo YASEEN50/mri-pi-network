@@ -70,17 +70,13 @@ async function waitForPiSdk(timeoutMs = 8000): Promise<void> {
   }
 }
 
-/** await Pi.init fully (Promise or sync) before authenticate */
+/** await Pi.init fully before authenticate (username scope) */
 export async function initPiSdk(): Promise<void> {
   await waitForPiSdk()
-
-  const initConfig: { version: string; sandbox?: boolean } = {
+  await window.Pi!.init({
     version: '2.0',
     sandbox: process.env.NEXT_PUBLIC_PI_SANDBOX === 'true',
-  }
-
-  const initResult = window.Pi!.init(initConfig)
-  await Promise.resolve(initResult)
+  })
 }
 
 export async function authenticateWithPi(): Promise<PiAuthResult> {
@@ -88,27 +84,29 @@ export async function authenticateWithPi(): Promise<PiAuthResult> {
   return window.Pi!.authenticate([...PI_SCOPES], onIncompletePaymentFound)
 }
 
+async function exchangePiTokenForSession(accessToken: string): Promise<{ ok: boolean; error?: string }> {
+  const result = await signIn('pi-network', {
+    accessToken,
+    redirect: false,
+  })
+  if (result?.error) {
+    return { ok: false, error: 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى' }
+  }
+  return { ok: true }
+}
+
 export async function signInWithPiNetwork(): Promise<{
   ok: boolean
   error?: string
 }> {
-  if (!isPiBrowser()) {
+  const ready = await isPiBrowserReady()
+  if (!ready) {
     return { ok: false, error: 'Pi Browser غير متوفر. افتح التطبيق داخل Pi Browser' }
   }
 
   try {
     const authResult = await authenticateWithPi()
-
-    const result = await signIn('pi-network', {
-      accessToken: authResult.accessToken,
-      redirect:    false,
-    })
-
-    if (result?.error) {
-      return { ok: false, error: 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى' }
-    }
-
-    return { ok: true }
+    return exchangePiTokenForSession(authResult.accessToken)
   } catch (err) {
     console.error('[Pi Auth]', err)
     return { ok: false, error: 'حدث خطأ أثناء التحقق من Pi Network' }

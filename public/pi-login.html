@@ -15,11 +15,12 @@
     .err { color:#f87171; font-size:0.8rem; margin-top:12px; min-height:1.2em; }
     .back { display:inline-block; margin-top:14px; color:#94a3b8; font-size:0.85rem; text-decoration:none; }
   </style>
+  <script src="/pi-auth.js"></script>
 </head>
 <body>
   <div class="card">
     <h1>تسجيل الدخول بـ Pi</h1>
-    <p>اضغط الزر ووافق على طلب المصادقة في Pi Network</p>
+    <p id="hint">جاري التحقق تلقائياً...</p>
     <button id="loginBtn" class="btn" type="button">π تسجيل الدخول</button>
     <a class="btn2" href="/pi-email.html">الدخول بالبريد الإلكتروني</a>
     <p id="err" class="err"></p>
@@ -29,11 +30,13 @@
   (function () {
     var btn = document.getElementById('loginBtn')
     var errEl = document.getElementById('err')
+    var hintEl = document.getElementById('hint')
 
     function fail(msg) {
       errEl.textContent = msg
       btn.disabled = false
       btn.textContent = 'π تسجيل الدخول'
+      hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
     }
 
     function timeout(ms, msg) {
@@ -42,87 +45,25 @@
       })
     }
 
-    function loadPiSdk() {
-      if (window.Pi) return Promise.resolve()
-      return new Promise(function (resolve, reject) {
-        var s = document.createElement('script')
-        s.src = 'https://sdk.minepi.com/pi-sdk.js'
-        s.onload = resolve
-        s.onerror = function () { reject(new Error('تعذر تحميل Pi SDK')) }
-        document.head.appendChild(s)
-      })
-    }
-
-    function getSandbox() {
-      return fetch('/api/pi-config', { cache: 'no-store' })
-        .then(function (r) { return r.json() })
-        .then(function (d) { return d.sandbox === true })
-        .catch(function () { return false })
-    }
-
-    function requestCookieAccess() {
-      if (document.requestStorageAccess) {
-        return document.requestStorageAccess().catch(function () {})
-      }
-      return Promise.resolve()
-    }
-
-    function verifySessionThenGo() {
-      return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-        .then(function (r) { return r.json() })
-        .then(function (s) {
-          if (s && s.user) {
-            window.location.href = '/dashboard'
-            return
-          }
-          throw new Error('تم التحقق لكن الجلسة لم تُحفظ. أغلق التطبيق وافتحه من Pi مرة أخرى.')
-        })
-    }
-
-    btn.addEventListener('click', function () {
+    function runSignIn() {
       errEl.textContent = ''
       btn.disabled = true
       btn.textContent = 'جاري التحقق...'
-
-      Promise.race([
-        requestCookieAccess()
-          .then(function () { return loadPiSdk() })
-          .then(getSandbox)
-          .then(function (sandbox) {
-            if (!window.Pi) throw new Error('Pi Browser غير متوفر')
-            return window.Pi.init({ version: '2.0', sandbox: sandbox })
-          })
-          .then(function () {
-            return window.Pi.authenticate(['username'], function () {})
-          })
-          .then(function (auth) {
-            if (!auth || !auth.accessToken) throw new Error('لم يتم استلام رمز Pi')
-            return fetch('/api/auth/csrf', { credentials: 'include' })
-              .then(function (r) { return r.json() })
-              .then(function (csrf) {
-                return fetch('/api/auth/callback/pi-network', {
-                  method: 'POST',
-                  credentials: 'include',
-                  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                  body: new URLSearchParams({
-                    csrfToken: csrf.csrfToken,
-                    accessToken: auth.accessToken,
-                    callbackUrl: '/dashboard',
-                    json: 'true',
-                  }).toString(),
-                })
-              })
-              .then(function (res) { return res.json() })
-              .then(function (data) {
-                if (data.error) throw new Error('فشل تسجيل الدخول — حاول مرة أخرى')
-                return verifySessionThenGo()
-              })
-          }),
-        timeout(45000, 'انتهت المهلة — وافق على طلب Pi أو أعد المحاولة')
+      return Promise.race([
+        window.PiAuth.signIn(),
+        timeout(45000, 'انتهت المهلة — وافق على طلب Pi أو أعد المحاولة'),
       ]).catch(function (e) {
         fail(e.message || 'حدث خطأ')
       })
-    })
+    }
+
+    btn.addEventListener('click', runSignIn)
+
+    if (!window.PiAuth.shouldSkipAuto()) {
+      runSignIn()
+    } else {
+      hintEl.textContent = 'اضغط الزر ووافق على طلب المصادقة في Pi Network'
+    }
   })()
   </script>
 </body>
