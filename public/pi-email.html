@@ -31,12 +31,19 @@
     <a class="link" href="/">← الرئيسية</a>
   </div>
   <script>
-  function verifySessionThenGo(url) {
+  function requestCookieAccess() {
+    if (document.requestStorageAccess) {
+      return document.requestStorageAccess().catch(function () {})
+    }
+    return Promise.resolve()
+  }
+
+  function verifySessionThenGo() {
     return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (s && s.user) {
-          window.location.href = url
+          window.location.href = '/pi-app.html'
           return
         }
         throw new Error('تم التحقق لكن الجلسة لم تُحفظ. أغلق التطبيق وافتحه من Pi مرة أخرى.')
@@ -50,7 +57,8 @@
     err.textContent = ''
     btn.disabled = true
     btn.textContent = 'جاري الدخول...'
-    fetch('/api/auth/csrf', { credentials: 'include' })
+    requestCookieAccess()
+      .then(function () { return fetch('/api/auth/csrf', { credentials: 'include' }) })
       .then(function (r) {
         if (!r.ok) throw new Error('تعذر الاتصال بالخادم (' + r.status + ')')
         return r.json()
@@ -76,7 +84,7 @@
             if (data.error === 'ACCOUNT_DISABLED') msg = 'تم تعليق هذا الحساب'
             throw new Error(msg)
           }
-          return verifySessionThenGo(data.url || '/pi-app.html')
+          return verifySessionThenGo()
         })
       })
       .catch(function (ex) {

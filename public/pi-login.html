@@ -60,12 +60,19 @@
         .catch(function () { return false })
     }
 
-    function verifySessionThenGo(url) {
+    function requestCookieAccess() {
+      if (document.requestStorageAccess) {
+        return document.requestStorageAccess().catch(function () {})
+      }
+      return Promise.resolve()
+    }
+
+    function verifySessionThenGo() {
       return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
         .then(function (r) { return r.json() })
         .then(function (s) {
           if (s && s.user) {
-            window.location.href = url
+            window.location.href = '/pi-app.html'
             return
           }
           throw new Error('تم التحقق لكن الجلسة لم تُحفظ. أغلق التطبيق وافتحه من Pi مرة أخرى.')
@@ -78,7 +85,8 @@
       btn.textContent = 'جاري التحقق...'
 
       Promise.race([
-        loadPiSdk()
+        requestCookieAccess()
+          .then(function () { return loadPiSdk() })
           .then(getSandbox)
           .then(function (sandbox) {
             if (!window.Pi) throw new Error('Pi Browser غير متوفر')
@@ -107,7 +115,7 @@
               .then(function (res) { return res.json() })
               .then(function (data) {
                 if (data.error) throw new Error('فشل تسجيل الدخول — حاول مرة أخرى')
-                return verifySessionThenGo(data.url || '/pi-app.html')
+                return verifySessionThenGo()
               })
           }),
         timeout(45000, 'انتهت المهلة — وافق على طلب Pi أو أعد المحاولة')
