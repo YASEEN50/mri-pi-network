@@ -1,14 +1,29 @@
 // src/middleware.ts
 import { withAuth, NextRequestWithAuth } from 'next-auth/middleware'
 import { NextResponse } from 'next/server'
+import type { NextFetchEvent, NextRequest } from 'next/server'
 import { Role, ApprovalStatus } from '@prisma/client'
 
-// المسارات المسموحة لمن لم يكمل الملف الشخصي بعد
+const PI_UA = /pibrowser|pi browser|pinetwork|minepi/i
+
 const ONBOARDING_PATHS = ['/select-role', '/onboarding']
-// المسارات المعفاة من فحص اكتمال الملف الشخصي
 const PROFILE_EXEMPT_PATHS = ['/select-role', '/onboarding', '/owner', '/admin']
 
-export default withAuth(
+function piBrowserRedirect(req: NextRequest): NextResponse | null {
+  const ua = req.headers.get('user-agent') ?? ''
+  if (!PI_UA.test(ua)) return null
+  const { pathname } = req.nextUrl
+  if (pathname === '/') return NextResponse.redirect(new URL('/pi.html', req.url))
+  if (pathname === '/login') return NextResponse.redirect(new URL('/pi-login.html', req.url))
+  return null
+}
+
+function isProtectedPath(pathname: string): boolean {
+  const prefixes = ['/owner', '/admin', '/doctor', '/facility', '/select-role', '/onboarding', '/dashboard']
+  return prefixes.some(p => pathname === p || pathname.startsWith(`${p}/`))
+}
+
+const authMiddleware = withAuth(
   function middleware(req: NextRequestWithAuth) {
     const { pathname } = req.nextUrl
     const token = req.nextauth.token
@@ -18,36 +33,30 @@ export default withAuth(
     const approvalStatus = token.approvalStatus as ApprovalStatus | null
     const isProfileComplete = token.isProfileComplete as boolean
 
-    // ── OWNER ──────────────────────────────────────────────
     if (pathname.startsWith('/owner') && role !== Role.OWNER) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
 
-    // ── ADMIN + OWNER ──────────────────────────────────────
     if (pathname.startsWith('/admin') && role !== Role.ADMIN && role !== Role.OWNER) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
 
-    // ── OWNER: /dashboard/admin مسموح — باقي /dashboard يُوجّه لـ /owner ──
     if (pathname.startsWith('/dashboard') && role === Role.OWNER) {
       if (!pathname.startsWith('/dashboard/admin')) {
         return NextResponse.redirect(new URL('/owner', req.url))
       }
     }
 
-    // ── الملف الشخصي غير مكتمل ──────────────────────────────
     const isExempt = PROFILE_EXEMPT_PATHS.some(p => pathname.startsWith(p))
     if (!isProfileComplete && !isExempt) {
       return NextResponse.redirect(new URL('/select-role', req.url))
     }
 
-    // ── منع الدخول لـ onboarding بعد إكمال الملف ───────────
     const isOnboarding = ONBOARDING_PATHS.some(p => pathname.startsWith(p))
     if (isProfileComplete && isOnboarding) {
       return NextResponse.redirect(new URL('/dashboard', req.url))
     }
 
-    // ── DOCTOR ─────────────────────────────────────────────
     if (pathname.startsWith('/doctor') || pathname.startsWith('/dashboard/doctor')) {
       if (role !== Role.DOCTOR) return NextResponse.redirect(new URL('/unauthorized', req.url))
       const doctorPendingOk =
@@ -57,7 +66,6 @@ export default withAuth(
       }
     }
 
-    // ── FACILITY ───────────────────────────────────────────
     if (pathname.startsWith('/facility') || pathname.startsWith('/dashboard/facility')) {
       if (role !== Role.FACILITY) return NextResponse.redirect(new URL('/unauthorized', req.url))
       const facilityPendingOk = pathname.startsWith('/facility/pending') || pathname.startsWith('/facility/verify')
@@ -66,25 +74,36 @@ export default withAuth(
       }
     }
 
-    // ── ADMIN dashboard ────────────────────────────────────
     if (pathname.startsWith('/dashboard/admin')) {
       if (role !== Role.ADMIN && role !== Role.OWNER) {
         return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
     }
 
-    // ── CLIENT dashboard ───────────────────────────────────
     if (pathname.startsWith('/dashboard/client') && role !== Role.CLIENT) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))
     }
 
     return NextResponse.next()
   },
-  { callbacks: { authorized: ({ token }) => !!token } }
+  { callbacks: { authorized: ({ token }) => !!token } },
 )
+
+export default function middleware(req: NextRequest, event: NextFetchEvent) {
+  const piRedirect = piBrowserRedirect(req)
+  if (piRedirect) return piRedirect
+
+  if (isProtectedPath(req.nextUrl.pathname)) {
+    return authMiddleware(req as NextRequestWithAuth, event)
+  }
+
+  return NextResponse.next()
+}
 
 export const config = {
   matcher: [
+    '/',
+    '/login',
     '/owner/:path*',
     '/admin/:path*',
     '/doctor/:path*',
@@ -93,4 +112,5 @@ export const config = {
     '/select-role/:path*',
     '/onboarding/:path*',
     '/dashboard/:path*',
-  ],}
+  ],
+}

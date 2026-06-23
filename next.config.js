@@ -32,7 +32,7 @@ const nextConfig = {
 
   // Pi Browser: lightweight static entry (Next.js bundle is heavy in Pi WebView)
   async redirects() {
-    const piUa = '(?i).*(pibrowser|pi browser|pinetwork|minepi).*'
+    const piUa = '(?i).*(PiBrowser|pibrowser|pi browser|pinetwork|minepi).*'
     return [
       {
         source: '/',
