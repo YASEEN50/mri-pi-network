@@ -128,8 +128,23 @@ async function exchangePiTokenForSession(accessToken: string): Promise<{ ok: boo
   return { ok: true }
 }
 
-/** On load: redirect if session exists; never auto-authenticate Pi */
+/** Paths where we resume an existing session on load */
+function isPiEntryPath(): boolean {
+  if (typeof window === 'undefined') return false
+  const p = window.location.pathname
+  return (
+    p === '/' ||
+    p === '/login' ||
+    p === '/register' ||
+    p === '/pi.html' ||
+    p === '/pi-login.html' ||
+    p === '/pi-email.html'
+  )
+}
+
+/** On load: redirect if session exists on entry pages only */
 export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
+  if (!isPiEntryPath()) return 'idle'
   try {
     const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
     const session = await res.json()

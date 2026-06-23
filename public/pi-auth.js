@@ -179,8 +179,15 @@ window.PiAuth = (function () {
       })
   }
 
-  /** On load: resume existing session only — manual button for new login */
+  /** On load: resume session on Pi entry pages only */
+  function isEntryPath() {
+    var p = location.pathname
+    return p === '/' || p === '/login' || p === '/register' ||
+      p === '/pi.html' || p === '/pi-login.html' || p === '/pi-email.html'
+  }
+
   function runOnLoad() {
+    if (!isEntryPath()) return Promise.resolve({ mode: 'idle' })
     return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { return r.json() })
       .then(function (s) {
