@@ -1,17 +1,45 @@
 /** Pi Network auth — init → authenticate → backend /v2/me via NextAuth */
 window.PiAuth = (function () {
   var SKIP_KEY = 'pi_skip_auto_login'
+  var initSandbox = null
 
   function shouldSkipAuto() {
     try { return sessionStorage.getItem(SKIP_KEY) === '1' } catch (e) { return false }
   }
 
   function markSkipAuto() {
-    try { sessionStorage.setItem(SKIP_KEY, '1' } catch (e) {}
+    try { sessionStorage.setItem(SKIP_KEY, '1') } catch (e) {}
   }
 
   function clearSkipAuto() {
     try { sessionStorage.removeItem(SKIP_KEY) } catch (e) {}
+  }
+
+  function onIncompletePaymentFound() {}
+
+  function withTimeout(promise, ms, code) {
+    return new Promise(function (resolve, reject) {
+      var done = false
+      var timer = setTimeout(function () {
+        if (done) return
+        done = true
+        reject(new Error(code || 'timeout'))
+      }, ms)
+      Promise.resolve(promise).then(
+        function (v) {
+          if (done) return
+          done = true
+          clearTimeout(timer)
+          resolve(v)
+        },
+        function (e) {
+          if (done) return
+          done = true
+          clearTimeout(timer)
+          reject(e)
+        }
+      )
+    })
   }
 
   function loadSdk() {
@@ -25,11 +53,30 @@ window.PiAuth = (function () {
     })
   }
 
-  function getSandbox() {
+  /** Pi Desktop App Studio preview runs in sandbox even on production URLs */
+  function detectSandboxClient() {
+    try {
+      var hostRef = location.hostname + ' ' + (document.referrer || '')
+      if (/sandbox\.minepi/i.test(hostRef)) return true
+    } catch (e) {}
+
+    var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+    var embedded = false
+    try { embedded = window.self !== window.top } catch (e) { embedded = true }
+
+    if (embedded && !mobile) return true
+    return false
+  }
+
+  function resolveSandbox() {
+    var client = detectSandboxClient()
     return fetch('/api/pi-config', { cache: 'no-store' })
       .then(function (r) { return r.json() })
-      .then(function (d) { return d.sandbox === true })
-      .catch(function () { return false })
+      .then(function (d) {
+        if (d.sandbox === true) return true
+        return client
+      })
+      .catch(function () { return client })
   }
 
   function requestCookieAccess() {
@@ -39,20 +86,40 @@ window.PiAuth = (function () {
     return Promise.resolve()
   }
 
-  function initPi() {
-    return loadSdk()
-      .then(getSandbox)
-      .then(function (sandbox) {
-        if (!window.Pi) throw new Error('Pi Browser غير متوفر')
-        return window.Pi.init({ version: '2.0', sandbox: sandbox })
+  function initPi(forcedSandbox) {
+    var headInit = window.__piInitPromise ? window.__piInitPromise.catch(function () {}) : Promise.resolve()
+    return headInit.then(loadSdk).then(function () {
+      if (!window.Pi) throw new Error('Pi Browser غير متوفر')
+      var sandboxSource = forcedSandbox !== undefined && forcedSandbox !== null
+        ? Promise.resolve(!!forcedSandbox)
+        : resolveSandbox()
+      return sandboxSource.then(function (sandbox) {
+        if (initSandbox === sandbox) return
+        initSandbox = sandbox
+        return Promise.resolve(window.Pi.init({ version: '2.0', sandbox: sandbox }))
       })
+    })
+  }
+
+  function callAuthenticate() {
+    return withTimeout(
+      Promise.resolve(window.Pi.authenticate(['username'], onIncompletePaymentFound)),
+      30000,
+      'PI_AUTH_TIMEOUT'
+    )
   }
 
   /** Always await init then authenticate — required for Pi App Studio verification */
   function authenticatePi() {
-    return initPi().then(function () {
-      return window.Pi.authenticate(['username'], function () {})
-    })
+    return initPi()
+      .then(callAuthenticate)
+      .catch(function (err) {
+        if (err && err.message === 'PI_AUTH_TIMEOUT' && initSandbox === false) {
+          initSandbox = null
+          return initPi(true).then(callAuthenticate)
+        }
+        throw err
+      })
   }
 
   function verifySessionThenGo() {

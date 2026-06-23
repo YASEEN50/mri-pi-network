@@ -41,4 +41,5 @@ interface PiSDK {
 // Extend the global Window interface — no import/export here so it's truly global
 interface Window {
   Pi?: PiSDK
+  __piInitPromise?: Promise<void>
 }

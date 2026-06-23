@@ -1,9 +1,12 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
+import { resolvePiSandbox } from '@/lib/pi/sandbox-detect'
 
 const PI_SCOPES = ['username'] as const
 export const PI_SKIP_AUTO_LOGIN_KEY = 'pi_skip_auto_login'
+
+let initSandbox: boolean | null = null
 
 function onIncompletePaymentFound(payment: unknown): void {
   console.warn('[Pi] Incomplete payment found:', payment)
@@ -76,21 +79,45 @@ async function waitForPiSdk(timeoutMs = 8000): Promise<void> {
   }
 }
 
-/** await Pi.init fully before authenticate (username scope) */
-export async function initPiSdk(): Promise<void> {
-  await waitForPiSdk(15_000)
-  let sandbox = process.env.NEXT_PUBLIC_PI_SANDBOX === 'true'
+async function withTimeout<T>(promise: Promise<T>, ms: number, code: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined
   try {
-    const res = await fetch('/api/pi-config', { cache: 'no-store' })
-    const data = await res.json()
-    if (typeof data.sandbox === 'boolean') sandbox = data.sandbox
-  } catch { /* use env */ }
-  await window.Pi!.init({ version: '2.0', sandbox })
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(code)), ms)
+      }),
+    ])
+  } finally {
+    if (timer) clearTimeout(timer)
+  }
+}
+
+/** await Pi.init fully before authenticate (username scope) */
+export async function initPiSdk(forcedSandbox?: boolean): Promise<void> {
+  await waitForPiSdk(15_000)
+  const sandbox = forcedSandbox ?? await resolvePiSandbox()
+  if (initSandbox === sandbox) return
+  initSandbox = sandbox
+  await Promise.resolve(window.Pi!.init({ version: '2.0', sandbox }))
 }
 
 export async function authenticateWithPi(): Promise<PiAuthResult> {
-  await initPiSdk()
-  return window.Pi!.authenticate([...PI_SCOPES], onIncompletePaymentFound)
+  try {
+    await initPiSdk()
+    return await withTimeout(
+      Promise.resolve(window.Pi!.authenticate([...PI_SCOPES], onIncompletePaymentFound)),
+      30_000,
+      'PI_AUTH_TIMEOUT',
+    )
+  } catch (err) {
+    if (err instanceof Error && err.message === 'PI_AUTH_TIMEOUT' && initSandbox === false) {
+      initSandbox = null
+      await initPiSdk(true)
+      return window.Pi!.authenticate([...PI_SCOPES], onIncompletePaymentFound)
+    }
+    throw err
+  }
 }
 
 async function exchangePiTokenForSession(accessToken: string): Promise<{ ok: boolean; error?: string }> {

@@ -5,6 +5,21 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MRI</title>
 <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+<script>
+(function () {
+  function detectSandbox() {
+    try {
+      if (/sandbox\.minepi/i.test(location.hostname)) return true
+    } catch (e) {}
+    var mobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '')
+    try { if (window.self !== window.top && !mobile) return true } catch (e) { if (!mobile) return true }
+    return false
+  }
+  if (typeof Pi !== 'undefined') {
+    window.__piInitPromise = Promise.resolve(Pi.init({ version: '2.0', sandbox: detectSandbox() }))
+  }
+})()
+</script>
 <script src="/pi-auth.js"></script>
 </head>
 <body bgcolor="#0f172a" text="#ffffff" style="margin:0;padding:20px;font-family:Arial,sans-serif;text-align:center;">
@@ -29,7 +44,13 @@
   })
 
   window.PiAuth.runOnLoad().then(function (auth) {
-    if (!auth) statusEl.textContent = 'منصة طبية موثوقة'
+    if (auth && auth.accessToken) {
+      statusEl.textContent = 'تم التحقق — جاري الدخول...'
+    } else {
+      statusEl.textContent = 'منصة طبية موثوقة — اضغط π لتسجيل الدخول'
+    }
+  }).catch(function () {
+    statusEl.textContent = 'منصة طبية موثوقة — اضغط π لتسجيل الدخول'
   })
 })()
 </script>
