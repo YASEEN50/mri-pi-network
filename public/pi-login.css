@@ -36,6 +36,42 @@ body.pi-auth-page,
   overflow-x: hidden;
 }
 
+/* Medical silhouettes — faint at edges, clear in center (login card zone) */
+.pi-auth-medical {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: url('/pi-auth-medical-bg.svg') center / min(1280px, 115%) no-repeat;
+  opacity: 0.42;
+  filter: blur(0.4px);
+  -webkit-mask-image: radial-gradient(
+    ellipse 58% 52% at 50% 46%,
+    transparent 0%,
+    transparent 38%,
+    rgba(0, 0, 0, 0.35) 58%,
+    black 88%
+  );
+  mask-image: radial-gradient(
+    ellipse 58% 52% at 50% 46%,
+    transparent 0%,
+    transparent 38%,
+    rgba(0, 0, 0, 0.35) 58%,
+    black 88%
+  );
+}
+
+/* Dark scrim keeps contrast readable over medical layer */
+.pi-auth-scrim {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(ellipse 72% 58% at 50% 44%, rgba(10, 15, 30, 0.55) 0%, rgba(10, 15, 30, 0.88) 72%),
+    linear-gradient(165deg, rgba(10, 15, 30, 0.72) 0%, rgba(10, 15, 30, 0.92) 100%);
+}
+
 .pi-auth-bg {
   position: fixed;
   inset: 0;
@@ -411,6 +447,14 @@ body.pi-auth-page,
 @media (max-width: 380px) {
   .pi-auth-card { padding: 22px 16px; }
   .pi-auth-title { font-size: 1.5rem; }
+  .pi-auth-medical {
+    opacity: 0.3;
+    background-size: 200% auto;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .pi-auth-medical { opacity: 0.18; filter: none; }
 }
 
 /* Steps & role selection (register / forgot-password) */

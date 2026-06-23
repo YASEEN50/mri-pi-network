@@ -71,6 +71,8 @@ export function AuthLayout({
 }) {
   return (
     <div className="pi-auth-shell">
+      <div className="pi-auth-medical" aria-hidden="true" />
+      <div className="pi-auth-scrim" aria-hidden="true" />
       <div className="pi-auth-bg" />
       <div className="pi-auth-glow" />
       <div className="pi-auth-glow-orb" />

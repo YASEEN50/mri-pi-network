@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" fill="none" aria-hidden="true">
+  <!-- Subtle medical silhouettes  visible at edges only (masked in CSS) -->
+  <g stroke="#0A66C2" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round" opacity="0.38">
+    <!-- ECG pulse  top left -->
+    <path d="M72 118h48l14 28 18-56 16 42 22-14h52"/>
+    <circle cx="72" cy="118" r="3" fill="#0A66C2" stroke="none" opacity="0.5"/>
+
+    <!-- Medical cross  top right -->
+    <circle cx="1348" cy="108" r="52"/>
+    <path d="M1348 82v52M1322 108h52"/>
+
+    <!-- MRI bore  bottom right -->
+    <circle cx="1310" cy="768" r="78"/>
+    <circle cx="1310" cy="768" r="52" opacity="0.55"/>
+    <path d="M1232 768h28M1360 768h28M1310 690v28M1310 818v28"/>
+    <rect x="1268" y="798" width="84" height="10" rx="3" opacity="0.45"/>
+
+    <!-- Stethoscope  bottom left -->
+    <circle cx="118" cy="792" r="22"/>
+    <path d="M118 770c-8-34 18-62 46-62s54 28 46 62"/>
+    <path d="M164 730c28 0 48 22 48 48 0 18-10 34-26 40"/>
+    <circle cx="212" cy="818" r="10"/>
+    <circle cx="238" cy="818" r="10"/>
+    <path d="M212 808v-14c0-12 10-22 22-22"/>
+
+    <!-- Heartbeat + heart  mid left -->
+    <path d="M88 420c0-22 18-36 34-36 12 0 22 8 28 18 6-10 16-18 28-18 16 0 34 14 34 36 0 32-62 58-62 58s-62-26-62-58z" opacity="0.32"/>
+    <path d="M48 520h36l10 18 14-34 12 26 16-10h38" opacity="0.28"/>
+
+    <!-- Microscope hint  mid right -->
+    <path d="M1320 380v72M1296 452h48" opacity="0.28"/>
+    <path d="M1304 380c0-14 12-24 26-24s26 10 26 24" opacity="0.28"/>
+    <ellipse cx="1320" cy="468" rx="34" ry="10" opacity="0.22"/>
+  </g>
+</svg>
