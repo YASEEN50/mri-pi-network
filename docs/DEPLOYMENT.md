@@ -35,23 +35,12 @@
 | `PI_SANDBOX` | Pi | نفس قيمة `NEXT_PUBLIC_PI_SANDBOX` على الخادم |
 | `PI_API_KEY` | Pi | مفتاح التطبيق من [Pi Developer Portal](https://develop.pi) |
 
-### Pi Browser (التطبيق الكامل)
-
-التطبيق مبني **للعمل داخل Pi Browser** عبر صفحات خفيفة (`pi-*.html`) متصلة بنفس الـ APIs:
-
-| الصفحة | الوظيفة |
-|--------|---------|
-| `/pi-app.html` | الرئيسية بعد الدخول |
-| `/pi-profile.html` | الملف الشخصي (تعديل + كلمة مرور) |
-| `/pi-appointments.html` | المواعيد |
-| `/pi-doctors.html` | البحث عن أطباء |
-| `/pi-owner.html` | لوحة المؤسس/الأدمن |
-
-المسارات `/profile`, `/dashboard`, `/doctors` تُوجّه تلقائياً إلى نسخ Pi (ما لم تُضف `?site=full`).
+### Pi Browser
 
 - **App URL** في Pi Portal: جذر النطاق فقط.
-- **Development URL**: نفس رابط الإنتاج عند الاختبار من الهاتف.
-- كوكيز الجلسة: `SameSite=None; Partitioned` (مُفعّلة في الإنتاج).
+- صفحات الدخول: `pi.html`, `pi-login.html`, `pi-email.html`.
+- بعد الدخول: التطبيق الكامل (`/dashboard`, `/doctors`, `/profile`) — حجز المواعيد والدفع Pi.
+- كوكيز الجلسة: `SameSite=None; Partitioned` في الإنتاج.
 - حساب المؤسس/الأدمن: **الدخول بالبريد** (`pi-email.html`).
 
 ## 3. البناء (Build)
