@@ -43,7 +43,7 @@
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (s && s.user) {
-          window.location.href = '/pi-app.html'
+          window.location.href = '/dashboard'
           return
         }
         throw new Error('تم التحقق لكن الجلسة لم تُحفظ. أغلق التطبيق وافتحه من Pi مرة أخرى.')
@@ -72,7 +72,7 @@
             csrfToken: csrf.csrfToken,
             email: document.getElementById('email').value,
             password: document.getElementById('password').value,
-            callbackUrl: '/pi-app.html',
+            callbackUrl: '/dashboard',
             json: 'true',
           }).toString(),
         })

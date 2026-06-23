@@ -27,7 +27,7 @@ export default function LoginPage() {
       setCallbackUrl(paramCallback)
       return
     }
-    if (isPiBrowser()) setCallbackUrl('/pi-app.html')
+    if (isPiBrowser()) setCallbackUrl('/dashboard')
   }, [paramCallback])
 
   const [email, setEmail] = useState('')

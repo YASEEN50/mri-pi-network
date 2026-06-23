@@ -16,42 +16,26 @@ function applyPiWebViewHeaders(res: NextResponse): NextResponse {
   return res
 }
 
-/** Pi Portal requires root domain — serve lightweight Pi app pages (unless ?site=full). */
+/** Pi Portal requires root domain — static login pages only (unless ?site=full). */
 function piStaticRewrite(req: NextRequest): NextResponse | null {
   const { pathname, searchParams } = req.nextUrl
   if (searchParams.get('site') === 'full') return null
 
-  const exact: Record<string, string> = {
-    '/': '/pi.html',
-    '/login': '/pi-login.html',
-    '/register': '/pi-register.html',
-    '/profile': '/pi-profile.html',
-    '/dashboard': '/pi-dashboard.html',
-    '/doctors': '/pi-doctors.html',
-    '/owner': '/pi-owner.html',
-    '/select-role': '/pi-select-role.html',
+  if (pathname === '/') {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi.html', req.url)))
   }
-
-  if (exact[pathname]) {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL(exact[pathname], req.url)))
+  if (pathname === '/login') {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-login.html', req.url)))
   }
-
-  if (pathname.startsWith('/dashboard/')) {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-dashboard.html', req.url)))
+  if (pathname === '/register') {
+    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-register.html', req.url)))
   }
-
-  const doctorMatch = pathname.match(/^\/doctors\/([^/]+)$/)
-  if (doctorMatch) {
-    const url = new URL('/pi-doctor.html', req.url)
-    url.searchParams.set('id', doctorMatch[1])
-    return applyPiWebViewHeaders(NextResponse.rewrite(url))
-  }
-
-  if (pathname.startsWith('/owner/')) {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-owner.html', req.url)))
-  }
-
   return null
+}
+
+function isPiRequest(req: NextRequest): boolean {
+  const ua = req.headers.get('user-agent') ?? ''
+  return /PiBrowser|pibrowser|pi browser|pinetwork|minepi/i.test(ua)
 }
 
 function isProtectedPath(pathname: string): boolean {
@@ -129,11 +113,15 @@ export default function middleware(req: NextRequest, event: NextFetchEvent) {
   const piRewrite = piStaticRewrite(req)
   if (piRewrite) return piRewrite
 
+  let res: NextResponse
   if (isProtectedPath(req.nextUrl.pathname)) {
-    return authMiddleware(req as NextRequestWithAuth, event)
+    res = authMiddleware(req as NextRequestWithAuth, event) as NextResponse
+  } else {
+    res = NextResponse.next()
   }
 
-  return NextResponse.next()
+  if (isPiRequest(req)) applyPiWebViewHeaders(res)
+  return res
 }
 
 export const config = {
@@ -141,18 +129,14 @@ export const config = {
     '/',
     '/login',
     '/register',
-    '/profile',
-    '/doctors',
-    '/doctors/:path*',
-    '/dashboard',
-    '/dashboard/:path*',
-    '/owner',
     '/owner/:path*',
-    '/select-role',
-    '/select-role/:path*',
     '/admin/:path*',
     '/doctor/:path*',
     '/facility/:path*',
+    '/select-role',
+    '/select-role/:path*',
     '/onboarding/:path*',
+    '/dashboard',
+    '/dashboard/:path*',
   ],
 }

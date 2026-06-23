@@ -11,7 +11,7 @@ interface PiLoginButtonProps {
 }
 
 export default function PiLoginButton({
-  callbackUrl = '/pi-app.html',
+  callbackUrl = '/dashboard',
   onSuccess,
   onError,
 }: PiLoginButtonProps) {
