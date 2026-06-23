@@ -11,21 +11,22 @@ const nextConfig = {
     ],
   },
 
-  // Allow Pi SDK domain
+  // Security headers — skip static Pi entry files (Pi WebView can be sensitive to these)
   async headers() {
+    const securityHeaders = [
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'X-Frame-Options',        value: 'SAMEORIGIN' },
+      { key: 'X-XSS-Protection',       value: '1; mode=block' },
+      { key: 'Referrer-Policy',         value: 'strict-origin-when-cross-origin' },
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(), microphone=(), geolocation=()',
+      },
+    ]
     return [
       {
-        source: '/(.*)',
-        headers: [
-          { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options',        value: 'SAMEORIGIN' }, // Pi SDK يحتاج SAMEORIGIN
-          { key: 'X-XSS-Protection',       value: '1; mode=block' },
-          { key: 'Referrer-Policy',         value: 'strict-origin-when-cross-origin' },
-          {
-            key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
-          },
-        ],
+        source: '/((?!pi\\.html|pi-login\\.html|test-pi\\.txt).*)',
+        headers: securityHeaders,
       },
     ]
   },
