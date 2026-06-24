@@ -14,6 +14,10 @@ export interface Appointment {
   cancelReason?: string
   fee?:        number
   isPaid:      boolean
+  isDepositPaid?: boolean
+  depositAmount?: number | null
+  paymentPolicy?: 'PAY_BEFORE_BOOKING' | 'DEPOSIT_AND_PAY_LATER' | 'PAY_ON_SERVICE'
+  depositPercentage?: number
   doctorId?:   string
   facilityId?: string
   clientId?:   string

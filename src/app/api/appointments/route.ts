@@ -48,7 +48,7 @@ export async function GET(req: NextRequest) {
         where, skip, take: limit,
         orderBy: { scheduledAt: 'desc' },
         include: {
-          doctor:   { select: { id: true, firstName: true, lastName: true, specialization: true, avatarUrl: true } },
+          doctor:   { select: { id: true, firstName: true, lastName: true, specialization: true, avatarUrl: true, paymentPolicy: true, depositPercentage: true } },
           facility: { select: { id: true, name: true, type: true } },
           client:   { select: { id: true, email: true } },
           review:   { select: { id: true, rating: true } },
@@ -72,6 +72,8 @@ export async function GET(req: NextRequest) {
         depositAmount: a.depositAmount ? Number(a.depositAmount) : null,
         isPaid:       a.isPaid,
         isDepositPaid: a.isDepositPaid,
+        paymentPolicy: a.doctor?.paymentPolicy ?? 'PAY_ON_SERVICE',
+        depositPercentage: a.doctor ? Number(a.doctor.depositPercentage) : 0,
         createdAt:    a.createdAt,
         // معرّفات
         doctorId:     a.doctorId,

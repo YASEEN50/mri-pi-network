@@ -94,6 +94,43 @@ export async function payWithPi(options: PiPayOptions): Promise<{ paymentId: str
   })
 }
 
+import {
+  resolveAppointmentPayment,
+  type AppointmentPaymentPolicy,
+} from '@/lib/payment/appointment-payment'
+
+export interface PayForAppointmentInput {
+  appointmentId: string
+  fee: number
+  paymentPolicy: AppointmentPaymentPolicy
+  depositPercentage?: number
+  isDepositPaid?: boolean
+  depositAmount?: number | null
+  isPaid?: boolean
+}
+
+/** Appointment fee / deposit via Pi U2A */
+export async function payForAppointment(
+  input: PayForAppointmentInput,
+): Promise<{ paymentId: string; txid: string }> {
+  const quote = resolveAppointmentPayment(input)
+  if (!quote.requiresPayment || quote.amount <= 0) {
+    throw new Error('لا يوجد مبلغ مستحق للدفع')
+  }
+
+  return payWithPi({
+    amount: quote.amount,
+    memo: 'دفع موعد طبي',
+    metadata: { purpose: 'APPOINTMENT', appointmentId: input.appointmentId },
+    approvePayload: {
+      purpose: 'APPOINTMENT',
+      amount: quote.amount,
+      appointmentId: input.appointmentId,
+      paymentType: quote.paymentType,
+    },
+  })
+}
+
 /** Premio subscription payment (U2A) */
 export async function payForPremioPlan(
   planType: 'MONTHLY' | 'YEARLY' | 'LIFETIME',

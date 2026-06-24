@@ -1,12 +1,9 @@
 'use client'
 // src/app/dashboard/client/appointments/page.tsx
-import { useTranslations } from 'next-intl'
 import { useAppointments } from '@/hooks/useAppointments'
 import Navbar from '@/components/common/Navbar'
-import { useAuth } from '@/hooks/useAuth'
-import { useState } from 'react'
 import Link from 'next/link'
-import { payWithPi, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
+import PaymentForm from '@/components/payments/PaymentForm'
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -22,7 +19,6 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export default function ClientAppointmentsPage() {
-  const { user } = useAuth()
   const { appointments, total, isLoading, cancelAppointment, refetch } = useAppointments()
 
   if (isLoading) return (
@@ -138,37 +134,6 @@ function AppointmentCard({
   showReview?: boolean
   onRefresh?: () => void
 }) {
-  const [paying, setPaying] = useState(false)
-  const [payError, setPayError] = useState<string | null>(null)
-
-  async function handlePiPay() {
-    if (!apt.fee || apt.isPaid) return
-    setPaying(true)
-    setPayError(null)
-    try {
-      const paymentType = apt.isDepositPaid ? 'FULL' : 'FULL'
-      const amount = apt.isDepositPaid
-        ? Number(apt.fee) - Number(apt.depositAmount ?? 0)
-        : Number(apt.fee)
-      await payWithPi({
-        amount,
-        memo: `دفع موعد طبي`,
-        metadata: { purpose: 'APPOINTMENT', appointmentId: apt.id },
-        approvePayload: {
-          purpose:       'APPOINTMENT',
-          amount,
-          appointmentId: apt.id,
-          paymentType:   apt.isDepositPaid ? 'FULL' : paymentType,
-        },
-      })
-      onRefresh?.()
-    } catch (e) {
-      setPayError(piPaymentErrorMessage(e))
-    } finally {
-      setPaying(false)
-    }
-  }
-
   const date = new Date(apt.scheduledAt)
   return (
     <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
@@ -210,18 +175,24 @@ function AppointmentCard({
 
           {apt.fee && (
             <p className="text-emerald-400 text-xs mt-1">
-              الرسوم: {apt.fee} π {apt.isPaid ? '✅ مدفوع' : '⏳ غير مدفوع'}
+              الرسوم: {apt.fee} π {apt.isPaid ? '✅ مدفوع' : apt.isDepositPaid ? '⏳ إيداع مدفوع' : '⏳ غير مدفوع'}
             </p>
           )}
-          {payError && <p className="text-red-400 text-xs mt-1">{payError}</p>}
         </div>
 
         <div className="flex flex-col gap-2 flex-shrink-0">
           {!apt.isPaid && apt.fee && ['PENDING', 'CONFIRMED'].includes(apt.status) && (
-            <button onClick={handlePiPay} disabled={paying}
-              className="px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/30 text-purple-300 rounded-lg text-xs transition-all disabled:opacity-50">
-              {paying ? 'جاري الدفع...' : '🟣 ادفع Pi'}
-            </button>
+            <PaymentForm
+              variant="compact"
+              appointmentId={apt.id}
+              fee={Number(apt.fee)}
+              paymentPolicy={apt.paymentPolicy ?? 'PAY_ON_SERVICE'}
+              depositPercentage={apt.depositPercentage ?? 30}
+              isDepositPaid={apt.isDepositPaid}
+              depositAmount={apt.depositAmount}
+              isPaid={apt.isPaid}
+              onSuccess={onRefresh}
+            />
           )}
           {onCancel && ['PENDING','CONFIRMED'].includes(apt.status) && (
             <button onClick={onCancel}
