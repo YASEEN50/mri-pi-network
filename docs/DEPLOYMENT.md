@@ -43,8 +43,8 @@
 - **App URL** في Pi Portal: جذر النطاق فقط.
 - **المصادقة:** تلقائية عند فتح التطبيق + زر يدوي في Pi Browser.
 - **التدفق:** `Pi.init` → `Pi.authenticate(['username'])` → `accessToken` → الخادم يتحقق عبر `GET https://api.minepi.com/v2/me` → جلسة NextAuth.
-- صفحات الدخول الثابتة: `pi.html`, `pi-login.html`, `pi-auth.js`.
-- بعد الدخول: `/dashboard`, `/doctors`, `/profile` — حجز المواعيد والدفع Pi.
+- صفحات الدخول الثابتة: `pi.html`, `pi-login.html`, `pi-auth.js` — **بعد الدخول** التطبيق كامل عبر Next.js.
+- خريطة المسارات: [`docs/PI_ROUTES.md`](./PI_ROUTES.md)
 - كوكيز الجلسة: `SameSite=None; Partitioned` في الإنتاج.
 - حساب المؤسس/الأدمن: **الدخول بالبريد** (`pi-email.html`).
 

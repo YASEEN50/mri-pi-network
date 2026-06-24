@@ -1,4 +1,4 @@
-/** Shared Pi Browser app shell — lightweight, no React */
+/** Pi Browser app shell — routes point to Next.js (see docs/PI_ROUTES.md) */
 window.PiApp = (function () {
   var ROLE_LABELS = {
     CLIENT: 'مريض',
@@ -14,6 +14,20 @@ window.PiApp = (function () {
     COMPLETED: 'مكتمل',
     CANCELLED: 'ملغي',
     NO_SHOW: 'لم يحضر',
+  }
+
+  function dashboardPath(role) {
+    if (role === 'OWNER') return '/owner'
+    if (role === 'ADMIN') return '/dashboard/admin/verification'
+    if (role === 'DOCTOR') return '/dashboard/doctor/schedule'
+    if (role === 'FACILITY') return '/dashboard/facility/overview'
+    return '/dashboard/client/appointments'
+  }
+
+  function adminPath(role) {
+    if (role === 'OWNER') return '/owner'
+    if (role === 'ADMIN') return '/dashboard/admin/verification'
+    return '/dashboard'
   }
 
   function requestCookieAccess() {
@@ -65,23 +79,17 @@ window.PiApp = (function () {
     return STATUS_LABELS[s] || s
   }
 
-  function dashboardPath(role) {
-    if (role === 'OWNER' || role === 'ADMIN') return '/pi-owner.html'
-    if (role === 'DOCTOR') return '/pi-appointments.html'
-    if (role === 'FACILITY') return '/pi-appointments.html'
-    return '/pi-appointments.html'
-  }
-
   function navItems(role) {
+    var chatHref = role === 'DOCTOR' ? '/dashboard/doctor/chat' : '/dashboard/client/chat'
     var items = [
-      { id: 'home', href: '/pi-app.html', icon: '🏠', label: 'الرئيسية' },
-      { id: 'doctors', href: '/pi-doctors.html', icon: '👨‍⚕️', label: 'الأطباء' },
-      { id: 'profile', href: '/pi-profile.html', icon: '👤', label: 'الملف' },
+      { id: 'home', href: '/dashboard', icon: '🏠', label: 'الرئيسية' },
+      { id: 'doctors', href: '/doctors', icon: '👨‍⚕️', label: 'الأطباء' },
+      { id: 'appointments', href: dashboardPath(role || 'CLIENT'), icon: '📅', label: 'المواعيد' },
+      { id: 'chat', href: chatHref, icon: '💬', label: 'المحادثات' },
+      { id: 'profile', href: '/profile', icon: '👤', label: 'الملف' },
     ]
     if (role === 'OWNER' || role === 'ADMIN') {
-      items.splice(1, 0, { id: 'admin', href: '/pi-owner.html', icon: '⚙️', label: 'الإدارة' })
-    } else {
-      items.splice(1, 0, { id: 'appointments', href: '/pi-appointments.html', icon: '📅', label: 'المواعيد' })
+      items.splice(1, 0, { id: 'admin', href: adminPath(role), icon: '⚙️', label: 'الإدارة' })
     }
     return items
   }
@@ -123,6 +131,7 @@ window.PiApp = (function () {
     roleLabel: roleLabel,
     statusLabel: statusLabel,
     dashboardPath: dashboardPath,
+    adminPath: adminPath,
     navItems: navItems,
     renderNav: renderNav,
     formatDate: formatDate,

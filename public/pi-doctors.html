@@ -2,57 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0;url=/doctors" />
+  <script>location.replace('/doctors')</script>
   <title>MRI — الأطباء</title>
-  <link rel="stylesheet" href="/pi-shell.css" />
 </head>
-<body class="pi-app">
-  <header class="pi-header">
-    <a class="back" href="/pi-app.html">←</a>
-    <h1>الأطباء</h1>
-  </header>
-  <main class="pi-main">
-    <input class="pi-input" id="search" placeholder="ابحث بالاسم أو التخصص..." />
-    <button class="pi-btn pi-btn-primary" type="button" id="searchBtn">بحث</button>
-    <div id="list"><div class="pi-loading">جاري التحميل...</div></div>
-  </main>
-  <nav class="pi-nav" id="pi-nav"></nav>
-  <script src="/pi-shell.js"></script>
-  <script>
-  function loadDoctors(q) {
-    var url = '/api/doctors?limit=30' + (q ? '&search=' + encodeURIComponent(q) : '')
-    var listEl = document.getElementById('list')
-    listEl.innerHTML = '<div class="pi-loading">جاري البحث...</div>'
-    PiApp.api(url).then(function (res) {
-      var doctors = (res.success && res.data) ? res.data : []
-      if (!doctors.length) {
-        listEl.innerHTML = '<p class="pi-muted">لا توجد نتائج</p>'
-        return
-      }
-      listEl.innerHTML = doctors.map(function (d) {
-        var name = 'د. ' + (d.firstName || '') + ' ' + (d.lastName || '')
-        return '<div class="pi-card">' +
-          '<strong style="color:#fff">' + PiApp.esc(name) + '</strong><br/>' +
-          '<span class="pi-muted">' + PiApp.esc(d.specialization || '') + '</span><br/>' +
-          (d.city ? '<span class="pi-muted">' + PiApp.esc(d.city) + '</span><br/>' : '') +
-          (d.consultationFee ? '<span class="pi-badge">' + d.consultationFee + ' π</span> ' : '') +
-          (d.averageRating ? '<span class="pi-muted">⭐ ' + d.averageRating.toFixed(1) + '</span>' : '') +
-          '<a class="pi-btn pi-btn-secondary" style="margin-top:10px" href="/pi-doctor.html?id=' + encodeURIComponent(d.id) + '">عرض التفاصيل</a>' +
-        '</div>'
-      }).join('')
-    }).catch(function (e) {
-      listEl.innerHTML = '<p class="pi-err">' + PiApp.esc(e.message) + '</p>'
-    })
-  }
-
-  PiApp.requireSession().then(function (s) {
-    if (!s) return
-    PiApp.renderNav('doctors', s.user.role)
-    loadDoctors('')
-    document.getElementById('searchBtn').addEventListener('click', function () {
-      loadDoctors(document.getElementById('search').value.trim())
-    })
-  })
-  </script>
-</body>
+<body><p style="font-family:sans-serif;text-align:center;padding:2rem">جاري التوجيه إلى الأطباء...</p></body>
 </html>

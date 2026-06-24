@@ -59,6 +59,13 @@ const nextConfig = {
     return [
       { source: '/privacypolicy', destination: '/privacy', permanent: true },
       { source: '/terms-of-service', destination: '/terms', permanent: true },
+      // Legacy Pi shell HTML → Next.js app (auth pages stay static — see docs/PI_ROUTES.md)
+      { source: '/pi-doctors.html', destination: '/doctors', permanent: false },
+      { source: '/pi-profile.html', destination: '/profile', permanent: false },
+      { source: '/pi-select-role.html', destination: '/select-role', permanent: false },
+      { source: '/pi-dashboard.html', destination: '/dashboard', permanent: false },
+      { source: '/pi-appointments.html', destination: '/dashboard', permanent: false },
+      { source: '/pi-owner.html', destination: '/dashboard', permanent: false },
     ]
   },
 

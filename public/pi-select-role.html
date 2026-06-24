@@ -2,43 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0;url=/select-role" />
+  <script>location.replace('/select-role')</script>
   <title>MRI — اختيار الدور</title>
-  <link rel="stylesheet" href="/pi-shell.css" />
 </head>
-<body class="pi-app">
-  <header class="pi-header">
-    <a class="back" href="/pi-app.html">←</a>
-    <h1>اختر نوع حسابك</h1>
-  </header>
-  <main class="pi-main">
-    <p class="pi-muted">حدّد كيف ستستخدم المنصة. يمكنك إكمال ملفك بعد ذلك.</p>
-    <button class="pi-btn pi-btn-primary" type="button" data-role="CLIENT">🧑‍⚕️ مريض / عميل</button>
-    <button class="pi-btn pi-btn-secondary" type="button" data-role="DOCTOR">👨‍⚕️ طبيب</button>
-    <button class="pi-btn pi-btn-secondary" type="button" data-role="FACILITY">🏥 منشأة طبية</button>
-    <p id="err" class="pi-err"></p>
-  </main>
-  <script src="/pi-shell.js"></script>
-  <script>
-  PiApp.requireSession().then(function (session) {
-    if (!session) return
-    document.querySelectorAll('[data-role]').forEach(function (btn) {
-      btn.addEventListener('click', function () {
-        var role = btn.getAttribute('data-role')
-        btn.disabled = true
-        document.getElementById('err').textContent = ''
-        PiApp.api('/api/auth/select-role', { method: 'POST', body: { role: role } })
-          .then(function (res) {
-            if (res.data && res.data.error) throw new Error(res.data.message || 'فشل')
-            window.location.href = '/pi-profile.html'
-          })
-          .catch(function (e) {
-            document.getElementById('err').textContent = e.message || 'حدث خطأ'
-            btn.disabled = false
-          })
-      })
-    })
-  })
-  </script>
-</body>
+<body><p style="font-family:sans-serif;text-align:center;padding:2rem">جاري التوجيه...</p></body>
 </html>

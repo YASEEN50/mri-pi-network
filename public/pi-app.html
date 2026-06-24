@@ -13,6 +13,7 @@
     .btn2 { background:#334155; }
     .muted { color:#94a3b8; font-size:14px; }
     .err { color:#f87171; }
+    .note { color:#64748b; font-size:12px; margin-top:16px; }
   </style>
 </head>
 <body>
@@ -21,39 +22,35 @@
   <div id="menu" style="display:none">
     <a href="/dashboard" class="btn btn1">لوحة التحكم</a>
     <a href="/doctors" class="btn btn2">الأطباء — حجز موعد</a>
+    <a href="/dashboard/client/chat" class="btn btn2">المحادثات</a>
     <a href="/profile" class="btn btn2">الملف الشخصي</a>
     <button type="button" id="logoutBtn" class="btn muted">تسجيل الخروج</button>
   </div>
   <button id="piBtn" class="btn btn2" style="display:none;margin-top:12px">π تسجيل الدخول بـ Pi</button>
   <p id="err" class="err"></p>
+  <p class="note">التطبيق الكامل يعمل عبر Next.js — صفحات pi-*.html القديمة تُوجَّه تلقائياً.</p>
   <script>
   (function () {
-    var logoutBtn = document.getElementById('logoutBtn')
-    var piBtn = document.getElementById('piBtn')
-
-    logoutBtn.addEventListener('click', function () {
+    document.getElementById('logoutBtn').addEventListener('click', function () {
       window.PiAuth.signOut('/')
     })
-
-    piBtn.addEventListener('click', function () {
-      piBtn.disabled = true
-      piBtn.textContent = 'جاري التحقق...'
+    document.getElementById('piBtn').addEventListener('click', function () {
+      var btn = document.getElementById('piBtn')
+      btn.disabled = true
+      btn.textContent = 'جاري التحقق...'
       window.PiAuth.signIn().catch(function (e) {
         document.getElementById('err').textContent = e.message || 'فشل الدخول'
-        piBtn.disabled = false
-        piBtn.textContent = 'π تسجيل الدخول بـ Pi'
+        btn.disabled = false
+        btn.textContent = 'π تسجيل الدخول بـ Pi'
       })
     })
-
     fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (!s || !s.user) {
           document.getElementById('user').textContent = 'لم يتم تسجيل الدخول'
-          piBtn.style.display = 'block'
-          if (!window.PiAuth.shouldSkipAuto()) {
-            window.PiAuth.tryAutoSignIn()
-          }
+          document.getElementById('piBtn').style.display = 'block'
+          if (!window.PiAuth.shouldSkipAuto()) window.PiAuth.tryAutoSignIn()
           return
         }
         document.getElementById('user').textContent = 'مرحباً ' + (s.user.name || s.user.email || s.user.piUsername || 'بك')
@@ -61,8 +58,7 @@
       })
       .catch(function () {
         document.getElementById('err').textContent = 'تعذر التحقق من الجلسة'
-        document.getElementById('user').textContent = ''
-        piBtn.style.display = 'block'
+        document.getElementById('piBtn').style.display = 'block'
       })
   })()
   </script>

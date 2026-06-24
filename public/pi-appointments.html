@@ -2,60 +2,9 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta http-equiv="refresh" content="0;url=/dashboard" />
+  <script>location.replace('/dashboard')</script>
   <title>MRI — المواعيد</title>
-  <link rel="stylesheet" href="/pi-shell.css" />
 </head>
-<body class="pi-app">
-  <header class="pi-header">
-    <a class="back" href="/pi-app.html">←</a>
-    <h1>المواعيد</h1>
-  </header>
-  <main class="pi-main" id="main">
-    <div class="pi-loading">جاري التحميل...</div>
-  </main>
-  <nav class="pi-nav" id="pi-nav"></nav>
-  <script src="/pi-shell.js"></script>
-  <script>
-  PiApp.requireSession().then(function (session) {
-    if (!session) return
-    var role = session.user.role
-    if (role === 'OWNER' || role === 'ADMIN') {
-      window.location.href = '/pi-owner.html'
-      return
-    }
-    PiApp.renderNav('appointments', role)
-
-    PiApp.api('/api/appointments?limit=50').then(function (res) {
-      var list = (res.success && res.data) ? res.data : []
-      var main = document.getElementById('main')
-
-      if (!list.length) {
-        main.innerHTML =
-          '<div class="pi-card" style="text-align:center">' +
-            '<p style="font-size:2rem;margin:0">📅</p>' +
-            '<p class="pi-muted">لا توجد مواعيد بعد</p>' +
-            '<a class="pi-btn pi-btn-primary" href="/pi-doctors.html">احجز موعداً</a>' +
-          '</div>'
-        return
-      }
-
-      main.innerHTML =
-        '<a class="pi-btn pi-btn-primary" href="/pi-doctors.html">+ حجز موعد جديد</a>' +
-        '<div class="pi-card"><h2>مواعيدي (' + list.length + ')</h2>' +
-        list.map(function (a) {
-          return '<div class="pi-list-item">' +
-            '<strong style="color:#fff">' + PiApp.esc(a.doctor || a.facility || 'موعد') + '</strong><br/>' +
-            '<span class="pi-badge">' + PiApp.esc(PiApp.statusLabel(a.status)) + '</span> ' +
-            '<span class="pi-muted">' + PiApp.esc(PiApp.formatDate(a.scheduledAt)) + '</span>' +
-            (a.fee ? '<br/><span class="pi-muted">' + a.fee + ' π</span>' : '') +
-          '</div>'
-        }).join('') + '</div>'
-    }).catch(function (e) {
-      document.getElementById('main').innerHTML =
-        '<p class="pi-err">' + PiApp.esc(e.message || 'تعذر تحميل المواعيد') + '</p>'
-    })
-  })
-  </script>
-</body>
+<body><p style="font-family:sans-serif;text-align:center;padding:2rem">جاري التوجيه إلى المواعيد...</p></body>
 </html>

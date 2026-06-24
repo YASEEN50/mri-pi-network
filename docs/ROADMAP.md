@@ -24,7 +24,7 @@
 |---|--------|--------|
 | 2.1 | محادثة realtime (polling أو WebSocket) | ✅ منجز | `useChat`, `?since=`, `ChatWorkspace` |
 | 2.2 | حجز مواعيد + availability + تأكيد + إشعار | ✅ منجز | slots API, booking validation, notifications |
-| 2.3 | توحيد Pi shell مع Next.js (أو توثيق المسارات) | ⬜ |
+| 2.3 | توحيد Pi shell مع Next.js (أو توثيق المسارات) | ✅ منجز | `pi-routes.ts`, `docs/PI_ROUTES.md`, redirects |
 | 2.4 | ربط التقييمات بعد كل موعد مكتمل | ⬜ |
 | 2.5 | i18n متسق (ar/en) للوحات التحكم | ⬜ |
 
