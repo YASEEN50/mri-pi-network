@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { Role, ApprovalStatus } from '@prisma/client'
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
 import { resolvePiLoginUser } from '@/lib/auth/account-linking'
+import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { consumeMfaSignInToken } from '@/lib/mfa/signin-token'
 import { resolveMfaSessionFlags } from '@/lib/mfa/session-flags'
 
@@ -144,8 +145,9 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) throw new Error('MISSING_CREDENTIALS')
+        const email = normalizeAuthEmail(credentials.email)
         const user = await prisma.user.findFirst({
-          where: { email: credentials.email, deletedAt: null },
+          where: { email, deletedAt: null },
           select: {
             id: true,
             email: true,

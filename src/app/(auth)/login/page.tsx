@@ -13,7 +13,7 @@ const errorMessages: Record<string, string> = {
   INVALID_CREDENTIALS: 'البريد الإلكتروني أو كلمة المرور غير صحيحة',
   ACCOUNT_DISABLED: 'تم تعليق هذا الحساب، تواصل مع الدعم',
   MISSING_CREDENTIALS: 'يرجى إدخال البريد الإلكتروني وكلمة المرور',
-  MFA_REQUIRED: 'يلزم رمز المصادقة الثنائية',
+  MFA_REQUIRED: 'يلزم رمز المصادقة الثنائية — أدخل الرمز في الخطوة التالية',
   MFA_USE_EMAIL: 'حساب الإدارة يتطلب تسجيل الدخول بالبريد مع MFA',
   INVALID_MFA_TOKEN: 'انتهت جلسة MFA — أعد تسجيل الدخول',
   DEFAULT: 'حدث خطأ، يرجى المحاولة مرة أخرى',

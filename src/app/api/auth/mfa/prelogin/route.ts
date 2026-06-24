@@ -6,6 +6,7 @@ import { ok, serverError, fromZodError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { createMfaChallengeToken } from '@/lib/mfa/challenge-token'
 import { requiresMfaRole } from '@/lib/mfa/session-flags'
+import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 
 const Schema = z.object({
   email: z.string().email(),
@@ -19,9 +20,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return fromZodError(parsed.error)
 
     const { email, password } = parsed.data
+    const normalizedEmail = normalizeAuthEmail(email)
 
     const user = await prisma.user.findFirst({
-      where: { email, deletedAt: null },
+      where: { email: normalizedEmail, deletedAt: null },
       select: {
         id: true,
         passwordHash: true,

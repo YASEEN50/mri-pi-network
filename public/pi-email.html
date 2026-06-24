@@ -22,29 +22,40 @@
         </svg>
       </div>
       <h1 class="pi-auth-title">MRI</h1>
-      <p class="pi-auth-subtitle">تسجيل الدخول بالبريد الإلكتروني</p>
+      <p class="pi-auth-subtitle" id="pageSubtitle">تسجيل الدخول بالبريد الإلكتروني</p>
     </div>
 
     <div class="pi-auth-card">
-      <h2>مرحباً بعودتك</h2>
-      <p class="pi-auth-hint">أدخل بيانات حسابك للمتابعة</p>
+      <h2 id="cardTitle">مرحباً بعودتك</h2>
+      <p class="pi-auth-hint" id="cardHint">أدخل بيانات حسابك للمتابعة</p>
 
       <form id="form">
-        <label class="pi-auth-label" for="email">البريد الإلكتروني</label>
-        <div class="pi-auth-input-wrap">
-          <input id="email" class="pi-auth-input" type="email" required autocomplete="email" dir="ltr" placeholder="example@email.com" />
+        <div id="loginFields">
+          <label class="pi-auth-label" for="email">البريد الإلكتروني</label>
+          <div class="pi-auth-input-wrap">
+            <input id="email" class="pi-auth-input" type="email" required autocomplete="email" dir="ltr" placeholder="example@email.com" />
+          </div>
+
+          <div class="pi-auth-row">
+            <label class="pi-auth-label" for="password" style="margin:0">كلمة المرور</label>
+            <a class="pi-auth-link" href="/forgot-password?site=full">نسيت كلمة المرور؟</a>
+          </div>
+          <div class="pi-auth-input-wrap">
+            <input id="password" class="pi-auth-input has-toggle" type="password" required autocomplete="current-password" dir="ltr" placeholder="••••••••" />
+            <button type="button" class="pi-auth-input-toggle" id="togglePwd" aria-label="إظهار كلمة المرور">👁</button>
+          </div>
         </div>
 
-        <div class="pi-auth-row">
-          <label class="pi-auth-label" for="password" style="margin:0">كلمة المرور</label>
-          <a class="pi-auth-link" href="/forgot-password?site=full">نسيت كلمة المرور؟</a>
-        </div>
-        <div class="pi-auth-input-wrap">
-          <input id="password" class="pi-auth-input has-toggle" type="password" required autocomplete="current-password" dir="ltr" placeholder="••••••••" />
-          <button type="button" class="pi-auth-input-toggle" id="togglePwd" aria-label="إظهار كلمة المرور">👁</button>
+        <div id="mfaFields" hidden>
+          <label class="pi-auth-label" for="mfaCode">رمز المصادقة الثنائية (MFA)</label>
+          <div class="pi-auth-input-wrap">
+            <input id="mfaCode" class="pi-auth-input" type="text" inputmode="numeric" maxlength="16" dir="ltr" placeholder="123456" autocomplete="one-time-code" />
+          </div>
+          <p class="pi-auth-hint" style="margin-top:0.5rem">من تطبيق Google Authenticator أو رمز النسخ الاحتياطي</p>
         </div>
 
         <button class="pi-auth-btn pi-auth-btn-email" type="submit" id="submitBtn">تسجيل الدخول</button>
+        <button type="button" class="pi-auth-link mt-4 block w-full text-center" id="backBtn" hidden>← رجوع</button>
       </form>
 
       <div class="pi-auth-trust">
@@ -60,6 +71,9 @@
   </div>
 
   <script>
+  var challengeToken = ''
+  var mfaStep = false
+
   function requestCookieAccess() {
     if (document.requestStorageAccess) {
       return document.requestStorageAccess().catch(function () {})
@@ -79,11 +93,102 @@
       })
   }
 
+  function fetchCsrf() {
+    return fetch('/api/auth/csrf', { credentials: 'include' })
+      .then(function (r) {
+        if (!r.ok) throw new Error('تعذر الاتصال بالخادم (' + r.status + ')')
+        return r.json()
+      })
+  }
+
+  function credentialsLogin(email, password) {
+    return fetchCsrf().then(function (csrf) {
+      return fetch('/api/auth/callback/credentials', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          csrfToken: csrf.csrfToken,
+          email: email,
+          password: password,
+          callbackUrl: '/dashboard',
+          json: 'true',
+        }).toString(),
+      })
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok || data.error) {
+          if (data.error === 'MFA_REQUIRED') {
+            throw new Error('MFA_REQUIRED')
+          }
+          var msg = 'البريد أو كلمة المرور غير صحيحة'
+          if (data.error === 'ACCOUNT_DISABLED') msg = 'تم تعليق هذا الحساب'
+          throw new Error(msg)
+        }
+        return verifySessionThenGo()
+      })
+    })
+  }
+
+  function mfaTokenLogin(userId, token) {
+    return fetchCsrf().then(function (csrf) {
+      return fetch('/api/auth/callback/mfa-token', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          csrfToken: csrf.csrfToken,
+          userId: userId,
+          token: token,
+          callbackUrl: '/dashboard',
+          json: 'true',
+        }).toString(),
+      })
+    }).then(function (r) {
+      return r.json().then(function (data) {
+        if (!r.ok || data.error) {
+          throw new Error('فشل إكمال تسجيل الدخول — أعد المحاولة')
+        }
+        return verifySessionThenGo()
+      })
+    })
+  }
+
+  function showMfaStep() {
+    mfaStep = true
+    document.getElementById('loginFields').hidden = true
+    document.getElementById('mfaFields').hidden = false
+    document.getElementById('backBtn').hidden = false
+    document.getElementById('cardTitle').textContent = 'التحقق الثنائي'
+    document.getElementById('cardHint').textContent = 'أدخل رمز MFA من تطبيق المصادقة'
+    document.getElementById('submitBtn').textContent = 'تأكيد الدخول'
+    document.getElementById('password').removeAttribute('required')
+    document.getElementById('mfaCode').focus()
+  }
+
+  function showLoginStep() {
+    mfaStep = false
+    challengeToken = ''
+    document.getElementById('loginFields').hidden = false
+    document.getElementById('mfaFields').hidden = true
+    document.getElementById('backBtn').hidden = true
+    document.getElementById('cardTitle').textContent = 'مرحباً بعودتك'
+    document.getElementById('cardHint').textContent = 'أدخل بيانات حسابك للمتابعة'
+    document.getElementById('submitBtn').textContent = 'تسجيل الدخول'
+    document.getElementById('password').setAttribute('required', 'required')
+    document.getElementById('mfaCode').value = ''
+  }
+
   document.getElementById('togglePwd').addEventListener('click', function () {
     var input = document.getElementById('password')
     var show = input.type === 'password'
     input.type = show ? 'text' : 'password'
     this.textContent = show ? '🙈' : '👁'
+  })
+
+  document.getElementById('backBtn').addEventListener('click', function () {
+    showLoginStep()
+    document.getElementById('err').textContent = ''
   })
 
   document.getElementById('form').addEventListener('submit', function (e) {
@@ -93,40 +198,73 @@
     err.textContent = ''
     btn.disabled = true
     btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري الدخول...'
+
+    if (mfaStep) {
+      var code = document.getElementById('mfaCode').value.replace(/\s/g, '')
+      if (code.length < 6) {
+        err.textContent = 'أدخل رمز MFA (6 أرقام على الأقل)'
+        btn.disabled = false
+        btn.textContent = 'تأكيد الدخول'
+        return
+      }
+      requestCookieAccess()
+        .then(function () {
+          return fetch('/api/auth/mfa/verify', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ challengeToken: challengeToken, code: code }),
+          })
+        })
+        .then(function (r) { return r.json() })
+        .then(function (data) {
+          if (!data.success || data.data?.error) {
+            throw new Error(data.data?.message || 'رمز MFA غير صحيح')
+          }
+          return mfaTokenLogin(data.data.userId, data.data.signInToken)
+        })
+        .catch(function (ex) {
+          err.textContent = ex.message || 'حدث خطأ'
+          btn.disabled = false
+          btn.textContent = 'تأكيد الدخول'
+        })
+      return
+    }
+
+    var email = document.getElementById('email').value.trim()
+    var password = document.getElementById('password').value
+
     requestCookieAccess()
-      .then(function () { return fetch('/api/auth/csrf', { credentials: 'include' }) })
-      .then(function (r) {
-        if (!r.ok) throw new Error('تعذر الاتصال بالخادم (' + r.status + ')')
-        return r.json()
-      })
-      .then(function (csrf) {
-        return fetch('/api/auth/callback/credentials', {
+      .then(function () {
+        return fetch('/api/auth/mfa/prelogin', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            csrfToken: csrf.csrfToken,
-            email: document.getElementById('email').value,
-            password: document.getElementById('password').value,
-            callbackUrl: '/dashboard',
-            json: 'true',
-          }).toString(),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email, password: password }),
         })
       })
-      .then(function (r) {
-        return r.json().then(function (data) {
-          if (!r.ok || data.error) {
-            var msg = 'البريد أو كلمة المرور غير صحيحة'
-            if (data.error === 'ACCOUNT_DISABLED') msg = 'تم تعليق هذا الحساب'
-            throw new Error(msg)
-          }
-          return verifySessionThenGo()
-        })
+      .then(function (r) { return r.json() })
+      .then(function (pre) {
+        if (!pre.success || pre.data?.error) {
+          throw new Error('البريد أو كلمة المرور غير صحيحة')
+        }
+        if (pre.data?.mfaRequired) {
+          challengeToken = pre.data.challengeToken
+          showMfaStep()
+          btn.disabled = false
+          btn.textContent = 'تأكيد الدخول'
+          return
+        }
+        return credentialsLogin(email, password)
       })
       .catch(function (ex) {
-        err.textContent = ex.message || 'حدث خطأ'
+        if (ex.message === 'MFA_REQUIRED') {
+          err.textContent = 'يلزم رمز MFA — أعد المحاولة'
+        } else {
+          err.textContent = ex.message || 'حدث خطأ'
+        }
         btn.disabled = false
-        btn.textContent = 'تسجيل الدخول'
+        btn.textContent = mfaStep ? 'تأكيد الدخول' : 'تسجيل الدخول'
       })
   })
   </script>
