@@ -4,15 +4,18 @@
 import { useState } from 'react'
 import { useSession } from 'next-auth/react'
 import AccountLinkingCard from '@/components/profile/AccountLinkingCard'
+import PrivacyDataCard from '@/components/profile/PrivacyDataCard'
 
 export default function SettingsTab({
   userEmail,
   piUsername,
   piUid,
+  hasPassword = false,
 }: {
   userEmail?: string | null
   piUsername?: string | null
   piUid?: string | null
+  hasPassword?: boolean
 }) {
   const { update } = useSession()
   const [newEmail, setNewEmail] = useState('')
@@ -216,6 +219,8 @@ export default function SettingsTab({
           )}
         </div>
       )}
+
+      <PrivacyDataCard hasPassword={hasPassword || !!userEmail} />
     </div>
   )
 }
