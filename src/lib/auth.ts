@@ -8,6 +8,7 @@ import { prisma } from '@/lib/prisma'
 import { Role, ApprovalStatus } from '@prisma/client'
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
 import { resolvePiLoginUser } from '@/lib/auth/account-linking'
+import { findUserByAuthEmail } from '@/lib/auth/find-user-by-email'
 import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { consumeMfaSignInToken } from '@/lib/mfa/signin-token'
 import { resolveMfaSessionFlags } from '@/lib/mfa/session-flags'
@@ -146,18 +147,15 @@ export const authOptions: NextAuthOptions = {
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) throw new Error('MISSING_CREDENTIALS')
         const email = normalizeAuthEmail(credentials.email)
-        const user = await prisma.user.findFirst({
-          where: { email, deletedAt: null },
-          select: {
-            id: true,
-            email: true,
-            passwordHash: true,
-            isActive: true,
-            role: true,
-            piUid: true,
-            piUsername: true,
-            mfaEnabled: true,
-          },
+        const user = await findUserByAuthEmail(email, {
+          id: true,
+          email: true,
+          passwordHash: true,
+          isActive: true,
+          role: true,
+          piUid: true,
+          piUsername: true,
+          mfaEnabled: true,
         })
         if (!user || !user.passwordHash) throw new Error('INVALID_CREDENTIALS')
         if (!user.isActive) throw new Error('ACCOUNT_DISABLED')

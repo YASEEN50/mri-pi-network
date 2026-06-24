@@ -250,7 +250,13 @@
       })
       .then(function (r) { return r.json() })
       .then(function (pre) {
-        if (!pre.success || pre.data?.error) {
+        if (!pre.success) {
+          throw new Error(pre.error?.message || 'تعذر الاتصال بالخادم')
+        }
+        if (pre.data?.error) {
+          if (pre.data.message === 'PASSWORD_NOT_SET') {
+            throw new Error('لا توجد كلمة مرور — استخدم «نسيت كلمة المرور» أولاً')
+          }
           throw new Error('البريد أو كلمة المرور غير صحيحة')
         }
         if (pre.data?.mfaRequired) {

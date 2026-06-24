@@ -16,6 +16,8 @@ const errorMessages: Record<string, string> = {
   MFA_REQUIRED: 'يلزم رمز المصادقة الثنائية — أدخل الرمز في الخطوة التالية',
   MFA_USE_EMAIL: 'حساب الإدارة يتطلب تسجيل الدخول بالبريد مع MFA',
   INVALID_MFA_TOKEN: 'انتهت جلسة MFA — أعد تسجيل الدخول',
+  PASSWORD_NOT_SET:
+    'لا توجد كلمة مرور لهذا الحساب. بعد تفعيل MFA يجب الدخول بالبريد — استخدم «نسيت كلمة المرور» لتعيين كلمة مرور أولاً.',
   DEFAULT: 'حدث خطأ، يرجى المحاولة مرة أخرى',
 }
 
@@ -24,15 +26,6 @@ export default function LoginPage() {
   const searchParams = useSearchParams()
   const paramCallback = searchParams.get('callbackUrl')
   const [callbackUrl, setCallbackUrl] = useState('/dashboard')
-
-  useEffect(() => {
-    if (paramCallback) {
-      setCallbackUrl(paramCallback)
-      return
-    }
-    if (isPiBrowser()) setCallbackUrl('/dashboard')
-  }, [paramCallback])
-
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -41,6 +34,17 @@ export default function LoginPage() {
   const [mfaStep, setMfaStep] = useState(false)
   const [challengeToken, setChallengeToken] = useState('')
   const [mfaCode, setMfaCode] = useState('')
+
+  useEffect(() => {
+    if (searchParams.get('mfa') === 'required') {
+      setError('يلزم إكمال التحقق الثنائي — أدخل البريد وكلمة المرور ثم رمز MFA')
+    }
+    if (paramCallback) {
+      setCallbackUrl(paramCallback)
+      return
+    }
+    if (isPiBrowser()) setCallbackUrl('/dashboard')
+  }, [searchParams, paramCallback])
 
   async function completeSignIn() {
     router.push(callbackUrl)
@@ -61,8 +65,13 @@ export default function LoginPage() {
       })
       const preData = await pre.json()
 
-      if (!preData.success || preData.data?.error) {
-        setError(errorMessages[preData.data?.message] ?? errorMessages.INVALID_CREDENTIALS)
+      if (!preData.success) {
+        setError(preData.error?.message ?? errorMessages.DEFAULT)
+        return
+      }
+
+      if (preData.data?.error) {
+        setError(errorMessages[preData.data.message] ?? errorMessages.INVALID_CREDENTIALS)
         return
       }
 
@@ -210,7 +219,7 @@ export default function LoginPage() {
           <label className="pi-auth-label" htmlFor="password" style={{ margin: 0 }}>
             كلمة المرور
           </label>
-          <Link href="/forgot-password" className="pi-auth-link">
+          <Link href="/forgot-password?site=full" className="pi-auth-link">
             نسيت كلمة المرور؟
           </Link>
         </div>

@@ -30,7 +30,7 @@ function applyPiWebViewHeaders(res: NextResponse): NextResponse {
 /** Pi Portal requires root domain — static login pages only (unless ?site=full). */
 function piStaticRewrite(req: NextRequest): NextResponse | null {
   const { pathname, searchParams } = req.nextUrl
-  if (searchParams.get('site') === 'full') return null
+  if (searchParams.get('site') === 'full' || searchParams.get('mfa') === 'required') return null
 
   if (pathname === '/') {
     return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi.html', req.url)))
@@ -75,7 +75,7 @@ const authMiddleware = withAuth(
         return NextResponse.redirect(new URL('/admin/security/mfa', req.url))
       }
       if (!mfaVerified) {
-        return NextResponse.redirect(new URL('/login?mfa=required', req.url))
+        return NextResponse.redirect(new URL('/login?site=full&mfa=required', req.url))
       }
     }
 

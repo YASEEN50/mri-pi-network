@@ -1,15 +1,14 @@
 import { NextRequest } from 'next/server'
 import { z } from 'zod'
 import { compare } from 'bcryptjs'
-import { Role } from '@prisma/client'
 import { ok, serverError, fromZodError } from '@/lib/api-response'
-import { prisma } from '@/lib/prisma'
+import { findUserByAuthEmail } from '@/lib/auth/find-user-by-email'
+import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { createMfaChallengeToken } from '@/lib/mfa/challenge-token'
 import { requiresMfaRole } from '@/lib/mfa/session-flags'
-import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 
 const Schema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email().transform(normalizeAuthEmail),
   password: z.string().min(1),
 })
 
@@ -20,20 +19,23 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return fromZodError(parsed.error)
 
     const { email, password } = parsed.data
-    const normalizedEmail = normalizeAuthEmail(email)
 
-    const user = await prisma.user.findFirst({
-      where: { email: normalizedEmail, deletedAt: null },
-      select: {
-        id: true,
-        passwordHash: true,
-        isActive: true,
-        role: true,
-        mfaEnabled: true,
-      },
+    const user = await findUserByAuthEmail(email, {
+      id: true,
+      passwordHash: true,
+      isActive: true,
+      role: true,
+      mfaEnabled: true,
     })
 
-    if (!user?.passwordHash || !user.isActive) {
+    if (!user?.isActive) {
+      return ok({ error: true, message: 'INVALID_CREDENTIALS' })
+    }
+
+    if (!user.passwordHash) {
+      if (requiresMfaRole(user.role) && user.mfaEnabled) {
+        return ok({ error: true, message: 'PASSWORD_NOT_SET' })
+      }
       return ok({ error: true, message: 'INVALID_CREDENTIALS' })
     }
 

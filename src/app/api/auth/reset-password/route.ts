@@ -2,12 +2,14 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
+import { findUserByAuthEmail } from '@/lib/auth/find-user-by-email'
+import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { hash } from 'bcryptjs'
 import { z } from 'zod'
 
 const Schema = z.object({
-  email:    z.string().email(),
-  otp:      z.string().length(6),
+  email: z.string().trim().email().transform(normalizeAuthEmail),
+  otp: z.string().length(6),
   password: z.string().min(8),
 })
 
@@ -35,9 +37,7 @@ export async function POST(req: NextRequest) {
       return ok({ error: true, message: 'انتهت صلاحية الرمز. اطلب رمزاً جديداً.' })
     }
 
-    const user = await prisma.user.findFirst({
-      where: { email, deletedAt: null },
-    })
+    const user = await findUserByAuthEmail(email, { id: true })
     if (!user) return ok({ error: true, message: 'البريد غير مسجل' })
 
     // تحديث كلمة المرور وحذف الرمز

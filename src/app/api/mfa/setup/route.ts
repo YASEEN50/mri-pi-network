@@ -20,9 +20,16 @@ export async function POST(_req: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: auth.context.userId },
-      select: { email: true, mfaEnabled: true },
+      select: { email: true, passwordHash: true, mfaEnabled: true },
     })
     if (!user) return fromAppError(new ForbiddenError())
+    if (!user.email || !user.passwordHash) {
+      return ok({
+        error: true,
+        message:
+          'يجب ربط بريد إلكتروني وتعيين كلمة مرور قبل تفعيل MFA — استخدم «نسيت كلمة المرور» أو إعدادات الملف.',
+      })
+    }
     if (user.mfaEnabled) {
       return ok({ error: true, message: 'MFA مفعّل مسبقاً' })
     }

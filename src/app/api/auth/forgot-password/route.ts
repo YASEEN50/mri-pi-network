@@ -4,12 +4,16 @@ import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
 import { rateLimitAuth } from '@/lib/rate-limit'
 import { getResendClient } from '@/lib/resend-client'
+import { findUserByAuthEmail } from '@/lib/auth/find-user-by-email'
+import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { z } from 'zod'
 
 const FROM      = process.env.EMAIL_FROM ?? 'onboarding@resend.dev'
 const APP_NAME  = 'المنصة الطبية'
 const BASE_URL  = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-const Schema    = z.object({ email: z.string().email() })
+const Schema    = z.object({
+  email: z.string().trim().email().transform(normalizeAuthEmail),
+})
 
 export async function POST(req: NextRequest) {
   try {
@@ -25,9 +29,7 @@ export async function POST(req: NextRequest) {
 
     const { email } = parsed.data
 
-    const user = await prisma.user.findFirst({
-      where: { email, deletedAt: null },
-    })
+    const user = await findUserByAuthEmail(email, { id: true, email: true })
 
     // نرجع نفس الرسالة سواء وُجد البريد أم لا (أمان)
     if (!user) {
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
     // إرسال البريد
     await getResendClient().emails.send({
       from:    FROM,
-      to:      email,
+      to:      user.email ?? email,
       subject: `رمز إعادة تعيين كلمة المرور - ${APP_NAME}`,
       html: `
         <div dir="rtl" style="font-family:Arial,sans-serif;max-width:480px;margin:0 auto;padding:24px;background:#0f172a;color:white;border-radius:16px;">
