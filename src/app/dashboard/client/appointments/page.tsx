@@ -6,6 +6,7 @@ import DashboardShell from '@/components/dashboard/DashboardShell'
 import { useAppLocale } from '@/hooks/useAppLocale'
 import Link from 'next/link'
 import PaymentForm from '@/components/payments/PaymentForm'
+import VideoJoinButton from '@/components/appointments/VideoJoinButton'
 import { appointmentRatingPath, isReviewPending } from '@/lib/reviews/paths'
 
 const STATUS_COLORS: Record<string, string> = {
@@ -211,6 +212,11 @@ function AppointmentCard({
         </div>
 
         <div className="flex flex-col gap-2 flex-shrink-0">
+          <VideoJoinButton
+            videoJoinPath={apt.videoJoinPath}
+            canJoinVideo={apt.canJoinVideo}
+            compact
+          />
           {!apt.isPaid && apt.fee && ['PENDING', 'CONFIRMED'].includes(apt.status) && (
             <PaymentForm
               variant="compact"

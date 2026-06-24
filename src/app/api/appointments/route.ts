@@ -7,8 +7,10 @@ import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { createRemindersForAppointment } from '@/lib/cron/reminders.service'
 import { doctorHasActivePremioByProfileId } from '@/lib/premio/active-premio'
+import { appointmentVideoFields } from '@/lib/appointments/online-video'
 import { assertBookableSlot } from '@/lib/appointments/booking'
 import { notifyAppointmentBooked } from '@/lib/appointments/notifications'
+import { isOnlineBookingEnabled } from '@/lib/appointments/online-video'
 
 const CreateSchema = z.object({
   doctorId:    z.string().uuid().optional(),
@@ -90,6 +92,13 @@ export async function GET(req: NextRequest) {
         clientName:   a.client?.email ?? null,
         hasReview:    !!a.review,
         reviewRating: a.review?.rating ?? null,
+        ...appointmentVideoFields({
+          id: a.id,
+          type: a.type,
+          status: a.status,
+          scheduledAt: a.scheduledAt,
+          duration: a.duration,
+        }),
       })),
       { total, page, limit }
     )
@@ -110,6 +119,10 @@ export async function POST(req: NextRequest) {
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
 
     const { doctorId, facilityId, type, scheduledAt, duration, reason, notes, fee } = parsed.data
+
+    if (type === 'ONLINE' && !isOnlineBookingEnabled()) {
+      return ok({ error: true, message: 'الاستشارات عن بعد غير متاحة حالياً — يرجى اختيار موعد حضوري' })
+    }
 
     if (!doctorId && !facilityId) {
       return ok({ error: true, message: 'يجب تحديد طبيب أو منشأة' })

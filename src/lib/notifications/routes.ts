@@ -9,6 +9,8 @@ export function notificationActionPath(type: string, data: unknown): string | nu
     return `/appointments/${d.appointmentId}/rating`
   }
 
+  if (typeof d.videoPath === 'string') return d.videoPath
+
   if (
     type === 'APPOINTMENT_CONFIRMED' ||
     type === 'APPOINTMENT_CANCELLED' ||

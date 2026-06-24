@@ -3,6 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+
+const ONLINE_ENABLED = process.env.NEXT_PUBLIC_ONLINE_APPOINTMENTS_ENABLED !== 'false'
 
 interface BookableSlot {
   scheduledAt: string
@@ -19,6 +22,8 @@ interface AppointmentFormProps {
 export default function AppointmentForm({ doctorId, facilityId, onSuccess }: AppointmentFormProps) {
   const { data: session } = useSession()
   const router = useRouter()
+  const t = useTranslations('appointment')
+  const tv = useTranslations('appointment.video')
 
   const [type, setType] = useState<'IN_PERSON' | 'ONLINE'>('IN_PERSON')
   const [date, setDate] = useState('')
@@ -139,8 +144,13 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-2">
-        {(['IN_PERSON', 'ONLINE'] as const).map(opt => (
+      {(() => {
+        const typeOptions: Array<'IN_PERSON' | 'ONLINE'> = ONLINE_ENABLED
+          ? ['IN_PERSON', 'ONLINE']
+          : ['IN_PERSON']
+        return (
+      <div className={`grid gap-2 ${ONLINE_ENABLED ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {typeOptions.map(opt => (
           <button
             key={opt}
             type="button"
@@ -151,10 +161,16 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
                 : 'border-white/10 bg-white/5 text-slate-400 hover:border-white/20'
             }`}
           >
-            {opt === 'IN_PERSON' ? '🏥 حضوري' : '💻 عن بعد'}
+            {opt === 'IN_PERSON' ? `🏥 ${t('in_person')}` : `💻 ${t('online')}`}
           </button>
         ))}
       </div>
+        )
+      })()}
+
+      {type === 'ONLINE' && ONLINE_ENABLED && (
+        <p className="text-sky-400/80 text-xs">{tv('booking_hint')}</p>
+      )}
 
       <div>
         <label className="block text-sm font-medium text-slate-300 mb-1.5">التاريخ</label>

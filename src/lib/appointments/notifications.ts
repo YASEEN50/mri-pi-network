@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
 import { formatAppointmentWhen } from '@/lib/appointments/format'
+import { getVideoJoinPath, isOnlineBookingEnabled } from '@/lib/appointments/online-video'
 
 async function createNotification(
   userId: string,
@@ -59,7 +60,7 @@ export async function notifyAppointmentConfirmed(appointmentId: string) {
   const apt = await prisma.appointment.findUnique({
     where: { id: appointmentId },
     include: {
-      doctor: { select: { firstName: true, lastName: true } },
+      doctor: { select: { firstName: true, lastName: true, userId: true } },
       facility: { select: { name: true } },
     },
   })
@@ -70,13 +71,28 @@ export async function notifyAppointmentConfirmed(appointmentId: string) {
     ? `د. ${apt.doctor.firstName} ${apt.doctor.lastName}`
     : apt.facility?.name ?? 'مقدم الخدمة'
 
+  const isOnline = apt.type === 'ONLINE' && isOnlineBookingEnabled()
+  const videoPath = isOnline ? getVideoJoinPath(appointmentId) : undefined
+
   await createNotification(
     apt.clientId,
-    '✅ تم تأكيد موعدك',
-    `أكّد ${provider} موعدك في ${when}.`,
+    isOnline ? '✅ تم تأكيد موعدك عن بعد' : '✅ تم تأكيد موعدك',
+    isOnline
+      ? `أكّد ${provider} موعدك الافتراضي في ${when}. يمكنك الانضمام للمكالمة من مواعيدك.`
+      : `أكّد ${provider} موعدك في ${when}.`,
     'APPOINTMENT_CONFIRMED',
-    { appointmentId },
+    { appointmentId, ...(videoPath ? { videoPath } : {}) },
   )
+
+  if (isOnline && apt.doctor?.userId) {
+    await createNotification(
+      apt.doctor.userId,
+      '💻 موعد عن بعد مؤكد',
+      `موعد افتراضي مع مريض في ${when}.`,
+      'APPOINTMENT_CONFIRMED',
+      { appointmentId, videoPath },
+    )
+  }
 }
 
 export async function notifyAppointmentCancelled(appointmentId: string) {

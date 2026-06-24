@@ -3,6 +3,7 @@ import { Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
+import { appointmentVideoFields } from '@/lib/appointments/online-video'
 
 async function canViewAppointment(
   appointment: { clientId: string; doctorId: string | null; facilityId: string | null },
@@ -86,6 +87,13 @@ export async function GET(
         appointment.status === 'COMPLETED' &&
         !!appointment.doctorId &&
         !appointment.review,
+      ...appointmentVideoFields({
+        id: appointment.id,
+        type: appointment.type,
+        status: appointment.status,
+        scheduledAt: appointment.scheduledAt,
+        duration: appointment.duration,
+      }),
     })
   } catch (err) {
     console.error('[GET /api/appointments/[id]]', err)

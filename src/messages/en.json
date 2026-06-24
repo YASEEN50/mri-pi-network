@@ -67,7 +67,23 @@
       "NO_SHOW": "No Show"
     },
     "my_appointments": "My Appointments",
-    "no_appointments": "No appointments yet"
+    "no_appointments": "No appointments yet",
+    "video": {
+      "title": "Online Consultation",
+      "subtitle": "Secure video call via Jitsi",
+      "join_now": "Join now",
+      "join_scheduled": "Video room",
+      "booking_hint": "After the doctor confirms, you can join from your appointments page",
+      "back": "Back",
+      "back_to_appointments": "Back to my appointments",
+      "load_error": "Could not load video room",
+      "too_early": "Too early — you can join 15 minutes before the appointment",
+      "expired": "The join window for this appointment has ended",
+      "not_confirmed": "The doctor must confirm the appointment first",
+      "not_online": "This is not an online appointment",
+      "disabled": "Online consultations are currently disabled",
+      "unavailable": "Video room unavailable"
+    }
   },
   "review": {
     "title": "Add Your Review",

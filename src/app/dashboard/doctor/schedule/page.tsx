@@ -3,6 +3,7 @@
 import { useTranslations } from 'next-intl'
 import { useAppointments } from '@/hooks/useAppointments'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import VideoJoinButton from '@/components/appointments/VideoJoinButton'
 import { useAppLocale } from '@/hooks/useAppLocale'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
@@ -160,6 +161,11 @@ export default function DoctorSchedulePage() {
                       )}
                     </div>
                     <div className="flex flex-col gap-2">
+                      <VideoJoinButton
+                        videoJoinPath={apt.videoJoinPath}
+                        canJoinVideo={apt.canJoinVideo}
+                        compact
+                      />
                       {apt.status === 'PENDING' && (
                         <button onClick={() => confirmAppointment(apt.id)}
                           className="px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 text-blue-400 rounded-lg text-xs font-medium hover:bg-blue-500/30 transition-all">

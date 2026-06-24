@@ -27,6 +27,8 @@ export interface Appointment {
   clientName?: string
   hasReview?:  boolean
   reviewRating?: number
+  canJoinVideo?: boolean
+  videoJoinPath?: string | null
 }
 
 export function useAppointments(options: {
