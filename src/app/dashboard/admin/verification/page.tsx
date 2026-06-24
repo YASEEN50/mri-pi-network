@@ -4,7 +4,7 @@
 import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
-import Navbar from '@/components/common/Navbar'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 type Tab = 'doctors' | 'facilities'
@@ -31,6 +31,8 @@ interface PendingFacility {
 
 export default function AdminVerificationPage() {
   const t = useTranslations('admin')
+  const td = useTranslations('dashboard')
+  const ta = useTranslations('dashboard.admin')
   const [tab, setTab] = useState<Tab>('doctors')
   const [doctors, setDoctors] = useState<PendingDoctor[]>([])
   const [facilities, setFacilities] = useState<PendingFacility[]>([])
@@ -72,11 +74,10 @@ export default function AdminVerificationPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <Navbar locale="ar" />
+    <DashboardShell className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-        <DashboardBreadcrumb items={[{ label: 'التحقق من الطلبات' }]} />
-        <h1 className="text-2xl font-bold text-white mb-8 mt-2">{t('verification' as any)}</h1>
+        <DashboardBreadcrumb items={[{ label: ta('verification_breadcrumb') }]} />
+        <h1 className="text-2xl font-bold text-white mb-8 mt-2">{td('verification')}</h1>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8 p-1 bg-white/5 rounded-xl w-fit">
@@ -96,7 +97,7 @@ export default function AdminVerificationPage() {
           </div>
         ) : tab === 'doctors' ? (
           <div className="space-y-4">
-            {doctors.length === 0 && <p className="text-slate-400 text-center py-10">لا توجد طلبات معلقة</p>}
+            {doctors.length === 0 && <p className="text-slate-400 text-center py-10">{ta('no_pending')}</p>}
             {doctors.map((d) => (
               <div key={d.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -125,7 +126,7 @@ export default function AdminVerificationPage() {
                     <button onClick={() => handleAction('doctor', d.id, 'reject')}
                       disabled={rejectNotes.length < 10}
                       className="mt-2 px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm disabled:opacity-50 transition-all">
-                      تأكيد الرفض
+                      {ta('confirm_reject')}
                     </button>
                   </div>
                 )}
@@ -134,7 +135,7 @@ export default function AdminVerificationPage() {
           </div>
         ) : (
           <div className="space-y-4">
-            {facilities.length === 0 && <p className="text-slate-400 text-center py-10">لا توجد طلبات معلقة</p>}
+            {facilities.length === 0 && <p className="text-slate-400 text-center py-10">{ta('no_pending')}</p>}
             {facilities.map((f) => (
               <div key={f.id} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
                 <div className="flex items-start justify-between gap-4">
@@ -150,7 +151,7 @@ export default function AdminVerificationPage() {
                   <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
                     <Link href={`/admin/facilities/${f.id}/verify`}
                       className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-xl text-sm font-medium transition-all">
-                      📄 المستندات
+                      {ta('documents')}
                     </Link>
                     <button onClick={() => handleAction('facility', f.id, 'approve')}
                       className="px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-xl text-sm font-medium transition-all">
@@ -170,7 +171,7 @@ export default function AdminVerificationPage() {
                     <button onClick={() => handleAction('facility', f.id, 'reject')}
                       disabled={rejectNotes.length < 10}
                       className="mt-2 px-4 py-2 bg-red-500/20 border border-red-500/30 text-red-400 rounded-xl text-sm disabled:opacity-50 transition-all">
-                      تأكيد الرفض
+                      {ta('confirm_reject')}
                     </button>
                   </div>
                 )}
@@ -179,6 +180,6 @@ export default function AdminVerificationPage() {
           </div>
         )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

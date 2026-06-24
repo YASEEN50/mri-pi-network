@@ -1,18 +1,19 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import Navbar from '@/components/common/Navbar'
+import { useTranslations } from 'next-intl'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 import { useChat } from '@/hooks/useChat'
+import { useAppLocale } from '@/hooks/useAppLocale'
 
 interface ChatWorkspaceProps {
-  emptyRoomsHint: string
-  otherPartyFallback: string
+  variant?: 'client' | 'doctor'
 }
 
-export default function ChatWorkspace({
-  emptyRoomsHint,
-  otherPartyFallback,
-}: ChatWorkspaceProps) {
+export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps) {
+  const t = useTranslations('dashboard.chat')
+  const td = useTranslations('dashboard.doctor')
+  const { dateLocale } = useAppLocale()
   const {
     rooms,
     active,
@@ -27,6 +28,10 @@ export default function ChatWorkspace({
   } = useChat()
 
   const bottomRef = useRef<HTMLDivElement>(null)
+  const otherPartyFallback =
+    variant === 'doctor' ? td('patient_fallback') : t('doctor_fallback')
+  const emptyRoomsHint =
+    variant === 'doctor' ? td('empty_chat_hint') : t('client_empty_hint')
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -41,16 +46,15 @@ export default function ChatWorkspace({
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col" dir="rtl">
-      <Navbar locale="ar" />
+    <DashboardShell className="min-h-screen bg-slate-950 flex flex-col">
       <div
         className="flex flex-1 max-w-5xl mx-auto w-full px-4 py-6 gap-4"
         style={{ height: 'calc(100vh - 64px)' }}
       >
         <div className="w-72 flex-shrink-0 bg-white/[0.03] border border-white/[0.08] rounded-2xl overflow-hidden flex flex-col">
           <div className="p-4 border-b border-white/[0.08] flex items-center justify-between">
-            <h2 className="text-white font-semibold text-sm">المحادثات</h2>
-            <span className="text-slate-600 text-[10px]" title="تحديث تلقائي">● مباشر</span>
+            <h2 className="text-white font-semibold text-sm">{t('title')}</h2>
+            <span className="text-slate-600 text-[10px]" title={t('live_title')}>{t('live')}</span>
           </div>
           <div className="flex-1 overflow-y-auto">
             {rooms.length === 0 ? (
@@ -72,7 +76,7 @@ export default function ChatWorkspace({
                         {room.otherParty?.name ?? otherPartyFallback}
                       </p>
                       <p className="text-slate-500 text-xs truncate">
-                        {room.lastMessage ?? 'لا توجد رسائل'}
+                        {room.lastMessage ?? t('no_messages')}
                       </p>
                     </div>
                     {room.unreadCount > 0 && (
@@ -117,7 +121,7 @@ export default function ChatWorkspace({
                       >
                         {msg.content}
                         <p className="text-xs opacity-50 mt-1">
-                          {new Date(msg.createdAt).toLocaleTimeString('ar-SA', {
+                          {new Date(msg.createdAt).toLocaleTimeString(dateLocale, {
                             hour: '2-digit',
                             minute: '2-digit',
                           })}
@@ -134,7 +138,7 @@ export default function ChatWorkspace({
                   value={input}
                   onChange={e => setInput(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && !e.shiftKey && void sendMessage()}
-                  placeholder="اكتب رسالتك..."
+                  placeholder={t('placeholder')}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500/50 placeholder-slate-500"
                 />
                 <button
@@ -142,17 +146,17 @@ export default function ChatWorkspace({
                   disabled={!input.trim() || sending}
                   className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-40 text-white rounded-xl text-sm font-medium transition-all"
                 >
-                  {sending ? '...' : 'إرسال'}
+                  {sending ? '...' : t('send')}
                 </button>
               </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
-              اختر محادثة من القائمة
+              {t('select_room')}
             </div>
           )}
         </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

@@ -4,7 +4,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/common/Navbar'
+import { useTranslations } from 'next-intl'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 import Link from 'next/link'
 
 interface Stats {
@@ -19,8 +20,10 @@ interface Stats {
 export default function FacilityOverviewPage() {
   const { data: session, status } = useSession()
   const router  = useRouter()
+  const tf = useTranslations('dashboard.facility')
+  const ta = useTranslations('dashboard.admin')
+  const td = useTranslations('dashboard')
   const [stats, setStats]     = useState<Stats | null>(null)
-  const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
   const fetchData = useCallback(async () => {
@@ -35,8 +38,8 @@ export default function FacilityOverviewPage() {
       setStats({
         totalDoctors:          (docData.data ?? []).length,
         totalAppointments:     apts.length,
-        pendingAppointments:   apts.filter((a: any) => a.status === 'PENDING').length,
-        completedAppointments: apts.filter((a: any) => a.status === 'COMPLETED').length,
+        pendingAppointments:   apts.filter((a: { status: string }) => a.status === 'PENDING').length,
+        completedAppointments: apts.filter((a: { status: string }) => a.status === 'COMPLETED').length,
         averageRating:         0,
         totalReviews:          0,
       })
@@ -51,19 +54,18 @@ export default function FacilityOverviewPage() {
   }, [session, status, router, fetchData])
 
   const statCards = stats ? [
-    { label: 'الأطباء',          value: stats.totalDoctors,          icon: '👨‍⚕️', color: 'text-blue-400' },
-    { label: 'إجمالي المواعيد',  value: stats.totalAppointments,     icon: '📅', color: 'text-emerald-400' },
-    { label: 'مواعيد معلقة',     value: stats.pendingAppointments,   icon: '⏳', color: 'text-amber-400' },
-    { label: 'مواعيد مكتملة',    value: stats.completedAppointments, icon: '✅', color: 'text-teal-400' },
+    { label: tf('stat_doctors'),          value: stats.totalDoctors,          icon: '👨‍⚕️', color: 'text-blue-400' },
+    { label: tf('stat_total_appointments'), value: stats.totalAppointments, icon: '📅', color: 'text-emerald-400' },
+    { label: tf('stat_pending'),          value: stats.pendingAppointments,   icon: '⏳', color: 'text-amber-400' },
+    { label: tf('stat_completed'),        value: stats.completedAppointments, icon: '✅', color: 'text-teal-400' },
   ] : []
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <Navbar locale="ar" />
+    <DashboardShell>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">لوحة تحكم المنشأة</h1>
-          <p className="text-slate-400 text-sm mt-1">نظرة عامة على نشاط منشأتك</p>
+          <h1 className="text-2xl font-bold text-white">{tf('overview_title')}</h1>
+          <p className="text-slate-400 text-sm mt-1">{tf('overview_subtitle')}</p>
         </div>
 
         {loading ? (
@@ -72,7 +74,6 @@ export default function FacilityOverviewPage() {
           </div>
         ) : (
           <>
-            {/* إحصائيات */}
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-8">
               {statCards.map(s => (
                 <div key={s.label} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
@@ -83,7 +84,6 @@ export default function FacilityOverviewPage() {
               ))}
             </div>
 
-            {/* روابط سريعة */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Link href="/dashboard/facility/doctors"
                 className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
@@ -91,8 +91,8 @@ export default function FacilityOverviewPage() {
                   👨‍⚕️
                 </div>
                 <div>
-                  <p className="text-white font-medium">إدارة الأطباء</p>
-                  <p className="text-slate-400 text-sm">عرض وإدارة الأطباء التابعين</p>
+                  <p className="text-white font-medium">{td('manage_doctors')}</p>
+                  <p className="text-slate-400 text-sm">{ta('manage_doctors_desc')}</p>
                 </div>
               </Link>
 
@@ -102,8 +102,8 @@ export default function FacilityOverviewPage() {
                   📅
                 </div>
                 <div>
-                  <p className="text-white font-medium">المواعيد</p>
-                  <p className="text-slate-400 text-sm">إدارة مواعيد المرضى</p>
+                  <p className="text-white font-medium">{ta('appointments_link')}</p>
+                  <p className="text-slate-400 text-sm">{ta('appointments_desc')}</p>
                 </div>
               </Link>
 
@@ -113,14 +113,14 @@ export default function FacilityOverviewPage() {
                   🏥
                 </div>
                 <div>
-                  <p className="text-white font-medium">ملف المنشأة</p>
-                  <p className="text-slate-400 text-sm">تعديل معلومات المنشأة</p>
+                  <p className="text-white font-medium">{ta('facility_profile')}</p>
+                  <p className="text-slate-400 text-sm">{ta('facility_profile_desc')}</p>
                 </div>
               </Link>
             </div>
           </>
         )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }

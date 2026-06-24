@@ -3,7 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/common/Navbar'
+import { useTranslations } from 'next-intl'
+import DashboardShell from '@/components/dashboard/DashboardShell'
+import { useAppLocale } from '@/hooks/useAppLocale'
 import Link from 'next/link'
 import DashboardBreadcrumb, { getAdminDashboardHref, getAdminDashboardLabel } from '@/components/admin/DashboardBreadcrumb'
 
@@ -25,6 +27,9 @@ type Tab = 'doctors' | 'facilities'
 export default function AdminPendingPage() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const t = useTranslations('admin')
+  const ta = useTranslations('dashboard.admin')
+  const { dateLocale } = useAppLocale()
   const [tab,       setTab]       = useState<Tab>('doctors')
   const [doctors,   setDoctors]   = useState<PendingItem[]>([])
   const [facilities,setFacilities]= useState<PendingItem[]>([])
@@ -62,7 +67,7 @@ export default function AdminPendingPage() {
   }
 
   async function handleReject(type: Tab, id: string) {
-    const reason = prompt('سبب الرفض:')
+    const reason = prompt(ta('reject_reason_prompt'))
     if (!reason) return
     const url = type === 'doctors'
       ? `/api/admin/doctors/${id}/approve`
@@ -77,15 +82,14 @@ export default function AdminPendingPage() {
   const dashboardLabel = getAdminDashboardLabel(session?.user?.role)
 
   return (
-    <div className="min-h-screen bg-background" dir="rtl">
-      <Navbar locale="ar" />
+    <DashboardShell className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <DashboardBreadcrumb items={[{ label: 'الطلبات المعلقة' }]} />
+        <DashboardBreadcrumb items={[{ label: ta('pending_title') }]} />
 
         <div className="flex flex-wrap items-center justify-between gap-3 mb-8 mt-2">
           <div>
-            <h1 className="text-2xl font-bold text-white">الطلبات المعلقة</h1>
-            <p className="text-slate-400 text-sm mt-1">طلبات تسجيل بانتظار الموافقة</p>
+            <h1 className="text-2xl font-bold text-white">{ta('pending_title')}</h1>
+            <p className="text-slate-400 text-sm mt-1">{ta('pending_subtitle')}</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link href={dashboardHref}
@@ -94,29 +98,27 @@ export default function AdminPendingPage() {
             </Link>
             <Link href="/admin/verification-v2"
               className="px-4 py-2 bg-primary/20 border border-primary/30 text-accent rounded-xl text-sm transition-all hover:bg-primary/30">
-              🔍 التحقق المتقدم (v2)
+              {ta('advanced_verification')}
             </Link>
           </div>
         </div>
 
-        {/* تبويبات */}
         <div className="flex gap-3 mb-6">
-          {(['doctors','facilities'] as Tab[]).map(t => (
-            <button key={t} onClick={() => setTab(t)}
+          {(['doctors','facilities'] as Tab[]).map(tabKey => (
+            <button key={tabKey} onClick={() => setTab(tabKey)}
               className={`px-5 py-2.5 rounded-xl text-sm font-medium border transition-all
-                ${tab === t
+                ${tab === tabKey
                   ? 'bg-primary/20 border-primary/30 text-accent'
                   : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
-              {t === 'doctors' ? '👨‍⚕️ الأطباء' : '🏥 المنشآت'}
-              <span className={`mr-2 text-xs px-2 py-0.5 rounded-full
-                ${tab === t ? 'bg-primary/30 text-accent' : 'bg-white/10 text-slate-500'}`}>
-                {t === 'doctors' ? totals.doctors : totals.facilities}
+              {tabKey === 'doctors' ? ta('tab_doctors') : ta('tab_facilities')}
+              <span className={`ms-2 text-xs px-2 py-0.5 rounded-full
+                ${tab === tabKey ? 'bg-primary/30 text-accent' : 'bg-white/10 text-slate-500'}`}>
+                {tabKey === 'doctors' ? totals.doctors : totals.facilities}
               </span>
             </button>
           ))}
         </div>
 
-        {/* الجدول */}
         <div className="mpi-card rounded-2xl overflow-hidden">
           {loading ? (
             <div className="flex items-center justify-center py-20">
@@ -125,14 +127,14 @@ export default function AdminPendingPage() {
           ) : items.length === 0 ? (
             <div className="text-center py-20">
               <div className="text-4xl mb-3">✅</div>
-              <p className="text-slate-400">لا توجد طلبات معلقة</p>
+              <p className="text-slate-400">{ta('no_pending')}</p>
             </div>
           ) : (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-white/[0.08]">
-                  {['الاسم', 'التخصص / النوع', 'الرخصة', 'المدينة', 'البريد', 'التاريخ', 'إجراء'].map(h => (
-                    <th key={h} className="text-right text-slate-400 font-medium px-4 py-3">{h}</th>
+                  {[ta('table_name'), ta('table_specialization'), ta('table_license'), ta('table_city'), ta('table_email'), ta('table_date'), ta('table_action')].map(h => (
+                    <th key={h} className="text-start text-slate-400 font-medium px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -145,29 +147,29 @@ export default function AdminPendingPage() {
                     <td className="px-4 py-3 text-slate-400 text-xs">{item.city ?? '—'}</td>
                     <td className="px-4 py-3 text-slate-500 text-xs">{item.email}</td>
                     <td className="px-4 py-3 text-slate-500 text-xs">
-                      {new Date(item.createdAt).toLocaleDateString('ar-SA')}
+                      {new Date(item.createdAt).toLocaleDateString(dateLocale)}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex gap-2 flex-wrap">
                         {tab === 'doctors' && (
                           <Link href={`/admin/doctors/${item.id}/verify`}
                             className="px-3 py-1 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
-                            📄 المستندات
+                            {ta('documents')}
                           </Link>
                         )}
                         {tab === 'facilities' && (
                           <Link href={`/admin/facilities/${item.id}/verify`}
                             className="px-3 py-1 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
-                            📄 المستندات
+                            {ta('documents')}
                           </Link>
                         )}
                         <button onClick={() => handleApprove(tab, item.id)}
                           className="px-3 py-1 bg-success/20 hover:bg-success/30 border border-success/30 text-success rounded-lg text-xs transition-all">
-                          ✅ قبول
+                          {ta('accept')}
                         </button>
                         <button onClick={() => handleReject(tab, item.id)}
                           className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg text-xs transition-all">
-                          ❌ رفض
+                          ❌ {t('reject')}
                         </button>
                       </div>
                     </td>
@@ -178,6 +180,6 @@ export default function AdminPendingPage() {
           )}
         </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

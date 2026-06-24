@@ -4,11 +4,16 @@
 import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/common/Navbar'
+import { useTranslations } from 'next-intl'
+import DashboardShell from '@/components/dashboard/DashboardShell'
+import { useAppLocale } from '@/hooks/useAppLocale'
 
 export default function DoctorAnalyticsPage() {
   const { data: session, status } = useSession()
   const router  = useRouter()
+  const t = useTranslations()
+  const tdoc = useTranslations('dashboard.doctor')
+  const { dateLocale } = useAppLocale()
   const [data,    setData]    = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
@@ -31,37 +36,31 @@ export default function DoctorAnalyticsPage() {
   const o = data?.overview ?? {}
 
   const cards = [
-    { label: 'إجمالي المواعيد',  value: o.totalAppointments ?? 0,  color: 'text-white',       sub: `${o.monthGrowth > 0 ? '+' : ''}${o.monthGrowth ?? 0}% هذا الشهر` },
-    { label: 'هذا الشهر',         value: o.monthAppointments ?? 0,  color: 'text-emerald-400', sub: `${o.weekAppointments ?? 0} هذا الأسبوع` },
-    { label: 'نسبة الإكمال',      value: `${o.completionRate ?? 0}%`, color: 'text-blue-400',   sub: `${o.completedTotal ?? 0} مكتمل` },
-    { label: 'قيد الانتظار',      value: o.pendingCount ?? 0,       color: 'text-amber-400',   sub: `${o.cancelledTotal ?? 0} ملغي` },
-    { label: 'متوسط التقييم',     value: data?.reviews?.average ?? 0, color: 'text-yellow-400', sub: `${data?.reviews?.total ?? 0} تقييم` },
-    { label: 'المنشورات',         value: data?.publications?.total ?? 0, color: 'text-violet-400', sub: 'منشورات نشطة' },
-    { label: 'رصيد Pi',           value: `${(data?.earnings?.piBalance ?? 0).toFixed(2)} π`, color: 'text-purple-400', sub: `بعد خصم 5% عمولة` },
+    { label: tdoc('stats_total'),  value: o.totalAppointments ?? 0,  color: 'text-white',       sub: tdoc('stats_month_growth', { pct: `${o.monthGrowth > 0 ? '+' : ''}${o.monthGrowth ?? 0}` }) },
+    { label: tdoc('stats_month'),  value: o.monthAppointments ?? 0,  color: 'text-emerald-400', sub: tdoc('stats_this_week', { count: o.weekAppointments ?? 0 }) },
+    { label: tdoc('stats_completion'), value: `${o.completionRate ?? 0}%`, color: 'text-blue-400', sub: tdoc('stats_completed_sub', { count: o.completedTotal ?? 0 }) },
+    { label: tdoc('stats_pending'), value: o.pendingCount ?? 0, color: 'text-amber-400', sub: tdoc('stats_cancelled_sub', { count: o.cancelledTotal ?? 0 }) },
+    { label: tdoc('stats_rating'), value: data?.reviews?.average ?? 0, color: 'text-yellow-400', sub: tdoc('stats_reviews_sub', { count: data?.reviews?.total ?? 0 }) },
+    { label: tdoc('stats_publications'), value: data?.publications?.total ?? 0, color: 'text-violet-400', sub: tdoc('stats_publications_sub') },
+    { label: tdoc('stats_pi_balance'), value: `${(data?.earnings?.piBalance ?? 0).toFixed(2)} π`, color: 'text-purple-400', sub: tdoc('stats_pi_commission') },
   ]
 
   const STATUS_COLORS: Record<string, string> = {
     COMPLETED: '#10b981', PENDING: '#f59e0b',
     CONFIRMED: '#3b82f6', CANCELLED: '#ef4444', NO_SHOW: '#64748b',
   }
-  const STATUS_LABELS: Record<string, string> = {
-    COMPLETED: 'مكتمل', PENDING: 'معلق',
-    CONFIRMED: 'مؤكد', CANCELLED: 'ملغي', NO_SHOW: 'لم يحضر',
-  }
 
   const statusData = data?.appointmentsByStatus ?? {}
-  const totalStatus = Object.values(statusData).reduce((s: number, v: any) => s + v, 0) as number
+  const totalStatus = Object.values(statusData).reduce((s: number, v: unknown) => s + (v as number), 0)
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <Navbar locale="ar" />
+    <DashboardShell>
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">إحصائياتي</h1>
-          <p className="text-slate-400 text-sm mt-1">نظرة تحليلية على نشاطك الطبي</p>
+          <h1 className="text-2xl font-bold text-white">{tdoc('analytics_title')}</h1>
+          <p className="text-slate-400 text-sm mt-1">{tdoc('analytics_subtitle')}</p>
         </div>
 
-        {/* بطاقات الإحصاء */}
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
           {cards.map(c => (
             <div key={c.label} className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
@@ -73,17 +72,16 @@ export default function DoctorAnalyticsPage() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
-          {/* توزيع المواعيد */}
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
-            <h3 className="text-white font-semibold mb-4 text-sm">توزيع المواعيد حسب الحالة</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">{tdoc('status_distribution')}</h3>
             <div className="space-y-3">
-              {Object.entries(statusData).map(([status, count]: [string, any]) => {
-                const pct = totalStatus > 0 ? Math.round((count / totalStatus) * 100) : 0
+              {Object.entries(statusData).map(([status, count]) => {
+                const pct = totalStatus > 0 ? Math.round(((count as number) / totalStatus) * 100) : 0
                 return (
                   <div key={status}>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-slate-300">{STATUS_LABELS[status] ?? status}</span>
-                      <span className="text-slate-400">{count} ({pct}%)</span>
+                      <span className="text-slate-300">{t(`appointment.status.${status}` as 'appointment.status.PENDING')}</span>
+                      <span className="text-slate-400">{count as number} ({pct}%)</span>
                     </div>
                     <div className="h-2 bg-white/10 rounded-full overflow-hidden">
                       <div className="h-full rounded-full transition-all"
@@ -95,31 +93,30 @@ export default function DoctorAnalyticsPage() {
             </div>
           </div>
 
-          {/* آخر المواعيد */}
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5">
-            <h3 className="text-white font-semibold mb-4 text-sm">آخر المواعيد</h3>
+            <h3 className="text-white font-semibold mb-4 text-sm">{tdoc('recent_appointments')}</h3>
             <div className="space-y-3">
-              {(data?.recentAppointments ?? []).map((apt: any) => (
+              {(data?.recentAppointments ?? []).map((apt: { id: string; clientName?: string; scheduledAt: string; status: string }) => (
                 <div key={apt.id} className="flex items-center justify-between">
                   <div>
                     <p className="text-white text-sm">{apt.clientName}</p>
                     <p className="text-slate-500 text-xs">
-                      {new Date(apt.scheduledAt).toLocaleDateString('ar-SA')}
+                      {new Date(apt.scheduledAt).toLocaleDateString(dateLocale)}
                     </p>
                   </div>
                   <span className="text-xs px-2 py-1 rounded-full"
                     style={{ background: (STATUS_COLORS[apt.status] ?? '#64748b') + '20', color: STATUS_COLORS[apt.status] ?? '#64748b' }}>
-                    {STATUS_LABELS[apt.status] ?? apt.status}
+                    {t(`appointment.status.${apt.status}` as 'appointment.status.PENDING')}
                   </span>
                 </div>
               ))}
               {!data?.recentAppointments?.length && (
-                <p className="text-slate-500 text-sm text-center py-4">لا توجد مواعيد بعد</p>
+                <p className="text-slate-500 text-sm text-center py-4">{t('appointment.no_appointments')}</p>
               )}
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </DashboardShell>
   )
 }

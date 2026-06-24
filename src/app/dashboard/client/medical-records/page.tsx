@@ -4,17 +4,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Navbar from '@/components/common/Navbar'
+import { useTranslations } from 'next-intl'
+import DashboardShell from '@/components/dashboard/DashboardShell'
 
-const TYPE_LABELS: Record<string, string> = {
-  PRESCRIPTION: 'وصفة طبية',
-  LAB_RESULT: 'نتيجة تحليل',
-  RADIOLOGY_REPORT: 'تقرير أشعة',
-  DIAGNOSIS: 'تشخيص',
-  DISCHARGE_SUMMARY: 'ملخص خروج',
-  VACCINATION: 'تطعيم',
-  OTHER: 'أخرى',
-}
+const RECORD_TYPES = ['PRESCRIPTION', 'LAB_RESULT', 'RADIOLOGY_REPORT', 'DIAGNOSIS', 'DISCHARGE_SUMMARY', 'VACCINATION', 'OTHER'] as const
 
 const TYPE_ICONS: Record<string, string> = {
   PRESCRIPTION: '💊',
@@ -40,6 +33,9 @@ interface MedicalRecord {
 export default function MedicalRecordsPage() {
   const { status } = useSession()
   const router = useRouter()
+  const t = useTranslations()
+  const tm = useTranslations('dashboard.medical_records')
+  const td = useTranslations('dashboard')
   const [records, setRecords] = useState<MedicalRecord[]>([])
   const [loading, setLoading] = useState(true)
   const [showAdd, setShowAdd] = useState(false)
@@ -65,11 +61,11 @@ export default function MedicalRecordsPage() {
       const data = await res.json()
       setRecords(data.data ?? [])
     } catch {
-      setErr('تعذّر تحميل السجلات')
+      setErr(tm('load_error'))
     } finally {
       setLoading(false)
     }
-  }, [filter])
+  }, [filter, tm])
 
   useEffect(() => {
     if (status === 'unauthenticated') {
@@ -83,7 +79,7 @@ export default function MedicalRecordsPage() {
   async function handleAdd() {
     if (!form.title) return
     if (form.isShared && !form.shareConsent) {
-      setErr('يجب الموافقة على مشاركة السجل مع الأطباء المعالجين')
+      setErr(tm('consent_required'))
       return
     }
 
@@ -105,13 +101,13 @@ export default function MedicalRecordsPage() {
         setForm({ type: 'OTHER', title: '', description: '', isShared: false, shareConsent: false })
         setFile(null)
         if (fileInputRef.current) fileInputRef.current.value = ''
-        setMsg('✅ تم إضافة السجل')
+        setMsg(tm('added'))
         fetchRecords()
       } else {
-        setErr(data.message ?? data.data?.message ?? 'فشل الحفظ')
+        setErr(data.message ?? data.data?.message ?? t('common.error'))
       }
     } catch {
-      setErr('خطأ في الاتصال')
+      setErr(tm('connection_error'))
     } finally {
       setSaving(false)
       setTimeout(() => setMsg(''), 3000)
@@ -120,9 +116,7 @@ export default function MedicalRecordsPage() {
 
   async function toggleShare(id: string, current: boolean) {
     if (!current) {
-      const agreed = confirm(
-        'أوافق على مشاركة هذا السجل مع الأطباء الذين لدي موعد معهم. هل تريد المتابعة؟'
-      )
+      const agreed = confirm(tm('share_confirm'))
       if (!agreed) return
     }
 
@@ -138,7 +132,7 @@ export default function MedicalRecordsPage() {
   }
 
   async function deleteRecord(id: string) {
-    if (!confirm('هل تريد حذف هذا السجل؟')) return
+    if (!confirm(tm('delete_confirm'))) return
     await fetch(`/api/medical-records/${id}`, { method: 'DELETE' })
     fetchRecords()
   }
@@ -146,19 +140,18 @@ export default function MedicalRecordsPage() {
   const filtered = filter === 'all' ? records : records.filter((r) => r.type === filter)
 
   return (
-    <div className="min-h-screen bg-slate-950" dir="rtl">
-      <Navbar locale="ar" />
+    <DashboardShell>
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-10">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h1 className="text-2xl font-bold text-white">السجل الطبي</h1>
-            <p className="text-slate-400 text-sm mt-1">{records.length} سجل طبي</p>
+            <h1 className="text-2xl font-bold text-white">{tm('title')}</h1>
+            <p className="text-slate-400 text-sm mt-1">{tm('count', { count: records.length })}</p>
           </div>
           <button
             onClick={() => setShowAdd(true)}
             className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-sm font-medium rounded-xl transition-all"
           >
-            + إضافة سجل
+            {tm('add')}
           </button>
         </div>
 
@@ -174,17 +167,17 @@ export default function MedicalRecordsPage() {
         )}
 
         <div className="flex gap-2 mb-6 flex-wrap">
-          {['all', ...Object.keys(TYPE_LABELS)].map((t) => (
+          {['all', ...RECORD_TYPES].map((typeKey) => (
             <button
-              key={t}
-              onClick={() => setFilter(t)}
+              key={typeKey}
+              onClick={() => setFilter(typeKey)}
               className={`px-3 py-1.5 rounded-lg text-xs border transition-all ${
-                filter === t
+                filter === typeKey
                   ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                   : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'
               }`}
             >
-              {t === 'all' ? 'الكل' : TYPE_LABELS[t]}
+              {typeKey === 'all' ? tm('all') : tm(`types.${typeKey}` as 'types.OTHER')}
             </button>
           ))}
         </div>
@@ -196,7 +189,7 @@ export default function MedicalRecordsPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-20">
             <div className="text-4xl mb-3">📋</div>
-            <p className="text-slate-400">لا توجد سجلات بعد</p>
+            <p className="text-slate-400">{tm('empty')}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -210,7 +203,7 @@ export default function MedicalRecordsPage() {
                     <span className="text-2xl">{TYPE_ICONS[rec.type] ?? '📄'}</span>
                     <div>
                       <p className="text-white font-medium text-sm">{rec.title}</p>
-                      <p className="text-slate-400 text-xs">{TYPE_LABELS[rec.type]}</p>
+                      <p className="text-slate-400 text-xs">{tm(`types.${rec.type}` as 'types.OTHER')}</p>
                     </div>
                   </div>
                   <span
@@ -220,14 +213,14 @@ export default function MedicalRecordsPage() {
                         : 'bg-white/5 border-white/10 text-slate-500'
                     }`}
                   >
-                    {rec.isShared ? 'مشارك' : 'خاص'}
+                    {rec.isShared ? tm('shared') : tm('private')}
                   </span>
                 </div>
                 {rec.description && (
                   <p className="text-slate-400 text-xs mb-3 line-clamp-2">{rec.description}</p>
                 )}
                 {rec.doctor && (
-                  <p className="text-slate-500 text-xs mb-3">الطبيب: {rec.doctor}</p>
+                  <p className="text-slate-500 text-xs mb-3">{td('doctor_label')}: {rec.doctor}</p>
                 )}
                 {rec.fileUrl && (
                   <a
@@ -236,7 +229,7 @@ export default function MedicalRecordsPage() {
                     rel="noreferrer"
                     className="inline-block text-xs text-emerald-400 hover:underline mb-3"
                   >
-                    📎 عرض الملف
+                    {tm('view_file')}
                   </a>
                 )}
                 <div className="flex gap-2 pt-3 border-t border-white/5">
@@ -244,13 +237,13 @@ export default function MedicalRecordsPage() {
                     onClick={() => toggleShare(rec.id, rec.isShared)}
                     className="text-xs text-slate-400 hover:text-white transition-colors"
                   >
-                    {rec.isShared ? 'إيقاف المشاركة' : 'مشاركة مع الطبيب'}
+                    {rec.isShared ? tm('stop_sharing') : tm('share_with_doctor')}
                   </button>
                   <button
                     onClick={() => deleteRecord(rec.id)}
-                    className="text-xs text-red-400/60 hover:text-red-400 transition-colors mr-auto"
+                    className="text-xs text-red-400/60 hover:text-red-400 transition-colors ms-auto"
                   >
-                    حذف
+                    {tm('delete')}
                   </button>
                 </div>
               </div>
@@ -259,51 +252,51 @@ export default function MedicalRecordsPage() {
         )}
 
         {showAdd && (
-          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4" dir="rtl">
+          <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 px-4">
             <div className="bg-slate-900 border border-white/[0.08] rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
-              <h3 className="text-white font-bold mb-4">إضافة سجل طبي</h3>
+              <h3 className="text-white font-bold mb-4">{tm('add_title')}</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="text-slate-300 text-sm mb-2 block">نوع السجل</label>
+                  <label className="text-slate-300 text-sm mb-2 block">{tm('type_label')}</label>
                   <select
                     value={form.type}
                     onChange={(e) => setForm((p) => ({ ...p, type: e.target.value }))}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none"
                   >
-                    {Object.entries(TYPE_LABELS).map(([v, l]) => (
+                    {RECORD_TYPES.map((v) => (
                       <option key={v} value={v} className="bg-slate-900">
-                        {l}
+                        {tm(`types.${v}`)}
                       </option>
                     ))}
                   </select>
                 </div>
                 <div>
-                  <label className="text-slate-300 text-sm mb-2 block">العنوان *</label>
+                  <label className="text-slate-300 text-sm mb-2 block">{tm('title_label')}</label>
                   <input
                     value={form.title}
                     onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))}
-                    placeholder="وصفة دكتور أحمد - مارس 2025"
+                    placeholder={tm('title_placeholder')}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/50"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 text-sm mb-2 block">الوصف</label>
+                  <label className="text-slate-300 text-sm mb-2 block">{tm('description_label')}</label>
                   <textarea
                     value={form.description}
                     onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
                     rows={3}
-                    placeholder="تفاصيل إضافية..."
+                    placeholder={tm('description_placeholder')}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/50 resize-none"
                   />
                 </div>
                 <div>
-                  <label className="text-slate-300 text-sm mb-2 block">رفع ملف (PDF / JPG / PNG — حد 10MB)</label>
+                  <label className="text-slate-300 text-sm mb-2 block">{tm('file_label')}</label>
                   <input
                     ref={fileInputRef}
                     type="file"
                     accept=".pdf,.jpg,.jpeg,.png,image/jpeg,image/png,application/pdf"
                     onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-                    className="w-full text-sm text-slate-400 file:mr-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-500/20 file:text-emerald-400"
+                    className="w-full text-sm text-slate-400 file:me-3 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-500/20 file:text-emerald-400"
                   />
                 </div>
                 <label className="flex items-start gap-3 cursor-pointer">
@@ -320,11 +313,11 @@ export default function MedicalRecordsPage() {
                     className="mt-1"
                   />
                   <span className="text-slate-300 text-sm leading-relaxed">
-                    مشاركة السجل مع الأطباء الذين لدي موعد معهم
+                    {tm('share_checkbox')}
                   </span>
                 </label>
                 {form.isShared && (
-                  <label className="flex items-start gap-3 cursor-pointer mr-6">
+                  <label className="flex items-start gap-3 cursor-pointer ms-6">
                     <input
                       type="checkbox"
                       checked={form.shareConsent}
@@ -332,7 +325,7 @@ export default function MedicalRecordsPage() {
                       className="mt-1"
                     />
                     <span className="text-slate-400 text-xs leading-relaxed">
-                      أوافق صراحةً على مشاركة بياناتي الصحية مع الأطباء المعالجين وفق سياسة الخصوصية
+                      {tm('consent_checkbox')}
                     </span>
                   </label>
                 )}
@@ -343,19 +336,19 @@ export default function MedicalRecordsPage() {
                   disabled={saving || !form.title}
                   className="flex-1 py-3 bg-emerald-500 hover:bg-emerald-400 disabled:opacity-50 text-white font-medium rounded-xl text-sm transition-all"
                 >
-                  {saving ? 'جاري الحفظ...' : 'إضافة'}
+                  {saving ? tm('saving') : tm('add_btn')}
                 </button>
                 <button
                   onClick={() => setShowAdd(false)}
                   className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all"
                 >
-                  إلغاء
+                  {t('common.cancel')}
                 </button>
               </div>
             </div>
           </div>
         )}
       </div>
-    </div>
+    </DashboardShell>
   )
 }
