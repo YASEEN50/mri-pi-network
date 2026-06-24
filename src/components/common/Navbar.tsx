@@ -81,7 +81,7 @@ export default function Navbar({ locale }: NavbarProps) {
     if (loggingOut) return
     setLoggingOut(true)
     setUserMenuOpen(false)
-    performLogout('/')
+    void performLogout('/').catch(() => setLoggingOut(false))
   }
 
   async function switchLocale() {

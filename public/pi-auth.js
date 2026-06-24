@@ -251,7 +251,27 @@ window.PiAuth = (function () {
 
   function signOut(redirectTo) {
     markSkipAuto()
-    window.location.href = '/api/auth/signout?callbackUrl=' + encodeURIComponent(redirectTo || '/')
+    var target = redirectTo || '/'
+    return fetchCsrf()
+      .then(function (csrf) {
+        return fetch('/api/auth/signout', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          body: new URLSearchParams({
+            csrfToken: csrf.csrfToken,
+            callbackUrl: target,
+            json: 'true',
+          }).toString(),
+        })
+      })
+      .then(function (r) { return r.json() })
+      .then(function (data) {
+        window.location.href = (data && data.url) ? data.url : target
+      })
+      .catch(function () {
+        window.location.href = target
+      })
   }
 
   return {

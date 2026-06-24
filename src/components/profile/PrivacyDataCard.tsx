@@ -65,7 +65,7 @@ export default function PrivacyDataCard({ hasPassword }: { hasPassword: boolean 
         setDeleteError(data.error?.message ?? 'فشل الحذف')
         return
       }
-      performLogout(data.data?.redirectTo ?? '/')
+      await performLogout(data.data?.redirectTo ?? '/')
     } catch {
       setDeleteError('حدث خطأ في الاتصال')
     } finally {
