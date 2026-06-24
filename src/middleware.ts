@@ -64,6 +64,20 @@ const authMiddleware = withAuth(
     const role = token.role as string
     const approvalStatus = token.approvalStatus as string | null | undefined
     const isProfileComplete = token.isProfileComplete as boolean
+    const mfaEnabled = token.mfaEnabled === true
+    const mfaVerified = token.mfaVerified === true
+    const isPrivileged = role === Role.ADMIN || role === Role.OWNER
+
+    const isMfaSetupPath = pathname.startsWith('/admin/security')
+
+    if (isPrivileged && !isMfaSetupPath && (pathname.startsWith('/admin') || pathname.startsWith('/owner'))) {
+      if (!mfaEnabled) {
+        return NextResponse.redirect(new URL('/admin/security/mfa', req.url))
+      }
+      if (!mfaVerified) {
+        return NextResponse.redirect(new URL('/login?mfa=required', req.url))
+      }
+    }
 
     if (pathname.startsWith('/owner') && role !== Role.OWNER) {
       return NextResponse.redirect(new URL('/unauthorized', req.url))

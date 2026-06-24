@@ -6,6 +6,10 @@ import { PrismaAdapter } from '@auth/prisma-adapter'
 import { compare } from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { Role, ApprovalStatus } from '@prisma/client'
+import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
+import { resolvePiLoginUser } from '@/lib/auth/account-linking'
+import { consumeMfaSignInToken } from '@/lib/mfa/signin-token'
+import { resolveMfaSessionFlags } from '@/lib/mfa/session-flags'
 
 declare module 'next-auth' {
   interface Session {
@@ -18,6 +22,8 @@ declare module 'next-auth' {
       piUid?: string | null
       piUsername?: string | null
       isProfileComplete: boolean
+      mfaEnabled?: boolean
+      mfaVerified?: boolean
     }
   }
   interface User {
@@ -27,6 +33,7 @@ declare module 'next-auth' {
     piUid?: string | null
     piUsername?: string | null
     isProfileComplete: boolean
+    viaMfaToken?: boolean
   }
 }
 
@@ -38,7 +45,23 @@ declare module 'next-auth/jwt' {
     piUid?: string | null
     piUsername?: string | null
     isProfileComplete: boolean
+    mfaEnabled?: boolean
+    mfaVerified?: boolean
   }
+}
+
+async function applyMfaFlagsToToken(token: JWT, userId: string, role: Role, viaMfaToken: boolean) {
+  const dbUser = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { mfaEnabled: true },
+  })
+  const flags = resolveMfaSessionFlags({
+    role,
+    mfaEnabled: dbUser?.mfaEnabled ?? false,
+    viaMfaToken,
+  })
+  token.mfaEnabled = flags.mfaEnabled
+  token.mfaVerified = flags.mfaVerified
 }
 
 async function getProfileCompleteness(userId: string, role: Role): Promise<boolean> {
@@ -63,9 +86,6 @@ async function getApprovalStatus(userId: string, role: Role): Promise<ApprovalSt
   }
   return null
 }
-
-import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
-import { resolvePiLoginUser } from '@/lib/auth/account-linking'
 
 /** Pi Browser embeds apps in a cross-site iframe — default SameSite=Lax cookies are not stored. */
 const useCrossSiteCookies =
@@ -124,14 +144,39 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) throw new Error('MISSING_CREDENTIALS')
-        const user = await prisma.user.findFirst({ where: { email: credentials.email, deletedAt: null } })
+        const user = await prisma.user.findFirst({
+          where: { email: credentials.email, deletedAt: null },
+          select: {
+            id: true,
+            email: true,
+            passwordHash: true,
+            isActive: true,
+            role: true,
+            piUid: true,
+            piUsername: true,
+            mfaEnabled: true,
+          },
+        })
         if (!user || !user.passwordHash) throw new Error('INVALID_CREDENTIALS')
         if (!user.isActive) throw new Error('ACCOUNT_DISABLED')
         const isValid = await compare(credentials.password, user.passwordHash)
         if (!isValid) throw new Error('INVALID_CREDENTIALS')
+        if ((user.role === Role.ADMIN || user.role === Role.OWNER) && user.mfaEnabled) {
+          throw new Error('MFA_REQUIRED')
+        }
         const isProfileComplete = await getProfileCompleteness(user.id, user.role)
         const approvalStatus = await getApprovalStatus(user.id, user.role)
-        return { id: user.id, email: user.email, name: null, role: user.role, approvalStatus, piUid: user.piUid, piUsername: user.piUsername, isProfileComplete }
+        return {
+          id: user.id,
+          email: user.email,
+          name: null,
+          role: user.role,
+          approvalStatus,
+          piUid: user.piUid,
+          piUsername: user.piUsername,
+          isProfileComplete,
+          viaMfaToken: false,
+        }
       },
     }),
 
@@ -144,6 +189,9 @@ export const authOptions: NextAuthOptions = {
         const piUser = await verifyPiAccessToken(credentials.accessToken)
         if (!piUser) throw new Error('INVALID_PI_TOKEN')
         const user = await resolvePiLoginUser(piUser)
+        if ((user.role === Role.ADMIN || user.role === Role.OWNER) && user.mfaEnabled) {
+          throw new Error('MFA_USE_EMAIL')
+        }
         const isProfileComplete = await getProfileCompleteness(user.id, user.role)
         const approvalStatus = await getApprovalStatus(user.id, user.role)
         return {
@@ -155,6 +203,48 @@ export const authOptions: NextAuthOptions = {
           piUid: user.piUid,
           piUsername: user.piUsername,
           isProfileComplete,
+          viaMfaToken: false,
+        }
+      },
+    }),
+
+    CredentialsProvider({
+      id: 'mfa-token',
+      name: 'MFA Token',
+      credentials: {
+        token: { type: 'text' },
+        userId: { type: 'text' },
+      },
+      async authorize(credentials) {
+        if (!credentials?.token || !credentials?.userId) throw new Error('INVALID_MFA_TOKEN')
+        const consumed = await consumeMfaSignInToken(credentials.userId, credentials.token)
+        if (!consumed) throw new Error('INVALID_MFA_TOKEN')
+
+        const user = await prisma.user.findFirst({
+          where: { id: credentials.userId, deletedAt: null, mfaEnabled: true },
+          select: {
+            id: true,
+            email: true,
+            role: true,
+            piUid: true,
+            piUsername: true,
+            isActive: true,
+          },
+        })
+        if (!user?.isActive) throw new Error('INVALID_MFA_TOKEN')
+
+        const isProfileComplete = await getProfileCompleteness(user.id, user.role)
+        const approvalStatus = await getApprovalStatus(user.id, user.role)
+        return {
+          id: user.id,
+          email: user.email,
+          name: null,
+          role: user.role,
+          approvalStatus,
+          piUid: user.piUid,
+          piUsername: user.piUsername,
+          isProfileComplete,
+          viaMfaToken: true,
         }
       },
     }),
@@ -170,12 +260,25 @@ export const authOptions: NextAuthOptions = {
         token.piUsername = user.piUsername ?? undefined
         token.isProfileComplete = user.isProfileComplete
         if (user.email) (token as { email?: string }).email = user.email
+        await applyMfaFlagsToToken(
+          token,
+          user.id,
+          user.role,
+          (user as { viaMfaToken?: boolean }).viaMfaToken === true,
+        )
       }
       if (trigger === 'update' && session) {
         if (session.role) token.role = session.role
         if (session.approvalStatus !== undefined) token.approvalStatus = session.approvalStatus
         if (session.isProfileComplete !== undefined) token.isProfileComplete = session.isProfileComplete
-        if ((session as { refreshProfile?: boolean }).refreshProfile && token.id) {
+        const mfaSession = session as {
+          mfaVerified?: boolean
+          mfaEnabled?: boolean
+          refreshProfile?: boolean
+        }
+        if (mfaSession.mfaVerified !== undefined) token.mfaVerified = mfaSession.mfaVerified
+        if (mfaSession.mfaEnabled !== undefined) token.mfaEnabled = mfaSession.mfaEnabled
+        if (mfaSession.refreshProfile && token.id) {
           const dbUser = await prisma.user.findFirst({
             where: { id: token.id as string, deletedAt: null },
             select: { email: true, piUid: true, piUsername: true, role: true },
@@ -196,6 +299,8 @@ export const authOptions: NextAuthOptions = {
       session.user.piUid = token.piUid
       session.user.piUsername = token.piUsername
       session.user.isProfileComplete = token.isProfileComplete
+      session.user.mfaEnabled = token.mfaEnabled
+      session.user.mfaVerified = token.mfaVerified
       if ((token as { email?: string }).email) {
         session.user.email = (token as { email?: string }).email
       }

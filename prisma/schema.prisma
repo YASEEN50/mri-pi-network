@@ -166,6 +166,11 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  // MFA (admin/owner — TOTP)
+  mfaEnabled     Boolean   @default(false)
+  mfaSecret      String?   @db.Text
+  mfaBackupCodes String[]  @default([])
+
   // Relations
   clientProfile   ClientProfile?
   doctorProfile   DoctorProfile?

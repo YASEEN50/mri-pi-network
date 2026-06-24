@@ -46,7 +46,7 @@
 | # | المهمة | الحالة |
 |---|--------|--------|
 | 4.1 | حذف حساب + تصدير بيانات (GDPR-ready) | ✅ منجز | `/api/account/export`, `/api/account/delete`, `PrivacyDataCard` |
-| 4.2 | MFA للـ admin/owner | ⬜ |
+| 4.2 | MFA للـ admin/owner | ✅ منجز | TOTP, backup codes, login challenge, `/admin/security/mfa` |
 | 4.3 | سياسة retention للبيانات الصحية | ⬜ |
 | 4.4 | CI + tests (auth، دفع، مواعيد) | ⬜ |
 | 4.5 | Sentry + monitoring | ⬜ |
