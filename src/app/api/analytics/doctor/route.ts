@@ -3,6 +3,8 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role } from '@prisma/client'
+import { getActivePremioForUser } from '@/lib/premio/list-doctors'
+import { getTierMeta } from '@/lib/premio/tiers'
 
 export async function GET() {
   try {
@@ -14,6 +16,11 @@ export async function GET() {
       select: { id: true, piBalance: true },
     })
     if (!doctor) return ok(null)
+
+    const activePremio = await getActivePremioForUser(auth.context.userId)
+    const tier = activePremio?.tier ?? 'BASIC'
+    const tierMeta = getTierMeta(tier)
+    const analyticsLevel = tierMeta.analyticsLevel
 
     const now       = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
@@ -34,6 +41,7 @@ export async function GET() {
       appointmentsByDay,
       prevMonthAppointments,
       earningsSum,
+      referralStats,
     ] = await Promise.all([
       prisma.appointment.count({ where: { doctorId: doctor.id, deletedAt: null } }),
       prisma.appointment.count({ where: { doctorId: doctor.id, deletedAt: null, createdAt: { gte: monthStart } } }),
@@ -50,20 +58,34 @@ export async function GET() {
         take:    5,
         include: { client: { select: { id: true, email: true } } },
       }),
-      prisma.appointment.groupBy({
-        by:      ['status'],
-        where:   { doctorId: doctor.id, deletedAt: null },
-        _count:  { id: true },
-      }),
+      analyticsLevel !== 'basic'
+        ? prisma.appointment.groupBy({
+            by:      ['status'],
+            where:   { doctorId: doctor.id, deletedAt: null },
+            _count:  { id: true },
+          })
+        : Promise.resolve([]),
       prisma.appointment.count({ where: { doctorId: doctor.id, deletedAt: null, createdAt: { gte: prevMonthStart, lt: monthStart } } }),
-      prisma.transaction.aggregate({
-        where: {
-          doctorId: doctor.id,
-          status:   'COMPLETED',
-          type:     { in: ['APPOINTMENT_FEE', 'DEPOSIT', 'FINAL_PAYMENT'] },
-        },
-        _sum: { receiverAmount: true, platformFee: true },
-      }),
+      analyticsLevel !== 'basic'
+        ? prisma.transaction.aggregate({
+            where: {
+              doctorId: doctor.id,
+              status:   'COMPLETED',
+              type:     { in: ['APPOINTMENT_FEE', 'DEPOSIT', 'FINAL_PAYMENT'] },
+            },
+            _sum: { receiverAmount: true, platformFee: true },
+          })
+        : Promise.resolve({ _sum: { receiverAmount: null, platformFee: null } }),
+      analyticsLevel === 'advanced'
+        ? Promise.all([
+            prisma.referral.count({ where: { fromDoctorId: doctor.id } }),
+            prisma.referral.count({ where: { fromDoctorId: doctor.id, status: 'COMPLETED' } }),
+            prisma.transaction.aggregate({
+              where: { doctorId: doctor.id, type: 'REFERRAL_REWARD', status: 'COMPLETED' },
+              _sum: { receiverAmount: true },
+            }),
+          ])
+        : Promise.resolve(null),
     ])
 
     const completionRate = totalAppointments > 0 ? Math.round((completedTotal / totalAppointments) * 100) : 0
@@ -71,7 +93,14 @@ export async function GET() {
       ? Math.round(((monthAppointments - prevMonthAppointments) / prevMonthAppointments) * 100)
       : 0
 
-    return ok({
+    const payload: Record<string, unknown> = {
+      premioTier: tier,
+      analyticsLevel,
+      lockedFeatures: analyticsLevel === 'basic'
+        ? ['earnings', 'statusBreakdown', 'publications', 'referrals']
+        : analyticsLevel === 'full'
+          ? ['referrals']
+          : [],
       overview: {
         totalAppointments,
         monthAppointments,
@@ -80,30 +109,42 @@ export async function GET() {
         cancelledTotal,
         pendingCount,
         completionRate,
-        monthGrowth,
+        monthGrowth: analyticsLevel !== 'basic' ? monthGrowth : undefined,
       },
       reviews: {
         total:   totalReviews,
         average: Math.round((Number(avgRating._avg.rating) || 0) * 10) / 10,
       },
-      publications: {
-        total: totalPublications,
-      },
-      earnings: {
-        piBalance:     Number(doctor.piBalance),
-        totalReceived: Number(earningsSum._sum.receiverAmount ?? 0),
-        platformFees:  Number(earningsSum._sum.platformFee ?? 0),
-      },
-      appointmentsByStatus: Object.fromEntries(
-        appointmentsByDay.map((g: any) => [g.status, g._count.id])
-      ),
-      recentAppointments: recentAppointments.map((a: any) => ({
+      recentAppointments: recentAppointments.map(a => ({
         id:          a.id,
         status:      a.status,
         scheduledAt: a.scheduledAt,
-        clientName:  (a as any).client?.email ?? 'مريض',
+        clientName:  a.client?.email ?? 'مريض',
       })),
-    })
+    }
+
+    if (analyticsLevel !== 'basic') {
+      payload.publications = { total: totalPublications }
+      payload.earnings = {
+        piBalance:     Number(doctor.piBalance),
+        totalReceived: Number(earningsSum._sum.receiverAmount ?? 0),
+        platformFees:  Number(earningsSum._sum.platformFee ?? 0),
+      }
+      payload.appointmentsByStatus = Object.fromEntries(
+        appointmentsByDay.map(g => [g.status, g._count.id]),
+      )
+    }
+
+    if (analyticsLevel === 'advanced' && referralStats) {
+      const [sent, completed, rewards] = referralStats
+      payload.referrals = {
+        sent,
+        completed,
+        rewardsEarned: Number(rewards._sum.receiverAmount ?? 0),
+      }
+    }
+
+    return ok(payload)
   } catch (err) {
     console.error('[GET /api/analytics/doctor]', err)
     return serverError()

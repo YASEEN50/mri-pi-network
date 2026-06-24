@@ -1,19 +1,40 @@
 'use client'
 import { useState, useEffect } from 'react'
-import Link from 'next/link'
+import { useTranslations } from 'next-intl'
 import DoctorSubpageLayout from '@/components/doctor/DoctorSubpageLayout'
+import PremioBadge from '@/components/premio/PremioBadge'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { payForPremioPlan, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
+import type { PremioTier } from '@/lib/premio/tiers'
 
 interface PremioSettings { monthlyPrice: number; yearlyPrice: number; lifetimePrice: number; isMonthlyEnabled: boolean; isYearlyEnabled: boolean; isLifetimeEnabled: boolean }
-interface ActivePremio { type: string; status: string; expiryDate: string | null; startDate: string }
+interface ActivePremio { type: string; status: string; expiryDate: string | null; startDate: string; tier?: PremioTier }
 
-type Plan = { key: string; label: string; icon: string; price: number; desc: string }
+type Plan = { key: string; label: string; icon: string; price: number; desc: string; tier: PremioTier }
+
+const BENEFIT_KEYS = [
+  'benefit_listing',
+  'benefit_badge',
+  'benefit_featured',
+  'benefit_analytics_basic',
+  'benefit_analytics_full',
+  'benefit_analytics_referrals',
+] as const
+
+const BENEFIT_TIERS: Record<(typeof BENEFIT_KEYS)[number], PremioTier[]> = {
+  benefit_listing: ['BASIC', 'PRO', 'ELITE'],
+  benefit_badge: ['PRO', 'ELITE'],
+  benefit_featured: ['PRO', 'ELITE'],
+  benefit_analytics_basic: ['BASIC', 'PRO', 'ELITE'],
+  benefit_analytics_full: ['PRO', 'ELITE'],
+  benefit_analytics_referrals: ['ELITE'],
+}
 
 export default function DoctorPremioPage() {
   const { status } = useSession()
   const router = useRouter()
+  const tp = useTranslations('premio')
   const [settings, setSettings] = useState<PremioSettings | null>(null)
   const [activePremio, setActivePremio] = useState<ActivePremio | null>(null)
   const [isLoading, setIsLoading] = useState(true)
@@ -61,9 +82,9 @@ export default function DoctorPremioPage() {
   const premioTypeLabel = (type: string) => ({ MONTHLY: 'شهري', YEARLY: 'سنوي', LIFETIME: 'مدى الحياة', FREE_GIFT: 'هدية مجانية 🎁' }[type] ?? type)
 
   const plans: Plan[] = settings ? [
-    ...(settings.isMonthlyEnabled ? [{ key: 'MONTHLY', label: 'شهري', icon: '📅', price: settings.monthlyPrice, desc: 'يجدد كل شهر' }] : []),
-    ...(settings.isYearlyEnabled ? [{ key: 'YEARLY', label: 'سنوي', icon: '📆', price: settings.yearlyPrice, desc: 'يجدد كل سنة' }] : []),
-    ...(settings.isLifetimeEnabled ? [{ key: 'LIFETIME', label: 'مدى الحياة', icon: '♾️', price: settings.lifetimePrice, desc: 'دفعة واحدة للأبد' }] : []),
+    ...(settings.isMonthlyEnabled ? [{ key: 'MONTHLY', label: 'شهري', icon: '📅', price: settings.monthlyPrice, desc: tp('tier_basic'), tier: 'BASIC' as const }] : []),
+    ...(settings.isYearlyEnabled ? [{ key: 'YEARLY', label: 'سنوي', icon: '📆', price: settings.yearlyPrice, desc: tp('tier_pro'), tier: 'PRO' as const }] : []),
+    ...(settings.isLifetimeEnabled ? [{ key: 'LIFETIME', label: 'مدى الحياة', icon: '♾️', price: settings.lifetimePrice, desc: tp('tier_elite'), tier: 'ELITE' as const }] : []),
   ] : []
 
   if (isLoading) return (
@@ -88,10 +109,13 @@ export default function DoctorPremioPage() {
 
         {activePremio && (
           <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5 mb-6">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               <span className="text-3xl">💎</span>
               <div>
-                <p className="text-emerald-400 font-semibold">اشتراك {premioTypeLabel(activePremio.type)} نشط</p>
+                <p className="text-emerald-400 font-semibold flex items-center gap-2 flex-wrap">
+                  اشتراك {premioTypeLabel(activePremio.type)} نشط
+                  {activePremio.tier && <PremioBadge tier={activePremio.tier} size="md" />}
+                </p>
                 <p className="text-slate-400 text-sm mt-0.5">
                   {activePremio.expiryDate ? `ينتهي: ${new Date(activePremio.expiryDate).toLocaleDateString('ar-SA')}` : 'لا ينتهي أبداً ♾️'}
                 </p>
@@ -100,16 +124,30 @@ export default function DoctorPremioPage() {
           </div>
         )}
 
-        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6">
-          <h3 className="text-white font-semibold mb-4">✨ مزايا البريميو</h3>
-          <div className="space-y-3">
-            {[{ icon: '📚', text: 'نشر الدراسات والأبحاث العلمية' }, { icon: '📋', text: 'رفع أنظمة العمل والمنشورات الطبية' }, { icon: '🔝', text: 'أولوية الظهور في نتائج البحث' }, { icon: '✅', text: 'علامة مميزة بجانب اسمك' }, { icon: '📄', text: 'رفع الوثائق والشهادات المتقدمة' }].map((item, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span>{item.icon}</span>
-                <span className="text-slate-300 text-sm">{item.text}</span>
-              </div>
-            ))}
-          </div>
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6 overflow-x-auto">
+          <h3 className="text-white font-semibold mb-4">{tp('tiers_title')}</h3>
+          <table className="w-full text-sm min-w-[480px]">
+            <thead>
+              <tr className="text-slate-400 border-b border-white/10">
+                <th className="text-start py-2 pe-4" />
+                <th className="py-2 px-2 text-center">{tp('tier_basic')}</th>
+                <th className="py-2 px-2 text-center">{tp('tier_pro')}</th>
+                <th className="py-2 px-2 text-center">{tp('tier_elite')}</th>
+              </tr>
+            </thead>
+            <tbody>
+              {BENEFIT_KEYS.map(key => (
+                <tr key={key} className="border-b border-white/5">
+                  <td className="py-2.5 pe-4 text-slate-300">{tp(key)}</td>
+                  {(['BASIC', 'PRO', 'ELITE'] as PremioTier[]).map(tier => (
+                    <td key={tier} className="py-2.5 text-center">
+                      {BENEFIT_TIERS[key].includes(tier) ? '✅' : '—'}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
 
         {!activePremio && plans.length > 0 && (
@@ -123,7 +161,10 @@ export default function DoctorPremioPage() {
                     <div className="flex items-center gap-3">
                       <span className="text-2xl">{plan.icon}</span>
                       <div>
-                        <p className={`font-semibold ${selectedPlan === plan.key ? 'text-emerald-400' : 'text-white'}`}>{plan.label}</p>
+                        <p className={`font-semibold flex items-center gap-2 ${selectedPlan === plan.key ? 'text-emerald-400' : 'text-white'}`}>
+                          {plan.label}
+                          <PremioBadge tier={plan.tier} />
+                        </p>
                         <p className="text-slate-400 text-xs mt-0.5">{plan.desc}</p>
                       </div>
                     </div>

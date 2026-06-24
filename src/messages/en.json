@@ -118,6 +118,7 @@
       "chat": "💬 Chat",
       "verification": "🔐 Verification",
       "referrals": "📋 Referrals",
+      "premio": "💎 Premio",
       "medical_records": "📋 Medical Records",
       "book_new": "+ Book New Appointment",
       "find_doctor": "Find a Doctor"
@@ -319,6 +320,23 @@
     "of": "of",
     "sar": "SAR",
     "stars": "stars"
+  },
+  "premio": {
+    "tiers_title": "Premio Tiers",
+    "tier_basic": "Basic",
+    "tier_pro": "Pro",
+    "tier_elite": "Elite",
+    "benefit_listing": "Search listing",
+    "benefit_badge": "Premium badge 💎",
+    "benefit_featured": "Homepage priority",
+    "benefit_analytics_basic": "Basic analytics",
+    "benefit_analytics_full": "Full analytics + earnings",
+    "benefit_analytics_referrals": "Referral statistics",
+    "upgrade_hint": "Upgrade your plan to unlock this feature",
+    "current_tier": "Your tier: {tier}",
+    "referrals_sent": "Referrals sent",
+    "referrals_completed": "Completed referrals",
+    "referrals_rewards": "Referral rewards"
   },
   "upload": {
     "title": "Upload File",

@@ -1,10 +1,11 @@
 // src/app/api/doctors/route.ts
-// GET /api/doctors — بحث وفلترة (أطباء مع Premio نشط فقط)
+// GET /api/doctors — بحث وفلترة (أطباء مع Premio نشط فقط، مرتّبون حسب tier)
 import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
 import { rateLimitDoctors, rateLimitResponse } from '@/lib/upstash-rate-limit'
+import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
+import { prisma } from '@/lib/prisma'
 
 export async function GET(req: NextRequest) {
   try {
@@ -27,45 +28,25 @@ export async function GET(req: NextRequest) {
 
     await expireStalePremios()
 
-    const where = doctorProfilePublicWhere({
+    const where = {
       ...(search && {
         OR: [
-          { firstName: { contains: search, mode: 'insensitive' } },
-          { lastName:  { contains: search, mode: 'insensitive' } },
-          { specialization: { contains: search, mode: 'insensitive' } },
+          { firstName: { contains: search, mode: 'insensitive' as const } },
+          { lastName:  { contains: search, mode: 'insensitive' as const } },
+          { specialization: { contains: search, mode: 'insensitive' as const } },
         ],
       }),
-      ...(specialization && { specialization: { contains: specialization, mode: 'insensitive' } }),
-      ...(city && { city: { contains: city, mode: 'insensitive' } }),
-    })
+      ...(specialization && { specialization: { contains: specialization, mode: 'insensitive' as const } }),
+      ...(city && { city: { contains: city, mode: 'insensitive' as const } }),
+    }
 
     const [doctors, total] = await Promise.all([
-      prisma.doctorProfile.findMany({
-        where,
-        skip,
-        take: limit,
-        orderBy: [{ averageRating: 'desc' }, { totalReviews: 'desc' }],
-        select: {
-          id: true,
-          firstName: true,
-          lastName: true,
-          specialization: true,
-          subSpecialization: true,
-          yearsOfExperience: true,
-          city: true,
-          country: true,
-          consultationFee: true,
-          averageRating: true,
-          totalReviews: true,
-          avatarUrl: true,
-          bio: true,
-        },
-      }),
-      prisma.doctorProfile.count({ where }),
+      listPublicDoctors({ where, skip, take: limit }),
+      prisma.doctorProfile.count({ where: doctorProfilePublicWhere(where) }),
     ])
 
     return ok(
-      doctors.map((d: any) => ({
+      doctors.map(d => ({
         id: d.id,
         fullName: `${d.firstName} ${d.lastName}`,
         specialization: d.specialization,
@@ -78,8 +59,9 @@ export async function GET(req: NextRequest) {
         totalReviews: d.totalReviews,
         avatarUrl: d.avatarUrl,
         bio: d.bio,
+        premioTier: d.premioTier,
       })),
-      { total, page, limit }
+      { total, page, limit },
     )
   } catch (err) {
     console.error('[GET /api/doctors]', err)

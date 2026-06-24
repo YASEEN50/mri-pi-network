@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
 import { PublicationStatus, ApprovalStatus } from '@prisma/client'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
+import { attachPremioTiers } from '@/lib/premio/list-doctors'
+import { sortByPremioTier } from '@/lib/premio/tiers'
 
 export async function GET(req: NextRequest) {
   try {
@@ -29,15 +31,17 @@ export async function GET(req: NextRequest) {
 
     const [doctors, facilities, publications] = await Promise.all([
       filter === 'all' || filter === 'doctors'
-        ? prisma.doctorProfile.findMany({
-            where: doctorSearchWhere,
-            take:  limit,
-            select: {
-              id: true, firstName: true, lastName: true,
-              specialization: true, city: true, avatarUrl: true,
-              averageRating: true, consultationFee: true,
-            },
-          })
+        ? attachPremioTiers(
+            await prisma.doctorProfile.findMany({
+              where: doctorSearchWhere,
+              take: limit * 2,
+              select: {
+                id: true, userId: true, firstName: true, lastName: true,
+                specialization: true, city: true, avatarUrl: true,
+                averageRating: true, totalReviews: true, consultationFee: true,
+              },
+            }),
+          ).then(sorted => sortByPremioTier(sorted).slice(0, limit))
         : Promise.resolve([]),
 
       filter === 'all' || filter === 'facilities'
@@ -77,7 +81,7 @@ export async function GET(req: NextRequest) {
 
     return ok({
       query: q,
-      doctors: doctors.map((d: any) => ({
+      doctors: doctors.map((d: { id: string; firstName: string; lastName: string; specialization: string; city: string | null; avatarUrl: string | null; averageRating: unknown; consultationFee: unknown; premioTier: string }) => ({
         id:       d.id,
         name:     `د. ${d.firstName} ${d.lastName}`,
         specialty: d.specialization,
@@ -85,6 +89,7 @@ export async function GET(req: NextRequest) {
         avatar:   d.avatarUrl,
         rating:   Number(d.averageRating),
         fee:      d.consultationFee ? Number(d.consultationFee) : null,
+        premioTier: d.premioTier,
         type:     'doctor',
       })),
       facilities: facilities.map((f: any) => ({

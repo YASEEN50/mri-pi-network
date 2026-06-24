@@ -7,6 +7,8 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
+import { getDoctorPremioTierByProfileId } from '@/lib/premio/list-doctors'
+import PremioBadge from '@/components/premio/PremioBadge'
 
 const LANGUAGE_LABELS: Record<string, string> = {
   ar: 'العربية', en: 'English', fr: 'Français',
@@ -44,6 +46,8 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
   })
 
   if (!doctor) notFound()
+
+  const premioTier = await getDoctorPremioTierByProfileId(id)
 
   const rating    = Number(doctor.averageRating)
   const fee       = doctor.consultationFee ? Number(doctor.consultationFee) : null
@@ -88,6 +92,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                 <span className="text-xs px-2.5 py-1 rounded-full font-medium bg-success/15 text-success border border-success/30">
                   طبيب معتمد ✓
                 </span>
+                <PremioBadge tier={premioTier} size="md" />
                 {doctor.piKycVerified && (
                   <span className="text-xs px-2.5 py-1 rounded-full bg-accent/10 text-accent border border-accent/25">
                     🟣 Pi KYC

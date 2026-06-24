@@ -9,6 +9,7 @@ import DoctorCard from '@/components/doctors/DoctorCard'
 import FacilityCard from '@/components/facilities/FacilityCard'
 import { prisma } from '@/lib/prisma'
 import { ApprovalStatus } from '@prisma/client'
+import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
@@ -21,12 +22,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 async function getFeaturedDoctors() {
-  await expireStalePremios()
-  return prisma.doctorProfile.findMany({
-    where: doctorProfilePublicWhere(),
-    orderBy: [{ averageRating: 'desc' }, { totalReviews: 'desc' }],
-    take: 6,
-  })
+  return listPublicDoctors({ take: 6 })
 }
 
 async function getFeaturedFacilities() {
@@ -139,6 +135,7 @@ export default async function HomePage() {
                 averageRating={Number(d.averageRating)}
                 totalReviews={d.totalReviews}
                 yearsOfExperience={d.yearsOfExperience}
+                premioTier={d.premioTier}
               />
             ))}
           </div>

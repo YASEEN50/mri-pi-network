@@ -118,6 +118,7 @@
       "chat": "💬 المحادثات",
       "verification": "🔐 التحقق",
       "referrals": "📋 الإحالات",
+      "premio": "💎 البريميو",
       "medical_records": "📋 سجلي الطبي",
       "book_new": "+ حجز موعد جديد",
       "find_doctor": "ابحث عن طبيب"
@@ -319,6 +320,23 @@
     "of": "من",
     "sar": "ر.س",
     "stars": "نجوم"
+  },
+  "premio": {
+    "tiers_title": "مستويات البريميو",
+    "tier_basic": "أساسي",
+    "tier_pro": "Pro",
+    "tier_elite": "Elite",
+    "benefit_listing": "الظهور في البحث",
+    "benefit_badge": "شارة مميزة 💎",
+    "benefit_featured": "أولوية في الصفحة الرئيسية",
+    "benefit_analytics_basic": "إحصائيات أساسية",
+    "benefit_analytics_full": "تحليلات كاملة + أرباح",
+    "benefit_analytics_referrals": "إحصائيات الإحالات",
+    "upgrade_hint": "ترقِّ خطتك لفتح هذه الميزة",
+    "current_tier": "مستواك: {tier}",
+    "referrals_sent": "إحالات مرسلة",
+    "referrals_completed": "إحالات مكتملة",
+    "referrals_rewards": "مكافآت الإحالات"
   },
   "upload": {
     "title": "رفع الملف",

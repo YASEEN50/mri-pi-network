@@ -35,7 +35,7 @@
 | # | المهمة | الحالة |
 |---|--------|--------|
 | 3.1 | Referrals (UI + مكافآت Pi) | ✅ منجز | `/api/referrals`, doctor UI, REFERRAL_REWARD |
-| 3.2 | Premio tiers (ظهور، badge، analytics) | ⬜ |
+| 3.2 | Premio tiers (ظهور، badge، analytics) | ✅ منجز | `tiers.ts`, sort priority, PremioBadge, analytics gating |
 | 3.3 | ONLINE: WebRTC/Jitsi أو إزالة النوع مؤقتاً | ⬜ |
 | 3.4 | إشعارات push داخل Pi Browser | ⬜ |
 

@@ -5,7 +5,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { useTranslations } from 'next-intl'
 import Badge from '@/components/ui/Badge'
+import PremioBadge from '@/components/premio/PremioBadge'
 import { cn } from '@/lib/cn'
+import type { PremioTier } from '@/lib/premio/tiers'
 
 interface DoctorCardProps {
   id: string
@@ -18,6 +20,7 @@ interface DoctorCardProps {
   yearsOfExperience: number
   avatarUrl?: string
   isVerified?: boolean
+  premioTier?: PremioTier | null
 }
 
 function StarRating({ rating }: { rating: number }) {
@@ -35,7 +38,7 @@ function StarRating({ rating }: { rating: number }) {
 export default function DoctorCard({
   id, fullName, specialization, city,
   consultationFee, averageRating, totalReviews, yearsOfExperience, avatarUrl,
-  isVerified = true,
+  isVerified = true, premioTier,
 }: DoctorCardProps) {
   const t = useTranslations()
 
@@ -56,6 +59,7 @@ export default function DoctorCard({
               {fullName}
             </h3>
             {isVerified && <Badge variant="success" dot>معتمد</Badge>}
+            <PremioBadge tier={premioTier} />
           </div>
           <p className="text-primary-400 text-sm mt-0.5">{specialization}</p>
           {city && (

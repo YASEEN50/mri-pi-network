@@ -112,6 +112,10 @@ export default function DoctorSchedulePage() {
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
             {tn('referrals')}
           </Link>
+          <Link href="/dashboard/doctor/premio"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
+            {tn('premio')}
+          </Link>
           <Link href="/profile"
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
             {tn('verification')}

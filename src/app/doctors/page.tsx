@@ -4,6 +4,7 @@ import Navbar from '@/components/common/Navbar'
 import Footer from '@/components/common/Footer'
 import DoctorCard from '@/components/doctors/DoctorCard'
 import { prisma } from '@/lib/prisma'
+import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 interface PageProps {
@@ -25,9 +26,11 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
   })
 
   const [doctors, total] = await Promise.all([
-    prisma.doctorProfile.findMany({
-      where,
-      orderBy: [{ averageRating: 'desc' }, { totalReviews: 'desc' }],
+    listPublicDoctors({
+      where: {
+        ...(params.specialization && { specialization: { contains: params.specialization, mode: 'insensitive' } }),
+        ...(params.city && { city: { contains: params.city, mode: 'insensitive' } }),
+      },
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -84,6 +87,7 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
                 averageRating={Number(d.averageRating)}
                 totalReviews={d.totalReviews}
                 yearsOfExperience={d.yearsOfExperience}
+                premioTier={d.premioTier}
               />
             ))}
           </div>
