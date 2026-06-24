@@ -73,4 +73,18 @@ const nextConfig = {
 }
 
 const withNextIntl = require('next-intl/plugin')('./src/i18n/config.ts')
-module.exports = withNextIntl(nextConfig)
+
+let exportedConfig = withNextIntl(nextConfig)
+
+if (process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN) {
+  const { withSentryConfig } = require('@sentry/nextjs')
+  exportedConfig = withSentryConfig(exportedConfig, {
+    org: process.env.SENTRY_ORG,
+    project: process.env.SENTRY_PROJECT,
+    authToken: process.env.SENTRY_AUTH_TOKEN,
+    silent: true,
+    telemetry: false,
+  })
+}
+
+module.exports = exportedConfig

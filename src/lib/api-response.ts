@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { AppError } from '@/core/errors'
 import { ZodError } from 'zod'
+import { captureMonitoringException } from '@/lib/monitoring/capture'
 
 export interface ApiMeta {
   total?: number; page?: number; limit?: number
@@ -22,7 +23,10 @@ export function fromAppError(error: AppError) {
   )
 }
 
-export function serverError(message = 'حدث خطأ داخلي في النظام') {
+export function serverError(message = 'حدث خطأ داخلي في النظام', cause?: unknown) {
+  if (cause !== undefined) {
+    captureMonitoringException(cause, { apiMessage: message })
+  }
   return NextResponse.json(
     { success: false, error: { code: 'INTERNAL_ERROR', message } },
     { status: 500 }

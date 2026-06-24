@@ -26,6 +26,11 @@ export async function GET() {
           mode:      isPiSandboxMode() ? 'sandbox' : 'live',
           payments:  getPiNetworkApiKey() ? 'configured' : 'missing_key',
         },
+        sentry: {
+          status: process.env.SENTRY_DSN || process.env.NEXT_PUBLIC_SENTRY_DSN
+            ? 'configured'
+            : 'disabled',
+        },
       },
     })
   } catch (err) {

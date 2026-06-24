@@ -2,7 +2,7 @@
 
 > **آخر تحديث:** 2026-05-20  
 > **الفرع:** `main`  
-> **الحالة:** قيد التنفيذ — المرحلة 4
+> **الحالة:** منجز — المرحلة 4
 
 ---
 
@@ -49,7 +49,7 @@
 | 4.2 | MFA للـ admin/owner | ✅ منجز | TOTP, backup codes, login challenge, `/admin/security/mfa` |
 | 4.3 | سياسة retention للبيانات الصحية | ✅ منجز | cron `/api/cron/health-retention`, `docs/HEALTH_DATA_RETENTION.md` |
 | 4.4 | CI + tests (auth، دفع، مواعيد) | ✅ منجز | GitHub Actions, Vitest, `docs/CI.md` |
-| 4.5 | Sentry + monitoring | ⬜ |
+| 4.5 | Sentry + monitoring | ✅ منجز | instrumentation, global-error, `/api/health`, `docs/SENTRY.md` |
 
 ---
 
