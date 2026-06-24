@@ -33,7 +33,10 @@
 | `UPSTASH_REDIS_REST_TOKEN` | مُوصى | Rate limiting |
 | `NEXT_PUBLIC_PI_SANDBOX` | Pi | `true` للاختبار (Testnet)، `false` للإنتاج |
 | `PI_SANDBOX` | Pi | نفس قيمة `NEXT_PUBLIC_PI_SANDBOX` على الخادم |
-| `PI_API_KEY` | Pi | مفتاح التطبيق من [Pi Developer Portal](https://develop.pi) |
+| `PI_API_KEY` | Pi | مفتاح التطبيق من [Pi Developer Portal](https://develop.pi) — يُستخدم أيضاً كـ `PI_NETWORK_API_KEY` |
+
+> **Pi payments:** أضف `PI_API_KEY` في Vercel (Production). بدون المفتاح، approve/complete/incomplete تُرجع خطأ واضحاً.  
+> **Incomplete payments:** يُعالَج تلقائياً عند `Pi.authenticate`؛ إن لم تكن الجلسة جاهزة بعد، يُعاد المحاولة بعد تسجيل الدخول.
 
 ### Pi Browser
 

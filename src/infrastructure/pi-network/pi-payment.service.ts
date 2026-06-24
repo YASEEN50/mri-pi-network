@@ -86,7 +86,11 @@ function createPiPaymentService(): IPiPaymentService {
   const apiKey = getPiNetworkApiKey()
   if (apiKey) return new RealPiPaymentService(apiKey)
   if (process.env.PI_SANDBOX === 'true') return new SimulatedPiPaymentService()
-  console.warn('[Pi Payment] PI_NETWORK_API_KEY not set — using simulation')
+  if (process.env.NODE_ENV === 'production') {
+    console.error('[Pi Payment] PI_API_KEY / PI_NETWORK_API_KEY missing in production')
+    return new SimulatedPiPaymentService()
+  }
+  console.warn('[Pi Payment] No Pi API key — dev simulation mode (set PI_SANDBOX=true to allow)')
   return new SimulatedPiPaymentService()
 }
 

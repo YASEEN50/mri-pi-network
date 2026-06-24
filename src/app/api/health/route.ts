@@ -2,6 +2,7 @@
 // Health check endpoint — للتحقق من حالة النظام
 import { NextResponse } from 'next/server'
 import { prisma }       from '@/lib/prisma'
+import { getPiNetworkApiKey, isPiSandboxMode } from '@/lib/pi/pi-api-key'
 
 export const runtime = 'nodejs'
 
@@ -21,7 +22,10 @@ export async function GET() {
         database: { status: 'ok', latencyMs: dbLatency },
         storage:  { status: process.env.STORAGE_PROVIDER ?? 'local' },
         deepface: { status: process.env.DEEPFACE_SERVICE_URL ? 'configured' : 'fallback-local' },
-        piNetwork:{ status: process.env.PI_SANDBOX === 'true' ? 'sandbox' : 'live' },
+        piNetwork: {
+          mode:      isPiSandboxMode() ? 'sandbox' : 'live',
+          payments:  getPiNetworkApiKey() ? 'configured' : 'missing_key',
+        },
       },
     })
   } catch (err) {

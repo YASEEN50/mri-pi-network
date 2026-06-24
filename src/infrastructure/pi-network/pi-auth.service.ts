@@ -7,7 +7,7 @@ import { prisma } from '@/lib/prisma'
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
 import { resolvePiLoginUser } from '@/lib/auth/account-linking'
 import { PiSdkService } from './pi-sdk.service'
-import { Role } from '@prisma/client'
+import { getPiNetworkApiKey } from '@/lib/pi/pi-api-key'
 
 export interface PiAuthResult {
   userId: string
@@ -20,7 +20,7 @@ export class PiAuthService {
   private readonly piSdk: PiSdkService | null
 
   constructor() {
-    this.piSdk = process.env.PI_API_KEY ? new PiSdkService() : null
+    this.piSdk = getPiNetworkApiKey() ? new PiSdkService() : null
   }
 
   async authenticateWithAccessToken(accessToken: string): Promise<PiAuthResult | null> {

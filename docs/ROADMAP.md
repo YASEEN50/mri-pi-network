@@ -14,7 +14,7 @@
 | 1.2 | **السجلات الطبية** — رفع آمن، صلاحيات، audit log، موافقة مشاركة | ✅ منجز | `src/lib/medical-records/*`, upload + `/file` route |
 | 1.3 | **صلاحيات Admin** — تفعيل التحقق على routes الحساسة | ✅ منجز | `src/lib/admin/permissions.ts`, `/api/admin/*` |
 | 1.4 | **تنظيف الدفع** — إزالة/ربط `PaymentForm` المعطّل، Pi فقط | ✅ منجز | `PaymentForm.tsx`, `payForAppointment`, حذف `/api/payment/process` |
-| 1.5 | **Pi production** — `PI_API_KEY`, incomplete payments, إزالة `pi-debug` | ⬜ | Vercel env, `pi-payment` routes |
+| 1.5 | **Pi production** — `PI_API_KEY`, incomplete payments, إزالة `pi-debug` | ✅ منجز | `pi-api-key.ts`, incomplete auth, health, حذف `/api/pi-debug` |
 
 ---
 

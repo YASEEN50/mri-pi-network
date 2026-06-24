@@ -15,13 +15,52 @@ window.PiAuth = (function () {
     try { sessionStorage.removeItem(SKIP_KEY) } catch (e) {}
   }
 
-  function onIncompletePaymentFound(payment) {
-    fetch('/api/payment/pi/incomplete', {
+  var PENDING_INCOMPLETE_KEY = 'pi_pending_incomplete'
+
+  function storePendingIncomplete(payment) {
+    try { sessionStorage.setItem(PENDING_INCOMPLETE_KEY, JSON.stringify(payment)) } catch (e) {}
+  }
+
+  function takePendingIncomplete() {
+    try {
+      var raw = sessionStorage.getItem(PENDING_INCOMPLETE_KEY)
+      if (!raw) return null
+      sessionStorage.removeItem(PENDING_INCOMPLETE_KEY)
+      return JSON.parse(raw)
+    } catch (e) { return null }
+  }
+
+  function postIncompletePayment(payment, accessToken) {
+    var body = { payment: payment }
+    if (accessToken) body.accessToken = accessToken
+    return fetch('/api/payment/pi/incomplete', {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ payment: payment }),
-    }).catch(function (e) { console.error('[PiAuth] incomplete payment', e) })
+      body: JSON.stringify(body),
+    }).then(function (r) { return r.json() })
+  }
+
+  function onIncompletePaymentFound(payment) {
+    postIncompletePayment(payment)
+      .then(function (data) {
+        if (data.success && !(data.data && data.data.error)) return
+        if (data.data && data.data.code === 'AUTH_REQUIRED') storePendingIncomplete(payment)
+      })
+      .catch(function (e) {
+        console.error('[PiAuth] incomplete payment', e)
+        storePendingIncomplete(payment)
+      })
+  }
+
+  function flushPendingIncomplete(accessToken) {
+    var pending = takePendingIncomplete()
+    if (!pending) return Promise.resolve()
+    return postIncompletePayment(pending, accessToken)
+      .catch(function (e) {
+        console.error('[PiAuth] flush incomplete', e)
+        storePendingIncomplete(pending)
+      })
   }
 
   var PI_SCOPES = ['username', 'payments']
@@ -165,7 +204,9 @@ window.PiAuth = (function () {
       .then(function (res) { return res.json() })
       .then(function (data) {
         if (data.error) throw new Error('فشل تسجيل الدخول')
-        return verifySessionThenGo()
+        return flushPendingIncomplete(accessToken).then(function () {
+          return verifySessionThenGo()
+        })
       })
   }
 

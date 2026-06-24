@@ -3,7 +3,7 @@
 import { signIn } from 'next-auth/react'
 import { resolvePiSandbox } from '@/lib/pi/sandbox-detect'
 import { PI_AUTH_SCOPES } from '@/lib/pi/pi-scopes'
-import { resolveIncompletePiPayment } from '@/lib/pi/resolve-incomplete-payment'
+import { resolveIncompletePiPayment, flushPendingIncompletePayments } from '@/lib/pi/resolve-incomplete-payment'
 
 export const PI_SKIP_AUTO_LOGIN_KEY = 'pi_skip_auto_login'
 
@@ -172,7 +172,11 @@ export async function signInWithPiNetwork(): Promise<{
     await requestCookieAccess()
     const authResult = await authenticateWithPi()
     await requestCookieAccess()
-    return exchangePiTokenForSession(authResult.accessToken)
+    const sessionResult = await exchangePiTokenForSession(authResult.accessToken)
+    if (sessionResult.ok) {
+      await flushPendingIncompletePayments(authResult.accessToken)
+    }
+    return sessionResult
   } catch (err) {
     console.error('[Pi Auth]', err)
     return { ok: false, error: 'حدث خطأ أثناء التحقق من Pi Network' }

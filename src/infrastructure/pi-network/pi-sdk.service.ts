@@ -3,6 +3,7 @@
 // Pi Network SDK — server-side verification
 // =============================================================================
 
+import { getPiNetworkApiKey, isPiSandboxMode } from '@/lib/pi/pi-api-key'
 import { verifyPiAccessToken } from '@/lib/pi/verify-access-token'
 
 export interface PiUserInfo {
@@ -21,9 +22,8 @@ export class PiSdkService {
   private readonly isSandbox: boolean
 
   constructor() {
-    const apiKey = process.env.PI_API_KEY
-    this.apiKey = apiKey ?? ''
-    this.isSandbox = process.env.PI_SANDBOX === 'true'
+    this.apiKey = getPiNetworkApiKey() ?? ''
+    this.isSandbox = isPiSandboxMode()
   }
 
   private get headers() {
