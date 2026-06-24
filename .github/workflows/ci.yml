@@ -16,12 +16,16 @@ jobs:
         with:
           node-version: '20'
           cache: npm
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci --ignore-scripts
 
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://ci:ci@127.0.0.1:5432/mri_ci
+          DIRECT_URL: postgresql://ci:ci@127.0.0.1:5432/mri_ci
 
       - name: Typecheck
         run: npm run typecheck
