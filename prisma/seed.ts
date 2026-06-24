@@ -8,6 +8,7 @@ import { PrismaClient, Role, ApprovalStatus, FacilityType, AppointmentStatus, Da
 // Risk Engine config seed — يُهيّئ مفاتيح SystemConfig للأوزان
 // import { seedRiskEngineConfig } from '../src/lib/risk-engine'
 import { hash } from 'bcryptjs'
+import { ALL_ADMIN_PERMISSIONS } from '../src/lib/admin/permissions'
 
 const prisma = new PrismaClient()
 
@@ -46,6 +47,17 @@ async function main() {
     },
   })
   console.log('✅ Admin created:', admin.email)
+
+  await prisma.adminPermission.deleteMany({ where: { adminId: admin.id } })
+  await prisma.adminPermission.createMany({
+    data: ALL_ADMIN_PERMISSIONS.map((p) => ({
+      adminId: admin.id,
+      permission: p.key,
+      granted: true,
+      grantedBy: owner.id,
+    })),
+  })
+  console.log('✅ Admin permissions seeded')
 
   // ---------------------------------------------------------------------------
   // 2. CLIENT

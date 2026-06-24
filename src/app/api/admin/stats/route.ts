@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
 import { Role } from '@prisma/client'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 
 export async function GET(_req: NextRequest) {
   try {
-    const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
+    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canViewAnalytics)
     if (!auth.success) return fromAppError(auth.error)
 
     const [

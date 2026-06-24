@@ -1,12 +1,12 @@
 import { NextRequest } from 'next/server'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
 import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role, PublicationStatus } from '@prisma/client'
 
 export async function GET(_req: NextRequest) {
   try {
-    const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
+    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canModerateContent)
     if (!auth.success) return fromAppError(auth.error)
 
     const publications = await prisma.publication.findMany({

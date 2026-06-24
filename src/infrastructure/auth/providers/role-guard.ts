@@ -18,6 +18,8 @@ export interface AuthContext {
 type AuthSuccess = { success: true; context: AuthContext }
 type AuthFailure = { success: false; error: UnauthorizedError }
 
+export type { AuthSuccess, AuthFailure }
+
 export async function requireAuth(
   options: GuardOptions = {}
 ): Promise<AuthSuccess | AuthFailure> {

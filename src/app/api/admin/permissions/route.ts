@@ -1,25 +1,12 @@
 // src/app/api/admin/permissions/route.ts
 import { NextRequest } from 'next/server'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { ALL_ADMIN_PERMISSIONS } from '@/lib/admin/permissions'
 import { prisma, db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role, ActivityType } from '@prisma/client'
+import { UnauthorizedError } from '@/core/errors'
 import { z } from 'zod'
-
-const ALL_PERMISSIONS = [
-  { key: 'canApproveDoctor',    label: 'قبول/رفض الأطباء',           category: 'التحقق' },
-  { key: 'canRejectDoctor',     label: 'رفض طلبات الأطباء',          category: 'التحقق' },
-  { key: 'canApproveFacility',  label: 'قبول/رفض المنشآت',          category: 'التحقق' },
-  { key: 'canViewVerification', label: 'عرض طلبات التحقق',           category: 'التحقق' },
-  { key: 'canModerateContent',  label: 'مراجعة تقارير المحتوى',     category: 'المحتوى' },
-  { key: 'canHideContent',      label: 'إخفاء المحتوى المخالف',     category: 'المحتوى' },
-  { key: 'canDeleteReviews',    label: 'حذف التقييمات المسيئة',     category: 'المحتوى' },
-  { key: 'canBanUsers',         label: 'حظر المستخدمين',             category: 'المستخدمون' },
-  { key: 'canViewUsers',        label: 'عرض بيانات المستخدمين',     category: 'المستخدمون' },
-  { key: 'canManageSupport',    label: 'إدارة طلبات الدعم',         category: 'الدعم' },
-  { key: 'canViewAnalytics',    label: 'عرض الإحصائيات والتقارير',  category: 'التقارير' },
-  { key: 'canAssignTasks',      label: 'إسناد المهام لأدمن آخر',    category: 'الإدارة' },
-]
 
 const PermSchema = z.object({
   adminId:     z.string().uuid(),
@@ -34,6 +21,13 @@ export async function GET(req: NextRequest) {
 
     const adminId = req.nextUrl.searchParams.get('adminId') ?? auth.context.userId
 
+    if (
+      auth.context.role === Role.ADMIN &&
+      adminId !== auth.context.userId
+    ) {
+      return fromAppError(new UnauthorizedError('لا يمكنك عرض صلاحيات مدير آخر'))
+    }
+
     const perms = await db.adminPermission.findMany({
       where: { adminId, granted: true },
       select: { permission: true },
@@ -42,7 +36,7 @@ export async function GET(req: NextRequest) {
     return ok({
       adminId,
       permissions: perms.map((p: any) => p.permission),
-      allPermissions: ALL_PERMISSIONS,
+      allPermissions: ALL_ADMIN_PERMISSIONS,
     })
   } catch (err) {
     console.error('[GET /api/admin/permissions]', err)
@@ -60,7 +54,10 @@ export async function POST(req: NextRequest) {
     const parsed = PermSchema.safeParse(body)
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
 
-    const { adminId, permissions } = parsed.data
+    const { adminId, permissions: rawPermissions } = parsed.data
+
+    const validKeys = new Set<string>(ALL_ADMIN_PERMISSIONS.map((p) => p.key))
+    const permissions = rawPermissions.filter((p) => validKeys.has(p))
 
     const admin = await prisma.user.findUnique({
       where: { id: adminId },

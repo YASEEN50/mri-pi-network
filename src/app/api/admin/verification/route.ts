@@ -5,7 +5,7 @@
 // وسيتم إهمالها لاحقاً. لا تُستخدم كمصدر للعرض في هذه الواجهة.
 
 import { NextRequest } from 'next/server'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
 import { db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role } from '@prisma/client'
@@ -29,7 +29,7 @@ function resolveSessionFilter(status: string): {
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
+    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canViewVerification)
     if (!auth.success) return fromAppError(auth.error)
 
     const page   = Number(req.nextUrl.searchParams.get('page')  ?? 1)

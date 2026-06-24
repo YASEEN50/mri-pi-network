@@ -1,6 +1,6 @@
 // src/app/api/admin/review/route.ts
 import { NextRequest } from 'next/server'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireVerificationReviewPermission } from '@/lib/admin/permissions'
 import { prisma, db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role, ActivityType, ApprovalStatus } from '@prisma/client'
@@ -15,12 +15,12 @@ const Schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
-    if (!auth.success) return fromAppError(auth.error)
-
     const body   = await req.json()
     const parsed = Schema.safeParse(body)
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
+
+    const auth = await requireVerificationReviewPermission(parsed.data.decision)
+    if (!auth.success) return fromAppError(auth.error)
 
     const { verificationId, decision, notes } = parsed.data
     const reviewerId = auth.context.userId

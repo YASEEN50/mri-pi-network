@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server'
 import { Role, ApprovalStatus } from '@prisma/client'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
@@ -16,12 +16,12 @@ export async function POST(
 ) {
   try {
     const { id } = await params
-    const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
-    if (!auth.success) return fromAppError(auth.error)
-
     const body = await req.json()
     const parsed = ActionSchema.safeParse(body)
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
+
+    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canApproveFacility)
+    if (!auth.success) return fromAppError(auth.error)
 
     const { action, notes } = parsed.data
 

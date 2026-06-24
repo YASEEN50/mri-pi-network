@@ -1,7 +1,7 @@
 // src/app/api/admin/doctors/[id]/documents/route.ts
 import { NextRequest } from 'next/server'
 import { Role } from '@prisma/client'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { NotFoundError } from '@/core/errors'
 import { prisma } from '@/lib/prisma'
@@ -12,7 +12,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
-    const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
+    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canViewVerification)
     if (!auth.success) return fromAppError(auth.error)
 
     const { id } = await params
