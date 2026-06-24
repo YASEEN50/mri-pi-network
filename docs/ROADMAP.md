@@ -2,7 +2,7 @@
 
 > **آخر تحديث:** 2026-05-20  
 > **الفرع:** `main`  
-> **الحالة:** قيد التنفيذ — المرحلة 3
+> **الحالة:** منجز — المرحلة 3 (جاهز للمرحلة 4)
 
 ---
 
@@ -37,7 +37,7 @@
 | 3.1 | Referrals (UI + مكافآت Pi) | ✅ منجز | `/api/referrals`, doctor UI, REFERRAL_REWARD |
 | 3.2 | Premio tiers (ظهور، badge، analytics) | ✅ منجز | `tiers.ts`, sort priority, PremioBadge, analytics gating |
 | 3.3 | ONLINE: WebRTC/Jitsi أو إزالة النوع مؤقتاً | ✅ منجز | Jitsi embed, `/appointments/[id]/video`, env toggle |
-| 3.4 | إشعارات push داخل Pi Browser | ⬜ |
+| 3.4 | إشعارات push داخل Pi Browser | ✅ منجز | Web Notifications + polling, `PiPushProvider`, `?since=` |
 
 ---
 

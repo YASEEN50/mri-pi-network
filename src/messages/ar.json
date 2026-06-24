@@ -362,5 +362,11 @@
     "uploading": "جاري الرفع...",
     "success": "تم رفع الملف بنجاح",
     "error": "فشل رفع الملف"
+  },
+  "notifications": {
+    "push_enable_title": "تفعيل إشعارات Pi",
+    "push_enable_body": "احصل على تنبيهات فورية للمواعيد والرسائل والإحالات داخل Pi Browser.",
+    "push_enable_button": "تفعيل الإشعارات",
+    "push_dismiss": "لاحقاً"
   }
 }

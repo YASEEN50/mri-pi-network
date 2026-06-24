@@ -5,6 +5,7 @@ import { getLocale, getMessages } from 'next-intl/server'
 import { SessionProvider } from '@/components/common/SessionProvider'
 import { PiAuthProvider } from '@/components/auth/PiAuthProvider'
 import { PiSdkScript } from '@/components/auth/PiSdkScript'
+import { PiPushProvider } from '@/components/notifications/PiPushProvider'
 import { PI_BROWSER_REDIRECT_SCRIPT } from '@/lib/pi/pi-browser-redirect-script'
 import './globals.css'
 
@@ -45,6 +46,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SessionProvider>
             <PiAuthProvider>
               {children}
+              <PiPushProvider />
             </PiAuthProvider>
           </SessionProvider>
         </NextIntlClientProvider>

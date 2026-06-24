@@ -5,6 +5,8 @@ import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { notificationActionPath } from '@/lib/notifications/routes'
+import { isPiBrowser } from '@/lib/pi/pi-auth-client'
+import { PI_PUSH_POLL_VISIBLE_MS } from '@/lib/notifications/push-config'
 
 interface Notification {
   id:        string
@@ -34,6 +36,10 @@ const TYPE_ICONS: Record<string, string> = {
   AI_REJECTED:                '🔴',
   VERIFIED:                   '🏅',
   REJECTED:                   '❌',
+  REFERRAL_RECEIVED:          '📨',
+  REFERRAL_ACCEPTED:          '✅',
+  REFERRAL_REWARD:            '🎁',
+  REFERRAL_CANCELLED:         '↩️',
   DEFAULT:                    '🔔',
 }
 
@@ -49,7 +55,8 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!session) return
     load()
-    const timer = setInterval(load, 60_000)
+    const intervalMs = isPiBrowser() ? PI_PUSH_POLL_VISIBLE_MS : 60_000
+    const timer = setInterval(load, intervalMs)
     return () => clearInterval(timer)
   }, [session])
 

@@ -362,5 +362,11 @@
     "uploading": "Uploading...",
     "success": "File uploaded successfully",
     "error": "File upload failed"
+  },
+  "notifications": {
+    "push_enable_title": "Enable Pi notifications",
+    "push_enable_body": "Get instant alerts for appointments, messages, and referrals inside Pi Browser.",
+    "push_enable_button": "Enable notifications",
+    "push_dismiss": "Later"
   }
 }

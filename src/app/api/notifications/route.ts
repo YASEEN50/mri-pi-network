@@ -9,14 +9,24 @@ export async function GET(req: NextRequest) {
     if (!auth.success) return fromAppError(auth.error)
 
     const limit = Number(req.nextUrl.searchParams.get('limit') ?? 20)
+    const sinceRaw = req.nextUrl.searchParams.get('since')
+    const since = sinceRaw ? new Date(sinceRaw) : null
 
     const notifications = await prisma.notification.findMany({
-      where: { userId: auth.context.userId },
+      where: {
+        userId: auth.context.userId,
+        ...(since && !Number.isNaN(since.getTime()) ? { createdAt: { gt: since } } : {}),
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
     })
 
-    return ok(notifications, { total: notifications.length })
+    const latestAt =
+      notifications.length > 0
+        ? notifications.reduce((a, b) => (a.createdAt > b.createdAt ? a : b)).createdAt.toISOString()
+        : since?.toISOString() ?? null
+
+    return ok(notifications, { total: notifications.length, latestAt })
   } catch (err) {
     console.error('[GET /api/notifications]', err)
     return serverError()
