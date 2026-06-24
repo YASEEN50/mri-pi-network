@@ -1,0 +1,3 @@
+export const CHAT_MESSAGES_POLL_MS = 3_000
+export const CHAT_ROOMS_POLL_MS = 8_000
+export const CHAT_MESSAGES_PAGE_SIZE = 50
