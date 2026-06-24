@@ -9,7 +9,7 @@ export type AllowedMimeType =
   | 'application/pdf'
 
 export interface UploadFileOptions {
-  folder: 'licenses' | 'credentials' | 'avatars' | 'facility-docs' | 'covers'
+  folder: 'licenses' | 'credentials' | 'avatars' | 'facility-docs' | 'covers' | 'medical-records'
   filename?: string          // اختياري — يُولَّد تلقائياً إذا لم يُحدد
   mimeType: AllowedMimeType
   maxSizeBytes?: number      // الافتراضي: 10MB

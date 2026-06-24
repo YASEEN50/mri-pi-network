@@ -11,7 +11,7 @@
 | # | المهمة | الحالة | ملفات/ملاحظات |
 |---|--------|--------|----------------|
 | 1.1 | **Premio gating** — إظهار الأطباء في البحث/الخريطة/الصفحة الرئيسية فقط مع اشتراك Premio نشط | ✅ منجز | `src/lib/premio/active-premio.ts`, APIs, صفحات، seed |
-| 1.2 | **السجلات الطبية** — رفع R2، صلاحيات، audit log، موافقة مشاركة | ⬜ | `medical-records` API + UI |
+| 1.2 | **السجلات الطبية** — رفع آمن، صلاحيات، audit log، موافقة مشاركة | ✅ منجز | `src/lib/medical-records/*`, upload + `/file` route |
 | 1.3 | **صلاحيات Admin** — تفعيل التحقق على routes الحساسة أو إزالة المصفوفة | ⬜ | `src/app/api/admin/*` |
 | 1.4 | **تنظيف الدفع** — إزالة/ربط `PaymentForm` المعطّل، Pi فقط | ⬜ | `PaymentForm.tsx`, `/api/payment/process` |
 | 1.5 | **Pi production** — `PI_API_KEY`, incomplete payments, إزالة `pi-debug` | ⬜ | Vercel env, `pi-payment` routes |
