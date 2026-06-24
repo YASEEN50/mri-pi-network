@@ -4,6 +4,10 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { cancelRemindersForAppointment } from '@/lib/cron/reminders.service'
+import {
+  notifyAppointmentConfirmed,
+  notifyAppointmentCancelled,
+} from '@/lib/appointments/notifications'
 import { z } from 'zod'
 
 const UpdateStatusSchema = z.object({
@@ -12,9 +16,35 @@ const UpdateStatusSchema = z.object({
   doctorNotes: z.string().optional(),
 })
 
+async function canManageAppointment(
+  appointment: { clientId: string; doctorId: string | null; facilityId: string | null },
+  role: Role,
+  userId: string,
+): Promise<boolean> {
+  if (role === Role.CLIENT) return appointment.clientId === userId
+
+  if (role === Role.DOCTOR && appointment.doctorId) {
+    const doctor = await prisma.doctorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    })
+    return doctor?.id === appointment.doctorId
+  }
+
+  if (role === Role.FACILITY && appointment.facilityId) {
+    const facility = await prisma.facilityProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    })
+    return facility?.id === appointment.facilityId
+  }
+
+  return false
+}
+
 export async function PUT(
   req: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { id } = await params
@@ -29,7 +59,16 @@ export async function PUT(
     const { role, userId } = auth.context
 
     const appointment = await prisma.appointment.findUnique({ where: { id } })
-    if (!appointment) return ok({ error: true, message: 'الموعد غير موجود' })
+    if (!appointment || appointment.deletedAt) {
+      return ok({ error: true, message: 'الموعد غير موجود' })
+    }
+
+    const allowed = await canManageAppointment(appointment, role, userId)
+    if (!allowed) return ok({ error: true, message: 'غير مصرح بتعديل هذا الموعد' })
+
+    if (status === AppointmentStatus.CONFIRMED && role === Role.CLIENT) {
+      return ok({ error: true, message: 'فقط الطبيب أو المنشأة يمكنهم تأكيد الموعد' })
+    }
 
     if (status === AppointmentStatus.CANCELLED && role === Role.CLIENT && appointment.clientId !== userId) {
       return ok({ error: true, message: 'لا يمكنك إلغاء موعد لا يخصك' })
@@ -40,15 +79,19 @@ export async function PUT(
       data: {
         status,
         ...(cancelReason && { cancelReason }),
-        ...(doctorNotes  && { doctorNotes }),
+        ...(doctorNotes && { doctorNotes }),
         ...(status === AppointmentStatus.CANCELLED && { cancelledBy: userId }),
         updatedAt: new Date(),
       },
     })
 
-    // إلغاء التذكيرات عند إلغاء الموعد
-    if (status === 'CANCELLED') {
+    if (status === AppointmentStatus.CANCELLED) {
       cancelRemindersForAppointment(id).catch(console.error)
+      notifyAppointmentCancelled(id).catch(console.error)
+    }
+
+    if (status === AppointmentStatus.CONFIRMED) {
+      notifyAppointmentConfirmed(id).catch(console.error)
     }
 
     return ok({ id: updated.id, status: updated.status })

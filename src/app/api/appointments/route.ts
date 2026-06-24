@@ -5,8 +5,10 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, created, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
-import { createRemindersForAppointment, cancelRemindersForAppointment } from '@/lib/cron/reminders.service'
+import { createRemindersForAppointment } from '@/lib/cron/reminders.service'
 import { doctorHasActivePremioByProfileId } from '@/lib/premio/active-premio'
+import { assertBookableSlot } from '@/lib/appointments/booking'
+import { notifyAppointmentBooked } from '@/lib/appointments/notifications'
 
 const CreateSchema = z.object({
   doctorId:    z.string().uuid().optional(),
@@ -75,11 +77,9 @@ export async function GET(req: NextRequest) {
         paymentPolicy: a.doctor?.paymentPolicy ?? 'PAY_ON_SERVICE',
         depositPercentage: a.doctor ? Number(a.doctor.depositPercentage) : 0,
         createdAt:    a.createdAt,
-        // معرّفات
         doctorId:     a.doctorId,
         facilityId:   a.facilityId,
         clientId:     a.clientId,
-        // بيانات مُضمَّنة
         doctor:       a.doctor ? `د. ${a.doctor.firstName} ${a.doctor.lastName}` : null,
         doctorDetails: a.doctor ? {
           id:             a.doctor.id,
@@ -115,12 +115,40 @@ export async function POST(req: NextRequest) {
       return ok({ error: true, message: 'يجب تحديد طبيب أو منشأة' })
     }
 
+    const scheduledDate = new Date(scheduledAt)
+
+    let resolvedFee = fee
+
     if (doctorId) {
+      const doctor = await prisma.doctorProfile.findFirst({
+        where: { id: doctorId, deletedAt: null, approvalStatus: 'APPROVED' },
+        select: { id: true, consultationFee: true },
+      })
+      if (!doctor) return ok({ error: true, message: 'الطبيب غير متاح للحجز' })
+
       const listed = await doctorHasActivePremioByProfileId(doctorId)
-      if (!listed) {
-        return ok({ error: true, message: 'هذا الطبيب غير متاح للحجز حالياً' })
+      if (!listed) return ok({ error: true, message: 'هذا الطبيب غير متاح للحجز حالياً' })
+
+      if (resolvedFee == null && doctor.consultationFee != null) {
+        resolvedFee = Number(doctor.consultationFee)
       }
     }
+
+    if (facilityId) {
+      const facility = await prisma.facilityProfile.findFirst({
+        where: { id: facilityId, deletedAt: null, approvalStatus: 'APPROVED' },
+        select: { id: true },
+      })
+      if (!facility) return ok({ error: true, message: 'المنشأة غير متاحة للحجز' })
+    }
+
+    const slotCheck = await assertBookableSlot({
+      scheduledAt: scheduledDate,
+      duration,
+      doctorId,
+      facilityId,
+    })
+    if (!slotCheck.ok) return ok({ error: true, message: slotCheck.message })
 
     const appointment = await prisma.appointment.create({
       data: {
@@ -128,16 +156,16 @@ export async function POST(req: NextRequest) {
         doctorId,
         facilityId,
         type,
-        scheduledAt: new Date(scheduledAt),
+        scheduledAt: scheduledDate,
         duration,
         reason,
         notes,
-        fee,
+        fee:         resolvedFee,
       },
     })
 
-        // إنشاء تذكيرات تلقائية
     createRemindersForAppointment(appointment.id).catch(console.error)
+    notifyAppointmentBooked(appointment.id).catch(console.error)
 
     return created({ id: appointment.id, status: appointment.status })
   } catch (err) {
