@@ -107,7 +107,11 @@ export default function AdminVerificationPage() {
                     <p className="text-slate-500 text-xs mt-1">رخصة: {d.licenseNumber} · {d.credentialsCount} شهادات</p>
                     {d.city && <p className="text-slate-500 text-xs">📍 {d.city}, {d.country}</p>}
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 flex-shrink-0 flex-wrap justify-end">
+                    <Link href={`/admin/doctors/${d.id}/verify`}
+                      className="px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-blue-400 rounded-xl text-sm font-medium transition-all">
+                      {ta('documents')}
+                    </Link>
                     <button onClick={() => handleAction('doctor', d.id, 'approve')}
                       className="px-4 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-xl text-sm font-medium transition-all">
                       ✓ {t('approve')}
