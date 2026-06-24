@@ -229,6 +229,7 @@ window.PiAuth = (function () {
 
   function runOnLoad() {
     if (!isEntryPath()) return Promise.resolve({ mode: 'idle' })
+    if (shouldSkipAuto()) return Promise.resolve({ mode: 'idle' })
     return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
       .then(function (r) { return r.json() })
       .then(function (s) {

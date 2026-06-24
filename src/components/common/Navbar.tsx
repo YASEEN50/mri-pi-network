@@ -77,15 +77,11 @@ export default function Navbar({ locale }: NavbarProps) {
   const isLoggedIn = status === 'authenticated' && !!session
   const navLinks = getRoleNavLinks(role, locale, t)
 
-  async function handleLogout() {
+  function handleLogout() {
     if (loggingOut) return
     setLoggingOut(true)
     setUserMenuOpen(false)
-    try {
-      await performLogout('/')
-    } catch {
-      setLoggingOut(false)
-    }
+    performLogout('/')
   }
 
   async function switchLocale() {

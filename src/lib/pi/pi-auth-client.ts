@@ -145,6 +145,7 @@ function isPiEntryPath(): boolean {
 /** On load: redirect if session exists on entry pages only */
 export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
   if (!isPiEntryPath()) return 'idle'
+  if (shouldSkipPiAutoLogin()) return 'idle'
   try {
     const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
     const session = await res.json()
