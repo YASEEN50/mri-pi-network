@@ -1,9 +1,16 @@
 import { NextRequest } from 'next/server'
 import { Role } from '@prisma/client'
+import { getServerSession } from 'next-auth'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { NotFoundError } from '@/core/errors'
 import { prisma } from '@/lib/prisma'
+import { authOptions } from '@/lib/auth'
+import {
+  canBypassPremioGating,
+  doctorHasActivePremioByProfileId,
+  expireStalePremios,
+} from '@/lib/premio/active-premio'
 
 export async function GET(
   _req: NextRequest,
@@ -11,6 +18,8 @@ export async function GET(
 ) {
   try {
     const { id } = await params
+    await expireStalePremios()
+
     const doctor = await prisma.doctorProfile.findFirst({
       where: { id, deletedAt: null },
       include: {
@@ -19,6 +28,27 @@ export async function GET(
       },
     })
     if (!doctor) return fromAppError(new NotFoundError(`الطبيب بالمعرف ${id} غير موجود`))
+
+    const session = await getServerSession(authOptions)
+    const role = session?.user?.role
+    const isOwnProfile =
+      role === Role.DOCTOR && session?.user?.id === doctor.userId
+
+    if (
+      doctor.approvalStatus !== 'APPROVED' &&
+      !canBypassPremioGating(role) &&
+      !isOwnProfile
+    ) {
+      return fromAppError(new NotFoundError(`الطبيب بالمعرف ${id} غير موجود`))
+    }
+
+    if (
+      !canBypassPremioGating(role) &&
+      !isOwnProfile &&
+      !(await doctorHasActivePremioByProfileId(id))
+    ) {
+      return fromAppError(new NotFoundError(`الطبيب بالمعرف ${id} غير موجود`))
+    }
 
     return ok({
       id: doctor.id,

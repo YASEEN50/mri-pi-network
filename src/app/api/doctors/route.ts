@@ -1,10 +1,10 @@
 // src/app/api/doctors/route.ts
-// GET /api/doctors — بحث وفلترة
+// GET /api/doctors — بحث وفلترة (أطباء مع Premio نشط فقط)
 import { NextRequest, NextResponse } from 'next/server'
-import { ApprovalStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
 import { rateLimitDoctors, rateLimitResponse } from '@/lib/upstash-rate-limit'
+import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 export async function GET(req: NextRequest) {
   try {
@@ -25,9 +25,9 @@ export async function GET(req: NextRequest) {
     const specialization = searchParams.get('specialization') ?? ''
     const city           = searchParams.get('city') ?? ''
 
-    const where: any = {
-      approvalStatus: ApprovalStatus.APPROVED,
-      deletedAt: null,
+    await expireStalePremios()
+
+    const where = doctorProfilePublicWhere({
       ...(search && {
         OR: [
           { firstName: { contains: search, mode: 'insensitive' } },
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
       }),
       ...(specialization && { specialization: { contains: specialization, mode: 'insensitive' } }),
       ...(city && { city: { contains: city, mode: 'insensitive' } }),
-    }
+    })
 
     const [doctors, total] = await Promise.all([
       prisma.doctorProfile.findMany({

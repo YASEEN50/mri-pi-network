@@ -9,6 +9,7 @@ import DoctorCard from '@/components/doctors/DoctorCard'
 import FacilityCard from '@/components/facilities/FacilityCard'
 import { prisma } from '@/lib/prisma'
 import { ApprovalStatus } from '@prisma/client'
+import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -20,8 +21,9 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 }
 
 async function getFeaturedDoctors() {
+  await expireStalePremios()
   return prisma.doctorProfile.findMany({
-    where: { approvalStatus: ApprovalStatus.APPROVED, deletedAt: null },
+    where: doctorProfilePublicWhere(),
     orderBy: [{ averageRating: 'desc' }, { totalReviews: 'desc' }],
     take: 6,
   })
@@ -36,8 +38,9 @@ async function getFeaturedFacilities() {
 }
 
 async function getStats() {
+  await expireStalePremios()
   const [doctors, facilities, appointments] = await Promise.all([
-    prisma.doctorProfile.count({ where: { approvalStatus: ApprovalStatus.APPROVED } }),
+    prisma.doctorProfile.count({ where: doctorProfilePublicWhere() }),
     prisma.facilityProfile.count({ where: { approvalStatus: ApprovalStatus.APPROVED } }),
     prisma.appointment.count({ where: { deletedAt: null } }),
   ])

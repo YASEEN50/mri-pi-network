@@ -3,7 +3,8 @@
 import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
-import { ApprovalStatus, PublicationStatus } from '@prisma/client'
+import { PublicationStatus, ApprovalStatus } from '@prisma/client'
+import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,22 +15,22 @@ export async function GET(req: NextRequest) {
 
     if (q.length < 2) return ok({ doctors: [], facilities: [], publications: [] })
 
-    const searchWhere = {
+    await expireStalePremios()
+
+    const doctorSearchWhere = doctorProfilePublicWhere({
       OR: [
         { firstName:      { contains: q, mode: 'insensitive' as const } },
         { lastName:       { contains: q, mode: 'insensitive' as const } },
         { specialization: { contains: q, mode: 'insensitive' as const } },
         { bio:            { contains: q, mode: 'insensitive' as const } },
       ],
-      approvalStatus: ApprovalStatus.APPROVED,
-      deletedAt:      null,
       ...(city && { city: { contains: city, mode: 'insensitive' as const } }),
-    }
+    })
 
     const [doctors, facilities, publications] = await Promise.all([
       filter === 'all' || filter === 'doctors'
         ? prisma.doctorProfile.findMany({
-            where: searchWhere,
+            where: doctorSearchWhere,
             take:  limit,
             select: {
               id: true, firstName: true, lastName: true,

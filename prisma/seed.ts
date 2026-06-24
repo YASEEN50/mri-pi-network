@@ -4,7 +4,7 @@
 // Run: npx prisma db seed
 // =============================================================================
 
-import { PrismaClient, Role, ApprovalStatus, FacilityType, AppointmentStatus, DayOfWeek } from '@prisma/client'
+import { PrismaClient, Role, ApprovalStatus, FacilityType, AppointmentStatus, DayOfWeek, PremioType } from '@prisma/client'
 // Risk Engine config seed — يُهيّئ مفاتيح SystemConfig للأوزان
 // import { seedRiskEngineConfig } from '../src/lib/risk-engine'
 import { hash } from 'bcryptjs'
@@ -143,6 +143,30 @@ async function main() {
     include: { doctorProfile: true },
   })
   console.log('✅ Doctor created:', doctorUser.email)
+
+  // Premio نشط للطبيب المعتمد (مطلوب للظهور في البحث العام)
+  await prisma.premio.deleteMany({ where: { userId: doctorUser.id } })
+  await prisma.premio.create({
+    data: {
+      userId: doctorUser.id,
+      type: PremioType.MONTHLY,
+      status: 'ACTIVE',
+      expiryDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      notes: 'Seed — dev premio for public listing',
+    },
+  })
+  console.log('✅ Premio granted to approved doctor')
+
+  await prisma.premioSettings.deleteMany({})
+  await prisma.premioSettings.create({
+    data: {
+      monthlyPrice: 5,
+      yearlyPrice: 50,
+      lifetimePrice: 150,
+      updatedBy: owner.id,
+    },
+  })
+  console.log('✅ Premio settings seeded')
 
   // ---------------------------------------------------------------------------
   // 4. DOCTOR (PENDING - لم يكتمل التدقيق)

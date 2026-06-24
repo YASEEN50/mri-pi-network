@@ -4,7 +4,7 @@ import Navbar from '@/components/common/Navbar'
 import Footer from '@/components/common/Footer'
 import DoctorCard from '@/components/doctors/DoctorCard'
 import { prisma } from '@/lib/prisma'
-import { ApprovalStatus } from '@prisma/client'
+import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 interface PageProps {
   searchParams: Promise<{ specialization?: string; city?: string; page?: string }>
@@ -17,9 +17,12 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
   const page = Number(params.page ?? 1)
   const limit = 12
 
-  const where: Record<string, unknown> = { approvalStatus: ApprovalStatus.APPROVED, deletedAt: null }
-  if (params.specialization) where.specialization = { contains: params.specialization, mode: 'insensitive' }
-  if (params.city) where.city = { contains: params.city, mode: 'insensitive' }
+  await expireStalePremios()
+
+  const where = doctorProfilePublicWhere({
+    ...(params.specialization && { specialization: { contains: params.specialization, mode: 'insensitive' } }),
+    ...(params.city && { city: { contains: params.city, mode: 'insensitive' } }),
+  })
 
   const [doctors, total] = await Promise.all([
     prisma.doctorProfile.findMany({

@@ -6,6 +6,7 @@ import AppointmentForm from '@/components/appointments/AppointmentForm'
 import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
+import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 const LANGUAGE_LABELS: Record<string, string> = {
   ar: 'العربية', en: 'English', fr: 'Français',
@@ -22,8 +23,10 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
   const { id } = await params
   const locale  = await getLocale() as 'ar' | 'en'
 
+  await expireStalePremios()
+
   const doctor = await prisma.doctorProfile.findFirst({
-    where: { id, deletedAt: null, approvalStatus: 'APPROVED' },
+    where: doctorProfilePublicWhere({ id }),
     include: {
       credentials: { where: { deletedAt: null }, orderBy: { year: 'desc' } },
       reviews: {

@@ -6,6 +6,7 @@ import { ok, created, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { z } from 'zod'
 import { createRemindersForAppointment, cancelRemindersForAppointment } from '@/lib/cron/reminders.service'
+import { doctorHasActivePremioByProfileId } from '@/lib/premio/active-premio'
 
 const CreateSchema = z.object({
   doctorId:    z.string().uuid().optional(),
@@ -110,6 +111,13 @@ export async function POST(req: NextRequest) {
 
     if (!doctorId && !facilityId) {
       return ok({ error: true, message: 'يجب تحديد طبيب أو منشأة' })
+    }
+
+    if (doctorId) {
+      const listed = await doctorHasActivePremioByProfileId(doctorId)
+      if (!listed) {
+        return ok({ error: true, message: 'هذا الطبيب غير متاح للحجز حالياً' })
+      }
     }
 
     const appointment = await prisma.appointment.create({
