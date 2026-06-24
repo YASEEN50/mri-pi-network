@@ -26,5 +26,14 @@ export function notificationActionPath(type: string, data: unknown): string | nu
     return '/dashboard/doctor/schedule'
   }
 
+  if (
+    type === 'REFERRAL_RECEIVED' ||
+    type === 'REFERRAL_ACCEPTED' ||
+    type === 'REFERRAL_REWARD' ||
+    type === 'REFERRAL_CANCELLED'
+  ) {
+    return '/dashboard/doctor/referrals'
+  }
+
   return null
 }

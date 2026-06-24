@@ -56,6 +56,7 @@ export async function GET() {
       })
       if (!profile) return ok(null)
       return ok({
+        id:                profile.id,
         firstName:         profile.firstName,
         lastName:          profile.lastName,
         avatarUrl:         profile.avatarUrl,

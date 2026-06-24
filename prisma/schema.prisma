@@ -110,6 +110,7 @@ enum TransactionType {
   DEPOSIT           // إيداع
   FINAL_PAYMENT     // دفعة نهائية
   REFUND            // استرداد
+  REFERRAL_REWARD   // مكافأة إحالة طبيب
 }
 
 // حالة المعاملة المالية

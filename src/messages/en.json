@@ -117,6 +117,7 @@
       "publications": "✍️ Publications",
       "chat": "💬 Chat",
       "verification": "🔐 Verification",
+      "referrals": "📋 Referrals",
       "medical_records": "📋 Medical Records",
       "book_new": "+ Book New Appointment",
       "find_doctor": "Find a Doctor"
@@ -158,6 +159,38 @@
       "stats_pi_commission": "after 5% commission",
       "empty_chat_hint": "No patient conversations yet.",
       "patient_fallback": "Patient"
+    },
+    "referrals": {
+      "title": "Patient Referrals",
+      "subtitle": "Refer patients to specialist colleagues and earn Pi when completed",
+      "reward_hint": "Completion reward: {amount} π to referring doctor",
+      "tab_all": "All",
+      "tab_sent": "Sent",
+      "tab_received": "Received",
+      "new_referral": "+ New Referral",
+      "empty": "No referrals yet",
+      "patient": "Patient",
+      "from": "From",
+      "to": "To",
+      "reason": "Referral reason",
+      "notes": "Notes",
+      "result_notes": "Result notes",
+      "accept": "Accept",
+      "complete": "Complete + reward",
+      "cancel": "Cancel",
+      "create_title": "Refer a Patient",
+      "select_patient": "Select patient",
+      "select_doctor": "Select receiving doctor",
+      "search_doctor": "Search by name or specialization...",
+      "submit": "Send Referral",
+      "creating": "Sending...",
+      "created": "✅ Referral sent",
+      "status": {
+        "PENDING": "Pending",
+        "ACCEPTED": "Accepted",
+        "COMPLETED": "Completed",
+        "CANCELLED": "Cancelled"
+      }
     },
     "facility": {
       "overview_title": "Facility Dashboard",
