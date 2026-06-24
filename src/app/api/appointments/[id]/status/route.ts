@@ -8,6 +8,7 @@ import {
   notifyAppointmentConfirmed,
   notifyAppointmentCancelled,
 } from '@/lib/appointments/notifications'
+import { notifyReviewRequested } from '@/lib/reviews/notifications'
 import { z } from 'zod'
 
 const UpdateStatusSchema = z.object({
@@ -92,6 +93,10 @@ export async function PUT(
 
     if (status === AppointmentStatus.CONFIRMED) {
       notifyAppointmentConfirmed(id).catch(console.error)
+    }
+
+    if (status === AppointmentStatus.COMPLETED) {
+      notifyReviewRequested(id).catch(console.error)
     }
 
     return ok({ id: updated.id, status: updated.status })

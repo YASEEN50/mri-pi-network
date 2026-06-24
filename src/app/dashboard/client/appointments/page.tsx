@@ -4,6 +4,7 @@ import { useAppointments } from '@/hooks/useAppointments'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
 import PaymentForm from '@/components/payments/PaymentForm'
+import { appointmentRatingPath, isReviewPending } from '@/lib/reviews/paths'
 
 const STATUS_COLORS: Record<string, string> = {
   PENDING:   'bg-amber-500/10 text-amber-400 border-amber-500/20',
@@ -30,6 +31,7 @@ export default function ClientAppointmentsPage() {
   const upcoming  = appointments.filter(a => ['PENDING','CONFIRMED'].includes(a.status))
   const completed = appointments.filter(a => a.status === 'COMPLETED')
   const cancelled = appointments.filter(a => ['CANCELLED','NO_SHOW'].includes(a.status))
+  const pendingReviews = completed.filter(a => isReviewPending(a))
 
   return (
     <div className="min-h-screen bg-slate-950" dir="rtl">
@@ -55,6 +57,23 @@ export default function ClientAppointmentsPage() {
             </Link>
           </div>
         </div>
+
+        {pendingReviews.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-amber-300 font-medium text-sm">
+                ⭐ {pendingReviews.length} موعد{pendingReviews.length > 1 ? 'ات' : ''} بانتظار تقييمك
+              </p>
+              <p className="text-slate-400 text-xs mt-1">ساعد المرضى الآخرين بمشاركة تجربتك</p>
+            </div>
+            <Link
+              href={appointmentRatingPath(pendingReviews[0].id)}
+              className="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 rounded-xl text-sm font-medium text-center transition-all"
+            >
+              قيّم الآن
+            </Link>
+          </div>
+        )}
 
         {appointments.length === 0 ? (
           <div className="text-center py-20">
@@ -200,8 +219,8 @@ function AppointmentCard({
               إلغاء
             </button>
           )}
-          {showReview && apt.status === 'COMPLETED' && apt.doctorId && !apt.hasReview && (
-            <Link href={`/appointments/${apt.id}/rating`}
+          {showReview && isReviewPending(apt) && (
+            <Link href={appointmentRatingPath(apt.id)}
               className="px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 rounded-lg text-xs transition-all text-center">
               ⭐ تقييم
             </Link>

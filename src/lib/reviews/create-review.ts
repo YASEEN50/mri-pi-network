@@ -3,6 +3,7 @@
 
 import { prisma } from '@/lib/prisma'
 import { AppointmentStatus } from '@prisma/client'
+import { notifyReviewReceived } from '@/lib/reviews/notifications'
 
 export interface CreateReviewInput {
   clientUserId:  string
@@ -71,6 +72,8 @@ export async function createDoctorReview(input: CreateReviewInput): Promise<Crea
       totalReviews:  stats._count.rating,
     },
   })
+
+  notifyReviewReceived(review.id).catch(console.error)
 
   return { ok: true, reviewId: review.id, rating: review.rating }
 }

@@ -3,6 +3,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useSession } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
+import { notificationActionPath } from '@/lib/notifications/routes'
 
 interface Notification {
   id:        string
@@ -11,12 +13,18 @@ interface Notification {
   type:      string
   isRead:    boolean
   createdAt: string
+  data?:     unknown
 }
 
 const TYPE_ICONS: Record<string, string> = {
   APPOINTMENT_CONFIRMED:      '✅',
   APPOINTMENT_CANCELLED:      '❌',
+  APPOINTMENT_BOOKED:         '📅',
   APPOINTMENT_REMINDER:       '⏰',
+  REVIEW_REQUESTED:           '⭐',
+  REVIEW_RECEIVED:            '⭐',
+  PAYMENT_COMPLETED:          '💳',
+  CHAT_MESSAGE:               '💬',
   DOCTOR_APPROVED:            '👨‍⚕️',
   DOCTOR_REJECTED:            '⚠️',
   DOCTOR_PENDING_REVIEW:      '📋',
@@ -31,6 +39,7 @@ const TYPE_ICONS: Record<string, string> = {
 
 export default function NotificationBell() {
   const { data: session } = useSession()
+  const router = useRouter()
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [open,          setOpen]          = useState(false)
   const ref = useRef<HTMLDivElement>(null)
@@ -82,6 +91,15 @@ export default function NotificationBell() {
     } catch {}
   }
 
+  async function handleNotificationClick(n: Notification) {
+    if (!n.isRead) await markRead(n.id)
+    const href = notificationActionPath(n.type, n.data)
+    if (href) {
+      setOpen(false)
+      router.push(href)
+    }
+  }
+
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(!open)}
@@ -116,7 +134,7 @@ export default function NotificationBell() {
             ) : (
               notifications.slice(0, 15).map(n => (
                 <div key={n.id}
-                  onClick={() => !n.isRead && markRead(n.id)}
+                  onClick={() => void handleNotificationClick(n)}
                   className={`px-4 py-3 border-b border-white/5 hover:bg-white/5 transition-all cursor-pointer group
                     ${!n.isRead ? 'bg-primary/5' : ''}`}>
                   <div className="flex items-start gap-3">
