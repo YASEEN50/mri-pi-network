@@ -14,6 +14,7 @@ const policies = [
 export default function DoctorPaymentSettingsPage() {
   const { status } = useSession()
   const router = useRouter()
+  const [consultationFee, setConsultationFee] = useState('')
   const [selectedPolicy, setSelectedPolicy] = useState('PAY_ON_SERVICE')
   const [depositPercentage, setDepositPercentage] = useState('30')
   const [deadlineHours, setDeadlineHours] = useState('24')
@@ -32,6 +33,7 @@ export default function DoctorPaymentSettingsPage() {
         setSelectedPolicy(data.data.paymentPolicy)
         setDepositPercentage(data.data.depositPercentage?.toString() ?? '30')
         setDeadlineHours(data.data.paymentDeadlineHours?.toString() ?? '24')
+        setConsultationFee(data.data.consultationFee?.toString() ?? '')
       }
     } catch {} finally { setIsLoading(false) }
   }
@@ -43,7 +45,12 @@ export default function DoctorPaymentSettingsPage() {
       const res = await fetch('/api/doctor/payment-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentPolicy: selectedPolicy, depositPercentage: parseFloat(depositPercentage) || 0, paymentDeadlineHours: parseInt(deadlineHours) || 24 }),
+        body: JSON.stringify({
+          paymentPolicy: selectedPolicy,
+          depositPercentage: parseFloat(depositPercentage) || 0,
+          paymentDeadlineHours: parseInt(deadlineHours) || 24,
+          consultationFee: consultationFee ? parseFloat(consultationFee) : undefined,
+        }),
       })
       const data = await res.json()
       if (data.success && !data.data?.error) setMessage({ type: 'success', text: 'تم حفظ إعدادات الدفع بنجاح ✅' })
@@ -74,6 +81,24 @@ export default function DoctorPaymentSettingsPage() {
           </div>
         )}
 
+        <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6">
+          <h3 className="text-white font-semibold mb-2">رسوم الاستشارة (π Pi)</h3>
+          <p className="text-slate-500 text-xs mb-3">المبلغ الذي يراه المريض عند الحجز — بالعملة الرقمية Pi فقط</p>
+          <div className="flex items-center gap-3">
+            <input
+              type="number"
+              value={consultationFee}
+              onChange={e => setConsultationFee(e.target.value)}
+              min="0.0001"
+              step="0.0001"
+              placeholder="مثال: 10"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500/50"
+              dir="ltr"
+            />
+            <span className="text-purple-300 text-sm font-medium">π</span>
+          </div>
+        </div>
+
         <div className="space-y-3 mb-6">
           {policies.map(policy => (
             <button key={policy.key} onClick={() => setSelectedPolicy(policy.key)}
@@ -100,6 +125,14 @@ export default function DoctorPaymentSettingsPage() {
                 className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-emerald-500/50" />
               <span className="text-slate-400 text-sm">%</span>
             </div>
+            {consultationFee && (
+              <div className="flex justify-between text-sm mt-3 pt-3 border-t border-white/10">
+                <span className="text-slate-400">المبلغ عند الحجز ({depositPercentage}%)</span>
+                <span className="text-amber-400">
+                  {(parseFloat(consultationFee || '0') * (parseFloat(depositPercentage) / 100)).toFixed(4)} π
+                </span>
+              </div>
+            )}
           </div>
         )}
 

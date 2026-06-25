@@ -201,7 +201,7 @@ export default function DoctorsMapView() {
               {selected.city ?? '—'} · ⭐ {selected.averageRating.toFixed(1)} ({selected.totalReviews})
             </p>
             {selected.consultationFee != null && (
-              <p className="text-slate-300 text-sm mt-1">{selected.consultationFee} ر.س</p>
+              <p className="text-slate-300 text-sm mt-1">{selected.consultationFee} π</p>
             )}
             <div className="flex gap-2 mt-4">
               <Link

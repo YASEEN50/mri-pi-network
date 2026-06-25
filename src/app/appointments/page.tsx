@@ -116,7 +116,7 @@ export default function AppointmentsPage() {
 
                   <div className="flex flex-col gap-2 items-end">
                     {apt.fee && (
-                      <p className="text-emerald-400 font-bold text-sm">{apt.fee} ر.س</p>
+                      <p className="text-emerald-400 font-bold text-sm">{apt.fee} π</p>
                     )}
 
                     {apt.status === 'COMPLETED' && (

@@ -114,6 +114,7 @@ enum PaymentPolicy {
 enum TransactionType {
   PREMIO_PURCHASE   // شراء بريميو
   APPOINTMENT_FEE   // رسوم موعد
+  INSTANT_CONSULT   // استشارة فورية
   DEPOSIT           // إيداع
   FINAL_PAYMENT     // دفعة نهائية
   REFUND            // استرداد
@@ -279,6 +280,7 @@ model ClientProfile {
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   medicalRecords MedicalRecord[]
+  instantConsultRequests InstantConsultRequest[]
 
   @@index([userId])
   @@index([deletedAt])
@@ -332,6 +334,12 @@ model DoctorProfile {
   depositPercentage     Decimal        @default(0) @db.Decimal(5, 2) // نسبة الإيداع %
   paymentDeadlineHours  Int            @default(24) // ساعات للدفع قبل الموعد
 
+  // استشارة فورية
+  acceptsInstantConsult       Boolean  @default(false)
+  isOnlineForInstant          Boolean  @default(false)
+  instantConsultFee           Decimal? @db.Decimal(10, 4)
+  instantConsultDurationMinutes Int    @default(15)
+
   // Stats
   totalReviews          Int            @default(0)
   averageRating         Decimal        @default(0) @db.Decimal(3, 2)
@@ -373,6 +381,7 @@ model DoctorProfile {
   referralsFrom  Referral[]      @relation("ReferralFrom")
   referralsTo    Referral[]      @relation("ReferralTo")
   medicalRecords MedicalRecord[]
+  instantConsultRequests InstantConsultRequest[]
 
   @@map("doctor_profiles")
 }
@@ -1073,6 +1082,47 @@ model ChatMessage {
   @@index([roomId])
   @@index([senderId])
   @@map("chat_messages")
+}
+
+// =============================================================================
+// INSTANT CONSULT (استشارة فورية)
+// =============================================================================
+
+enum InstantConsultStatus {
+  AWAITING_PAYMENT
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  COMPLETED
+  CANCELLED
+}
+
+model InstantConsultRequest {
+  id            String               @id @default(uuid())
+  clientId      String
+  doctorId      String
+  status        InstantConsultStatus @default(AWAITING_PAYMENT)
+  reason        String?
+  fee           Decimal              @db.Decimal(10, 4)
+  isPaid        Boolean              @default(false)
+  paidAt        DateTime?
+  expiresAt     DateTime?
+  sessionEndsAt DateTime?
+  acceptedAt    DateTime?
+  rejectedAt    DateTime?
+  completedAt   DateTime?
+  chatRoomId    String?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  client ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([doctorId, status])
+  @@index([clientId, status])
+  @@index([expiresAt])
+  @@map("instant_consult_requests")
 }
 
 // =============================================================================

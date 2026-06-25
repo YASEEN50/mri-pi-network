@@ -5,7 +5,7 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { piPaymentService } from '@/infrastructure/pi-network/pi-payment.service'
-import { fulfillPremioPurchase, fulfillAppointmentPayment } from '@/lib/payment/fulfill'
+import { fulfillPremioPurchase, fulfillAppointmentPayment, fulfillInstantConsultPayment } from '@/lib/payment/fulfill'
 import { settleDoctorPayment } from '@/lib/payment/platform-fee'
 import { getPiNetworkApiKey, PI_PAYMENTS_NOT_CONFIGURED_MSG } from '@/lib/pi/pi-api-key'
 
@@ -54,7 +54,8 @@ export async function POST(req: NextRequest) {
       planType?: PremioType
       appointmentId?: string
       paymentType?: 'FULL' | 'DEPOSIT'
-      transactionType?: 'APPOINTMENT_FEE' | 'DEPOSIT' | 'FINAL_PAYMENT'
+      transactionType?: 'APPOINTMENT_FEE' | 'DEPOSIT' | 'FINAL_PAYMENT' | 'INSTANT_CONSULT'
+      instantConsultId?: string
     }
 
     await prisma.transaction.update({
@@ -64,6 +65,9 @@ export async function POST(req: NextRequest) {
 
     // تسوية مستحقات الطبيب: 95% تلقائياً لرصيده، 5% عمولة المنصة
     if (meta.purpose === 'APPOINTMENT' && transaction.doctorId) {
+      await settleDoctorPayment(transaction)
+    }
+    if (meta.purpose === 'INSTANT_CONSULT' && transaction.doctorId) {
       await settleDoctorPayment(transaction)
     }
 
@@ -83,10 +87,14 @@ export async function POST(req: NextRequest) {
     }
 
     if (meta.purpose === 'APPOINTMENT' && meta.appointmentId && meta.paymentType) {
+      const txType = meta.transactionType ?? 'APPOINTMENT_FEE'
+      if (txType === 'INSTANT_CONSULT') {
+        return ok({ error: true, message: 'نوع الدفع غير معروف' })
+      }
       await fulfillAppointmentPayment(
         meta.appointmentId,
         meta.paymentType,
-        meta.transactionType ?? 'APPOINTMENT_FEE',
+        txType,
         auth.context.userId,
         Number(transaction.amountTotal),
         transaction.id,
@@ -97,6 +105,20 @@ export async function POST(req: NextRequest) {
         message:       'تم الدفع بنجاح',
         appointmentId: meta.appointmentId,
         txHash:        txid,
+      })
+    }
+
+    if (meta.purpose === 'INSTANT_CONSULT' && meta.instantConsultId) {
+      await fulfillInstantConsultPayment(
+        meta.instantConsultId,
+        auth.context.userId,
+        Number(transaction.amountTotal),
+        transaction.id,
+      )
+      return ok({
+        message: 'تم الدفع — بانتظار قبول الطبيب',
+        instantConsultId: meta.instantConsultId,
+        txHash: txid,
       })
     }
 

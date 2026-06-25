@@ -2,7 +2,11 @@
 // تنفيذ الطلب بعد اكتمال دفع Pi
 
 import { prisma } from '@/lib/prisma'
-import { PremioType } from '@prisma/client'
+import { InstantConsultStatus, PremioType } from '@prisma/client'
+import {
+  acceptDeadlineFromNow,
+  notifyDoctorInstantRequest,
+} from '@/lib/instant-consult/service'
 
 export async function fulfillPremioPurchase(
   userId: string,
@@ -89,6 +93,51 @@ export async function fulfillAppointmentPayment(
       body:  `تم دفع ${amountPaid.toFixed(4)} π بنجاح${feeNote}.`,
       type:  'PAYMENT_COMPLETED',
       data:  { transactionId, appointmentId, platformFee, doctorNet },
+    },
+  })
+}
+
+export async function fulfillInstantConsultPayment(
+  instantConsultId: string,
+  clientUserId: string,
+  amountPaid: number,
+  transactionId: string,
+) {
+  const request = await prisma.instantConsultRequest.findUnique({
+    where: { id: instantConsultId },
+    include: {
+      client: { select: { userId: true, firstName: true, lastName: true } },
+      doctor: { select: { userId: true, firstName: true, lastName: true } },
+    },
+  })
+  if (!request || request.status !== InstantConsultStatus.AWAITING_PAYMENT) {
+    throw new Error('طلب الاستشارة غير صالح للدفع')
+  }
+
+  const now = new Date()
+  await prisma.instantConsultRequest.update({
+    where: { id: instantConsultId },
+    data: {
+      isPaid: true,
+      paidAt: now,
+      status: InstantConsultStatus.PENDING,
+      expiresAt: acceptDeadlineFromNow(),
+    },
+  })
+
+  await notifyDoctorInstantRequest(
+    request.doctor.userId,
+    instantConsultId,
+    `${request.client.firstName} ${request.client.lastName}`,
+  )
+
+  await prisma.notification.create({
+    data: {
+      userId: clientUserId,
+      title: '⏳ بانتظار الطبيب',
+      body: `تم الدفع ${amountPaid.toFixed(4)} π — بانتظار قبول د. ${request.doctor.firstName} ${request.doctor.lastName}`,
+      type: 'INSTANT_CONSULT_PENDING',
+      data: { instantConsultId, transactionId },
     },
   })
 }

@@ -84,7 +84,7 @@ export default function DoctorCard({
 
       {consultationFee && (
         <p className="text-sm font-semibold text-accent mt-2">
-          {consultationFee} {t('common.sar')}
+          {consultationFee} {t('common.pi')}
         </p>
       )}
 

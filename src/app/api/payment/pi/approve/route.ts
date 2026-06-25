@@ -1,6 +1,6 @@
 // src/app/api/payment/pi/approve/route.ts
 import { NextRequest } from 'next/server'
-import { Role } from '@prisma/client'
+import { Role, InstantConsultStatus } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
@@ -12,10 +12,11 @@ import { z } from 'zod'
 
 const ApproveSchema = z.object({
   paymentId:     z.string().min(1),
-  purpose:       z.enum(['PREMIO', 'APPOINTMENT']),
+  purpose:       z.enum(['PREMIO', 'APPOINTMENT', 'INSTANT_CONSULT']),
   amount:        z.number().positive(),
   planType:      z.enum(['MONTHLY', 'YEARLY', 'LIFETIME']).optional(),
   appointmentId: z.string().uuid().optional(),
+  instantConsultId: z.string().uuid().optional(),
   paymentType:   z.enum(['FULL', 'DEPOSIT']).optional(),
 })
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     const parsed = ApproveSchema.safeParse(body)
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
 
-    const { paymentId, purpose, amount, planType, appointmentId, paymentType } = parsed.data
+    const { paymentId, purpose, amount, planType, appointmentId, instantConsultId, paymentType } = parsed.data
 
     const existing = await prisma.transaction.findFirst({
       where: { notes: { contains: paymentId }, status: { in: ['PENDING', 'COMPLETED'] } },
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
       return ok({ message: 'تمت الموافقة على الدفع' })
     }
 
-    let transactionType: 'PREMIO_PURCHASE' | 'APPOINTMENT_FEE' | 'DEPOSIT' | 'FINAL_PAYMENT' = 'PREMIO_PURCHASE'
+    let transactionType: 'PREMIO_PURCHASE' | 'APPOINTMENT_FEE' | 'DEPOSIT' | 'FINAL_PAYMENT' | 'INSTANT_CONSULT' = 'PREMIO_PURCHASE'
     let doctorId: string | undefined
     let meta: Record<string, unknown> = { piPaymentId: paymentId, purpose }
 
@@ -113,8 +114,44 @@ export async function POST(req: NextRequest) {
       meta.transactionType = transactionType
     }
 
+    if (purpose === 'INSTANT_CONSULT') {
+      if (auth.context.role !== Role.CLIENT) {
+        return ok({ error: true, message: 'غير مصرح' })
+      }
+      if (!instantConsultId) {
+        return ok({ error: true, message: 'معرف الاستشارة الفورية مطلوب' })
+      }
+
+      const profile = await prisma.clientProfile.findUnique({
+        where: { userId: auth.context.userId },
+        select: { id: true },
+      })
+      if (!profile) return ok({ error: true, message: 'ملف المريض غير موجود' })
+
+      const consult = await prisma.instantConsultRequest.findFirst({
+        where: {
+          id: instantConsultId,
+          clientId: profile.id,
+          status: InstantConsultStatus.AWAITING_PAYMENT,
+        },
+      })
+      if (!consult) return ok({ error: true, message: 'طلب الاستشارة غير موجود' })
+
+      const expected = Number(consult.fee)
+      if (Math.abs(expected - amount) > 0.0001) {
+        return ok({ error: true, message: 'مبلغ الدفع لا يطابق رسوم الاستشارة' })
+      }
+
+      doctorId = consult.doctorId
+      transactionType = 'INSTANT_CONSULT'
+      meta.instantConsultId = instantConsultId
+      meta.transactionType = transactionType
+    }
+
     const { platformFee, receiverAmount } =
-      purpose === 'APPOINTMENT' ? splitDoctorPayment(amount) : splitPremioPayment(amount)
+      purpose === 'APPOINTMENT' || purpose === 'INSTANT_CONSULT'
+        ? splitDoctorPayment(amount)
+        : splitPremioPayment(amount)
 
     await piPaymentService.approvePayment(paymentId)
 

@@ -34,12 +34,14 @@ function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: str
       { href: '/doctors',      label: t('nav.doctors') },
       { href: '/facilities',   label: t('nav.facilities') },
       { href: '/publications', label: locale === 'ar' ? 'المنشورات' : 'Publications' },
+      { href: '/consult-now', label: locale === 'ar' ? '⚡ استشارة فورية' : 'Instant consult' },
       { href: '/appointments', label: locale === 'ar' ? 'مواعيدي' : 'My Appointments' },
     ]
   }
   if (role === Role.DOCTOR) {
     return [
       { href: '/dashboard/doctor/schedule', label: locale === 'ar' ? 'جدولي' : 'Schedule' },
+      { href: '/dashboard/doctor/instant-consult', label: locale === 'ar' ? '⚡ فوري' : 'Instant' },
       { href: '/dashboard/doctor/chat',     label: locale === 'ar' ? 'المحادثات' : 'Chat' },
       { href: '/doctors',                   label: t('nav.doctors') },
     ]

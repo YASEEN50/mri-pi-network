@@ -2,7 +2,7 @@
 
 > **آخر تحديث:** 2026-05-20  
 > **الفرع:** `main`  
-> **الحالة:** منجز — المرحلة 5 (لوحة المنشأة)
+> **الحالة:** منجز — المرحلة 6.1
 
 ---
 
@@ -64,6 +64,18 @@
 | 5.5 | إعدادات ملف المنشأة | ✅ منجز | `/dashboard/facility/settings`, logo/cover upload |
 
 **Migration:** `20260520160000_facility_departments_on_call` — `npx prisma migrate deploy` على production
+
+---
+
+## المرحلة 6 — استشارة فورية (Consult Now)
+
+| # | المهمة | الحالة | ملاحظات |
+|---|--------|--------|---------|
+| 6.1 | **Consult Now MVP** — طبيب متاح + دفع π + قبول 90ث + محادثة | ✅ منجز | `/consult-now`, `/dashboard/doctor/instant-consult` |
+| 6.2 | Broadcast — إشعار كل الأطباء المتاحين في التخصص | ⏳ قادم | أول قبول يفوز |
+| 6.3 | فيديو فوري داخل الجلسة | ⏳ قادم | Jitsi room per instant consult |
+
+**Migration:** `20260520180000_instant_consult`
 
 ---
 

@@ -246,7 +246,7 @@ export default function DoctorOnboardingPage() {
                     placeholder="0" className={inputCls} />
                 </div>
                 <div>
-                  <label className={labelCls}>رسوم الاستشارة (ريال)</label>
+                  <label className={labelCls}>رسوم الاستشارة (π Pi)</label>
                   <input type="number" min="0" value={professional.consultationFee}
                     onChange={e => setProfessional(p=>({...p,consultationFee:e.target.value}))}
                     placeholder="200" className={inputCls} />
@@ -351,7 +351,7 @@ export default function DoctorOnboardingPage() {
                   { label: 'التخصص الفرعي', value: professional.subSpecialization || '—' },
                   { label: 'رقم الترخيص', value: professional.licenseNumber },
                   { label: 'سنوات الخبرة', value: professional.yearsOfExperience || '0' },
-                  { label: 'رسوم الاستشارة', value: professional.consultationFee ? `${professional.consultationFee} ريال` : '—' },
+                  { label: 'رسوم الاستشارة', value: professional.consultationFee ? `${professional.consultationFee} π` : '—' },
                 ]},
               ].map(section => (
                 <div key={section.title} className="rounded-xl p-4"

@@ -1,9 +1,15 @@
 'use client'
 // src/components/appointments/AppointmentForm.tsx
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
+import DepositCalculator from '@/components/payments/DepositCalculator'
+import { payForAppointment, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
+import {
+  resolveAppointmentPayment,
+  type AppointmentPaymentPolicy,
+} from '@/lib/payment/appointment-payment'
 
 const ONLINE_ENABLED = process.env.NEXT_PUBLIC_ONLINE_APPOINTMENTS_ENABLED !== 'false'
 
@@ -16,10 +22,20 @@ interface BookableSlot {
 interface AppointmentFormProps {
   doctorId?: string
   facilityId?: string
+  consultationFee?: number | null
+  paymentPolicy?: AppointmentPaymentPolicy
+  depositPercentage?: number
   onSuccess?: () => void
 }
 
-export default function AppointmentForm({ doctorId, facilityId, onSuccess }: AppointmentFormProps) {
+export default function AppointmentForm({
+  doctorId,
+  facilityId,
+  consultationFee = null,
+  paymentPolicy = 'PAY_ON_SERVICE',
+  depositPercentage = 30,
+  onSuccess,
+}: AppointmentFormProps) {
   const { data: session } = useSession()
   const router = useRouter()
   const t = useTranslations('appointment')
@@ -35,6 +51,23 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [paymentPending, setPaymentPending] = useState(false)
+
+  const fee = consultationFee ?? 0
+
+  const paymentQuote = useMemo(
+    () =>
+      resolveAppointmentPayment({
+        fee,
+        paymentPolicy,
+        depositPercentage,
+        isDepositPaid: false,
+        isPaid: false,
+      }),
+    [fee, paymentPolicy, depositPercentage],
+  )
+
+  const requiresUpfrontPayment = paymentQuote.requiresPayment && fee > 0 && !!doctorId
 
   const tomorrow = new Date()
   tomorrow.setDate(tomorrow.getDate() + 1)
@@ -101,6 +134,7 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
           duration: selectedSlot.duration,
           reason: reason || undefined,
           notes: notes || undefined,
+          fee: fee > 0 ? fee : undefined,
         }),
       })
 
@@ -114,6 +148,30 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
       if (!res.ok) {
         setError(data.error?.message ?? 'حدث خطأ في الحجز')
         return
+      }
+
+      const appointmentId = data.data?.id as string | undefined
+
+      if (requiresUpfrontPayment && appointmentId) {
+        setPaymentPending(true)
+        try {
+          await payForAppointment({
+            appointmentId,
+            fee,
+            paymentPolicy,
+            depositPercentage,
+            isDepositPaid: false,
+            isPaid: false,
+          })
+        } catch (payErr) {
+          setError(
+            `${piPaymentErrorMessage(payErr)} — تم إنشاء الموعد. يمكنك إتمام الدفع من صفحة مواعيدك.`,
+          )
+          setTimeout(() => router.push('/dashboard/client/appointments'), 2500)
+          return
+        } finally {
+          setPaymentPending(false)
+        }
       }
 
       setSuccess(true)
@@ -130,11 +188,21 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
     return (
       <div className="text-center py-6">
         <div className="text-4xl mb-2">✅</div>
-        <p className="text-emerald-400 font-medium">تم إرسال طلب الحجز!</p>
+        <p className="text-emerald-400 font-medium">
+          {requiresUpfrontPayment ? 'تم الحجز والدفع بنجاح!' : 'تم إرسال طلب الحجز!'}
+        </p>
         <p className="text-slate-400 text-sm mt-1">سيصلك إشعار عند تأكيد الطبيب — جاري التوجيه...</p>
       </div>
     )
   }
+
+  const submitLabel = (() => {
+    if (isLoading || paymentPending) return paymentPending ? 'جاري الدفع عبر Pi...' : 'جاري الحجز...'
+    if (requiresUpfrontPayment) {
+      return `📅 حجز ودفع ${paymentQuote.amount.toFixed(4)} π`
+    }
+    return '📅 طلب حجز موعد'
+  })()
 
   return (
     <div className="space-y-4">
@@ -142,6 +210,20 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
         <div className="bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-red-400 text-sm">
           {error}
         </div>
+      )}
+
+      {fee > 0 && doctorId && (
+        <DepositCalculator
+          fee={fee}
+          paymentPolicy={paymentPolicy}
+          depositPercentage={depositPercentage}
+        />
+      )}
+
+      {requiresUpfrontPayment && (
+        <p className="text-purple-300/90 text-xs bg-purple-500/10 border border-purple-500/20 rounded-xl px-3 py-2">
+          🟣 الدفع بعملة Pi مطلوب الآن عبر Pi Browser — {paymentQuote.amount.toFixed(4)} π
+        </p>
       )}
 
       {(() => {
@@ -234,11 +316,11 @@ export default function AppointmentForm({ doctorId, facilityId, onSuccess }: App
 
       <button
         type="button"
-        onClick={handleBook}
-        disabled={isLoading || !selectedSlot}
+        onClick={() => void handleBook()}
+        disabled={isLoading || paymentPending || !selectedSlot}
         className="w-full bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold py-3 rounded-xl transition-all"
       >
-        {isLoading ? 'جاري الحجز...' : '📅 طلب حجز موعد'}
+        {submitLabel}
       </button>
 
       {!session && (

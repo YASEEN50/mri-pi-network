@@ -22,10 +22,11 @@ export async function authenticateForPiPayments(): Promise<void> {
 
 export interface PiPayApprovePayload {
   paymentId: string
-  purpose: 'PREMIO' | 'APPOINTMENT'
+  purpose: 'PREMIO' | 'APPOINTMENT' | 'INSTANT_CONSULT'
   amount: number
   planType?: 'MONTHLY' | 'YEARLY' | 'LIFETIME'
   appointmentId?: string
+  instantConsultId?: string
   paymentType?: 'FULL' | 'DEPOSIT'
 }
 
@@ -127,6 +128,25 @@ export async function payForAppointment(
       amount: quote.amount,
       appointmentId: input.appointmentId,
       paymentType: quote.paymentType,
+    },
+  })
+}
+
+/** Instant consult fee via Pi U2A */
+export async function payForInstantConsult(
+  instantConsultId: string,
+  fee: number,
+): Promise<{ paymentId: string; txid: string }> {
+  if (fee <= 0) throw new Error('رسوم الاستشارة غير محددة')
+
+  return payWithPi({
+    amount: fee,
+    memo: 'استشارة فورية',
+    metadata: { purpose: 'INSTANT_CONSULT', instantConsultId },
+    approvePayload: {
+      purpose: 'INSTANT_CONSULT',
+      amount: fee,
+      instantConsultId,
     },
   })
 }

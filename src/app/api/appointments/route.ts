@@ -153,12 +153,16 @@ export async function POST(req: NextRequest) {
 
     let resolvedFee = fee
 
+    let doctorPayment: { paymentPolicy: string; depositPercentage: unknown } | null = null
+
     if (doctorId) {
       const doctor = await prisma.doctorProfile.findFirst({
         where: { id: doctorId, deletedAt: null, approvalStatus: 'APPROVED' },
-        select: { id: true, consultationFee: true },
+        select: { id: true, consultationFee: true, paymentPolicy: true, depositPercentage: true },
       })
       if (!doctor) return ok({ error: true, message: 'الطبيب غير متاح للحجز' })
+
+      doctorPayment = { paymentPolicy: doctor.paymentPolicy, depositPercentage: doctor.depositPercentage }
 
       const listed = await doctorHasActivePremioByProfileId(doctorId)
       if (!listed) return ok({ error: true, message: 'هذا الطبيب غير متاح للحجز حالياً' })
@@ -201,7 +205,15 @@ export async function POST(req: NextRequest) {
     createRemindersForAppointment(appointment.id).catch(console.error)
     notifyAppointmentBooked(appointment.id).catch(console.error)
 
-    return created({ id: appointment.id, status: appointment.status })
+    return created({
+      id: appointment.id,
+      status: appointment.status,
+      fee: resolvedFee ?? null,
+      ...(doctorPayment && {
+        paymentPolicy: doctorPayment.paymentPolicy,
+        depositPercentage: Number(doctorPayment.depositPercentage),
+      }),
+    })
   } catch (err) {
     console.error('[POST /api/appointments]', err)
     return serverError()

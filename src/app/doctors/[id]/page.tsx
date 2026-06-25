@@ -144,7 +144,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
               <div className="flex-shrink-0 text-center px-6 py-4 rounded-2xl hidden sm:block bg-primary/10 border border-primary/25">
                 <p className="text-slate-400 text-xs mb-1">رسوم الاستشارة</p>
                 <p className="text-3xl font-bold text-accent">{fee}</p>
-                <p className="text-slate-400 text-xs mt-1">ريال سعودي</p>
+                <p className="text-slate-400 text-xs mt-1">π Pi</p>
               </div>
             )}
           </div>
@@ -325,7 +325,7 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                 {fee && (
                   <div className="flex items-baseline gap-1">
                     <span className="text-2xl font-bold text-accent">{fee}</span>
-                    <span className="text-slate-400 text-sm">ريال</span>
+                    <span className="text-slate-400 text-sm">π</span>
                   </div>
                 )}
                 {doctor.paymentPolicy && (
@@ -335,7 +335,12 @@ export default async function DoctorPage({ params }: { params: Promise<{ id: str
                 )}
               </div>
               <div className="p-5">
-                <AppointmentForm doctorId={doctor.id} />
+                <AppointmentForm
+                  doctorId={doctor.id}
+                  consultationFee={fee}
+                  paymentPolicy={doctor.paymentPolicy as 'PAY_BEFORE_BOOKING' | 'DEPOSIT_AND_PAY_LATER' | 'PAY_ON_SERVICE'}
+                  depositPercentage={Number(doctor.depositPercentage)}
+                />
               </div>
             </div>
 
