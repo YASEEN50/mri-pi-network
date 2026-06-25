@@ -1,13 +1,12 @@
 // src/app/api/profile/avatar/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { randomUUID } from 'crypto'
-import { mkdir, writeFile } from 'fs/promises'
-import { join } from 'path'
 import { Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { fromAppError, ok, serverError } from '@/lib/api-response'
+import { avatarStorageUnavailableMessage, saveAvatarFile } from '@/lib/avatars/storage'
 import { prisma } from '@/lib/prisma'
 import { validateFileBuffer } from '@/lib/verification/file-validator'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -18,6 +17,11 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireAuth({ roles: [Role.CLIENT, Role.DOCTOR] })
     if (!auth.success) return fromAppError(auth.error)
+
+    const storageBlocked = avatarStorageUnavailableMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
 
     const formData = await req.formData().catch(() => null)
     if (!formData) {
@@ -38,14 +42,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const ext = validation.mimeType === 'image/png' ? '.png' : '.jpg'
-    const filename = `${auth.context.userId}-${randomUUID()}${ext}`
-    const storageKey = `avatars/${filename}`
-
-    await mkdir(join(process.cwd(), '.local-storage', 'avatars'), { recursive: true })
-    await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
-
-    const avatarUrl = `/api/avatars/${encodeURIComponent(filename)}`
+    const avatarUrl = await saveAvatarFile(
+      auth.context.userId,
+      buffer,
+      validation.mimeType as AllowedMimeType,
+    )
 
     if (auth.context.role === Role.CLIENT) {
       await prisma.clientProfile.upsert({

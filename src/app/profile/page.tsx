@@ -82,8 +82,12 @@ export default function ProfilePage() {
     if (!file) return
     e.target.value = ''
 
-    if (!file.type.startsWith('image/')) {
-      setMessage({ type: 'error', text: 'يُقبل فقط ملفات الصور' })
+    const isImage =
+      file.type.startsWith('image/') ||
+      file.type === '' ||
+      /\.(jpe?g|png|webp|heic|heif)$/i.test(file.name)
+    if (!isImage) {
+      setMessage({ type: 'error', text: 'يُقبل فقط ملفات الصور (JPEG أو PNG)' })
       return
     }
     if (file.size > 10 * 1024 * 1024) {
@@ -112,7 +116,14 @@ export default function ProfilePage() {
 
       if (!data.success || !data.data?.avatarUrl) {
         setAvatarPreview(null)
-        setMessage({ type: 'error', text: data.message ?? data.error?.message ?? 'فشل رفع الصورة' })
+        setMessage({
+          type: 'error',
+          text:
+            data.message ??
+            data.error?.message ??
+            data.data?.message ??
+            (res.ok ? 'فشل رفع الصورة' : `فشل رفع الصورة (${res.status})`),
+        })
         return
       }
 
@@ -208,7 +219,7 @@ export default function ProfilePage() {
                   <input
                     ref={avatarInputRef}
                     type="file"
-                    accept="image/jpeg,image/png,image/webp"
+                    accept="image/*"
                     className="hidden"
                     onChange={handleAvatarPick}
                   />
