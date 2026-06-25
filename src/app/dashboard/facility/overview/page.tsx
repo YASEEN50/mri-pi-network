@@ -85,6 +85,39 @@ export default function FacilityOverviewPage() {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Link href="/dashboard/facility/departments"
+                className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
+                <div className="w-12 h-12 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  🏢
+                </div>
+                <div>
+                  <p className="text-white font-medium">{tf('departments_title')}</p>
+                  <p className="text-slate-400 text-sm">{tf('departments_subtitle')}</p>
+                </div>
+              </Link>
+
+              <Link href="/dashboard/facility/on-call"
+                className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
+                <div className="w-12 h-12 rounded-xl bg-rose-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  📅
+                </div>
+                <div>
+                  <p className="text-white font-medium">{tf('on_call_title')}</p>
+                  <p className="text-slate-400 text-sm">{tf('on_call_subtitle')}</p>
+                </div>
+              </Link>
+
+              <Link href="/dashboard/facility/department-doctors"
+                className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
+                  👨‍⚕️
+                </div>
+                <div>
+                  <p className="text-white font-medium">{tf('dept_doctors_title')}</p>
+                  <p className="text-slate-400 text-sm">{tf('dept_doctors_subtitle')}</p>
+                </div>
+              </Link>
+
               <Link href="/dashboard/facility/doctors"
                 className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
                 <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
@@ -96,25 +129,25 @@ export default function FacilityOverviewPage() {
                 </div>
               </Link>
 
-              <Link href="/appointments"
+              <Link href="/dashboard/facility/appointments"
                 className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
                 <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
                   📅
                 </div>
                 <div>
-                  <p className="text-white font-medium">{ta('appointments_link')}</p>
+                  <p className="text-white font-medium">{tf('appointments_title')}</p>
                   <p className="text-slate-400 text-sm">{ta('appointments_desc')}</p>
                 </div>
               </Link>
 
-              <Link href="/profile"
+              <Link href="/dashboard/facility/settings"
                 className="bg-white/[0.03] border border-white/[0.08] hover:border-white/20 rounded-2xl p-5 flex items-center gap-4 transition-all group">
                 <div className="w-12 h-12 rounded-xl bg-violet-500/20 flex items-center justify-center text-2xl group-hover:scale-110 transition-transform">
-                  🏥
+                  ⚙️
                 </div>
                 <div>
-                  <p className="text-white font-medium">{ta('facility_profile')}</p>
-                  <p className="text-slate-400 text-sm">{ta('facility_profile_desc')}</p>
+                  <p className="text-white font-medium">{tf('settings_title')}</p>
+                  <p className="text-slate-400 text-sm">{tf('settings_subtitle')}</p>
                 </div>
               </Link>
             </div>

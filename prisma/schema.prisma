@@ -17,6 +17,13 @@ datasource db {
 // ENUMS
 // =============================================================================
 
+enum OnCallShiftType {
+  MORNING
+  EVENING
+  NIGHT
+  FULL_DAY
+}
+
 enum Role {
   CLIENT
   DOCTOR
@@ -342,6 +349,8 @@ model DoctorProfile {
   facilities    DoctorFacility[]
   availability  Availability[]
   appointments  Appointment[]          @relation("DoctorAppointments")
+  onCallShifts  OnCallShift[]
+  departmentAssignments DepartmentDoctorAssignment[]
   reviews       Review[]
   publications  Publication[]
   transactions  Transaction[]          @relation("DoctorTransactions")
@@ -465,6 +474,8 @@ model FacilityProfile {
   appointments Appointment[]    @relation("FacilityAppointments")
   reviews      Review[]
   availability Availability[]
+  departments  FacilityDepartment[]
+  onCallShifts OnCallShift[]
 
   @@index([userId])
   @@index([type])
@@ -473,6 +484,74 @@ model FacilityProfile {
   @@index([licenseNumber])
   @@index([deletedAt])
   @@map("facility_profiles")
+}
+
+// =============================================================================
+// FACILITY DEPARTMENTS & ON-CALL
+// =============================================================================
+
+model FacilityDepartment {
+  id          String   @id @default(uuid())
+  facilityId  String
+  code        String?
+  name        String
+  nameEn      String?
+  icon        String?
+  floor       String?
+  phone       String?
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  facility     FacilityProfile              @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  onCallShifts OnCallShift[]
+  doctors      DepartmentDoctorAssignment[]
+
+  @@unique([facilityId, code])
+  @@index([facilityId])
+  @@index([isActive])
+  @@map("facility_departments")
+}
+
+model DepartmentDoctorAssignment {
+  id           String   @id @default(uuid())
+  departmentId String
+  doctorId     String
+  role         String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  department FacilityDepartment @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  doctor     DoctorProfile      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@unique([departmentId, doctorId])
+  @@index([doctorId])
+  @@map("department_doctor_assignments")
+}
+
+model OnCallShift {
+  id           String          @id @default(uuid())
+  facilityId   String
+  departmentId String
+  doctorId     String
+  startsAt     DateTime
+  endsAt       DateTime
+  shiftType    OnCallShiftType @default(MORNING)
+  notes        String?
+  isPublished  Boolean         @default(true)
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  facility   FacilityProfile    @relation(fields: [facilityId], references: [id], onDelete: Cascade)
+  department FacilityDepartment @relation(fields: [departmentId], references: [id], onDelete: Cascade)
+  doctor     DoctorProfile      @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+
+  @@index([facilityId, startsAt, endsAt])
+  @@index([departmentId])
+  @@index([doctorId])
+  @@map("on_call_shifts")
 }
 
 // =============================================================================

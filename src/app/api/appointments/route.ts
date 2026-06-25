@@ -11,6 +11,7 @@ import { appointmentVideoFields } from '@/lib/appointments/online-video'
 import { assertBookableSlot } from '@/lib/appointments/booking'
 import { notifyAppointmentBooked } from '@/lib/appointments/notifications'
 import { isOnlineBookingEnabled } from '@/lib/appointments/online-video'
+import { buildFacilityAppointmentWhere } from '@/lib/facility/appointment-scope'
 
 const CreateSchema = z.object({
   doctorId:    z.string().uuid().optional(),
@@ -33,9 +34,12 @@ export async function GET(req: NextRequest) {
     const page   = Number(req.nextUrl.searchParams.get('page')  ?? 1)
     const limit  = Number(req.nextUrl.searchParams.get('limit') ?? 20)
     const status = req.nextUrl.searchParams.get('status')
+    const doctorId = req.nextUrl.searchParams.get('doctorId')
+    const fromDate = req.nextUrl.searchParams.get('fromDate')
+    const toDate = req.nextUrl.searchParams.get('toDate')
     const skip   = (page - 1) * limit
 
-    const where: any = { deletedAt: null }
+    let where: any = { deletedAt: null }
     if (role === Role.CLIENT)   where.clientId  = userId
     if (role === Role.DOCTOR) {
       const doctor = await prisma.doctorProfile.findUnique({ where: { userId }, select: { id: true } })
@@ -43,9 +47,26 @@ export async function GET(req: NextRequest) {
     }
     if (role === Role.FACILITY) {
       const facility = await prisma.facilityProfile.findUnique({ where: { userId }, select: { id: true } })
-      if (facility) where.facilityId = facility.id
+      if (facility) {
+        where = await buildFacilityAppointmentWhere(facility.id, {
+          doctorId,
+          status,
+          fromDate,
+          toDate,
+        })
+      }
+    } else {
+      if (status) where.status = status
+      if (fromDate || toDate) {
+        where.scheduledAt = {}
+        if (fromDate) where.scheduledAt.gte = new Date(fromDate)
+        if (toDate) {
+          const end = new Date(toDate)
+          end.setHours(23, 59, 59, 999)
+          where.scheduledAt.lte = end
+        }
+      }
     }
-    if (status) where.status = status
 
     const [appointments, total] = await prisma.$transaction([
       prisma.appointment.findMany({

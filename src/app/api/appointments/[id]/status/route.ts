@@ -4,6 +4,7 @@ import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { cancelRemindersForAppointment } from '@/lib/cron/reminders.service'
+import { canFacilityManageAppointment } from '@/lib/facility/appointment-scope'
 import {
   notifyAppointmentConfirmed,
   notifyAppointmentCancelled,
@@ -32,12 +33,13 @@ async function canManageAppointment(
     return doctor?.id === appointment.doctorId
   }
 
-  if (role === Role.FACILITY && appointment.facilityId) {
+  if (role === Role.FACILITY) {
     const facility = await prisma.facilityProfile.findUnique({
       where: { userId },
       select: { id: true },
     })
-    return facility?.id === appointment.facilityId
+    if (!facility) return false
+    return canFacilityManageAppointment(facility.id, appointment)
   }
 
   return false

@@ -2,7 +2,7 @@
 
 > **آخر تحديث:** 2026-05-20  
 > **الفرع:** `main`  
-> **الحالة:** منجز — المرحلة 4
+> **الحالة:** منجز — المرحلة 5 (لوحة المنشأة)
 
 ---
 
@@ -50,6 +50,20 @@
 | 4.3 | سياسة retention للبيانات الصحية | ✅ منجز | cron `/api/cron/health-retention`, `docs/HEALTH_DATA_RETENTION.md` |
 | 4.4 | CI + tests (auth، دفع، مواعيد) | ✅ منجز | GitHub Actions, Vitest, `docs/CI.md` |
 | 4.5 | Sentry + monitoring | ✅ منجز | instrumentation, global-error, `/api/health`, `docs/SENTRY.md` |
+
+---
+
+## المرحلة 5 — لوحة المنشأة (مستشفى / مركز طبي)
+
+| # | المهمة | الحالة | ملاحظات |
+|---|--------|--------|---------|
+| 5.1 | **أقسام المنشأة** — قالب 15 قسم + تفعيل/تعطيل | ✅ منجز | `FacilityDepartment`, `/dashboard/facility/departments` |
+| 5.2 | **جدول المناوبات** — تعيين طبيب/قسم/فترة | ✅ منجز | `OnCallShift`, `/dashboard/facility/on-call`, عرض عام في `/facilities/[id]` |
+| 5.3 | ربط الأطباء بالأقسام (UI) | ✅ منجز | `/dashboard/facility/department-doctors`, API assignments |
+| 5.4 | إدارة مواعيد المنشأة | ✅ منجز | `/dashboard/facility/appointments`, تأكيد/إلغاء/إكمال |
+| 5.5 | إعدادات ملف المنشأة | ✅ منجز | `/dashboard/facility/settings`, logo/cover upload |
+
+**Migration:** `20260520160000_facility_departments_on_call` — `npx prisma migrate deploy` على production
 
 ---
 

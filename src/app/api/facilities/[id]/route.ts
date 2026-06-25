@@ -19,6 +19,7 @@ export async function GET(
       description: facility.description, address: facility.address,
       city: facility.city, country: facility.country,
       phone: facility.phone, email: facility.email, website: facility.website,
+      logoUrl: facility.logoUrl, coverUrl: facility.coverUrl,
       averageRating: Number(facility.averageRating), totalReviews: facility.totalReviews,
     })
   } catch (err) {

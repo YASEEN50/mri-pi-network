@@ -33,6 +33,7 @@ export interface Appointment {
 
 export function useAppointments(options: {
   status?:   string
+  doctorId?: string
   fromDate?: string
   toDate?:   string
   page?:     number
@@ -49,6 +50,7 @@ export function useAppointments(options: {
     try {
       const params = new URLSearchParams()
       if (options.status)   params.set('status',   options.status)
+      if (options.doctorId) params.set('doctorId', options.doctorId)
       if (options.fromDate) params.set('fromDate',  options.fromDate)
       if (options.toDate)   params.set('toDate',    options.toDate)
       if (options.page)     params.set('page',      String(options.page))
@@ -64,7 +66,7 @@ export function useAppointments(options: {
     } finally {
       setIsLoading(false)
     }
-  }, [options.status, options.fromDate, options.toDate, options.page, options.limit])
+  }, [options.status, options.doctorId, options.fromDate, options.toDate, options.page, options.limit])
 
   useEffect(() => { fetchAppointments() }, [fetchAppointments])
 
@@ -89,5 +91,6 @@ export function useAppointments(options: {
     confirmAppointment:  (id: string) => updateStatus(id, 'CONFIRMED'),
     completeAppointment: (id: string, doctorNotes?: string) =>
       updateStatus(id, 'COMPLETED', doctorNotes ? { doctorNotes } : undefined),
+    noShowAppointment:   (id: string) => updateStatus(id, 'NO_SHOW'),
   }
 }

@@ -47,6 +47,11 @@ function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: str
   if (role === Role.FACILITY) {
     return [
       { href: '/dashboard/facility/overview', label: locale === 'ar' ? 'لوحة المنشأة' : 'Overview' },
+      { href: '/dashboard/facility/departments', label: locale === 'ar' ? 'الأقسام' : 'Departments' },
+      { href: '/dashboard/facility/department-doctors', label: locale === 'ar' ? 'أطباء الأقسام' : 'Dept. doctors' },
+      { href: '/dashboard/facility/on-call',      label: locale === 'ar' ? 'المناوبات' : 'On-call' },
+      { href: '/dashboard/facility/appointments', label: locale === 'ar' ? 'المواعيد' : 'Appointments' },
+      { href: '/dashboard/facility/settings',   label: locale === 'ar' ? 'الإعدادات' : 'Settings' },
       { href: '/dashboard/facility/doctors',  label: locale === 'ar' ? 'الأطباء' : 'Doctors' },
       { href: '/facilities',                  label: t('nav.facilities') },
     ]

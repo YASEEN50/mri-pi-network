@@ -6,6 +6,7 @@ import AppointmentForm from '@/components/appointments/AppointmentForm'
 import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
+import { ON_CALL_SHIFT_LABELS } from '@/lib/facility/department-catalog'
 
 const FACILITY_TYPE_LABELS: Record<string, { label: string; icon: string; color: string }> = {
   HOSPITAL:           { label: 'مستشفى',              icon: '🏥', color: '#3b82f6' },
@@ -54,6 +55,28 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
   })
 
   if (!facility) notFound()
+
+  const now = new Date()
+  const [departments, onCallNow] = await Promise.all([
+    prisma.facilityDepartment.findMany({
+      where: { facilityId: id, isActive: true },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
+      select: { id: true, name: true, icon: true, floor: true, phone: true },
+    }),
+    prisma.onCallShift.findMany({
+      where: {
+        facilityId: id,
+        isPublished: true,
+        startsAt: { lte: now },
+        endsAt: { gt: now },
+      },
+      include: {
+        department: { select: { name: true, icon: true } },
+        doctor: { select: { firstName: true, lastName: true, specialization: true } },
+      },
+      orderBy: { startsAt: 'asc' },
+    }),
+  ])
 
   const typeInfo  = FACILITY_TYPE_LABELS[facility.type] ?? { label: facility.type, icon: '🏥', color: '#10b981' }
   const rating    = Number(facility.averageRating)
@@ -195,6 +218,55 @@ export default async function FacilityPage({ params }: { params: Promise<{ id: s
                     </div>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {(onCallNow.length > 0 || departments.length > 0) && (
+              <div className="rounded-2xl p-6" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.07)'}}>
+                <h2 className="text-white font-bold mb-4 flex items-center gap-2">
+                  <span className="w-1 h-5 rounded-full inline-block" style={{background:'#f43f5e'}}></span>
+                  الأقسام والمناوبون
+                </h2>
+
+                {onCallNow.length > 0 && (
+                  <div className="mb-4 space-y-2">
+                    <p className="text-rose-400 text-xs font-medium">● مناوب الآن</p>
+                    {onCallNow.map((s) => (
+                      <div key={s.id} className="rounded-xl p-3 flex items-center justify-between gap-3"
+                        style={{background:'rgba(244,63,94,0.08)',border:'1px solid rgba(244,63,94,0.2)'}}>
+                        <div>
+                          <p className="text-white text-sm font-medium">
+                            {s.department.icon} {s.department.name}
+                          </p>
+                          <p className="text-slate-300 text-sm">
+                            د. {s.doctor.firstName} {s.doctor.lastName} · {s.doctor.specialization}
+                          </p>
+                          <p className="text-slate-500 text-xs">
+                            {ON_CALL_SHIFT_LABELS[s.shiftType]?.ar ?? s.shiftType}
+                          </p>
+                        </div>
+                        <Link href={`/doctors/${s.doctorId}`}
+                          className="text-xs px-3 py-1.5 rounded-lg shrink-0"
+                          style={{background:'rgba(255,255,255,0.08)',color:'#fda4af'}}>
+                          الملف
+                        </Link>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {departments.length > 0 && (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {departments.map((d) => (
+                      <div key={d.id} className="rounded-xl p-3 text-center"
+                        style={{background:'rgba(255,255,255,0.04)',border:'1px solid rgba(255,255,255,0.08)'}}>
+                        <span className="text-xl">{d.icon ?? '🏥'}</span>
+                        <p className="text-white text-sm font-medium mt-1">{d.name}</p>
+                        {d.floor && <p className="text-slate-500 text-xs">طابق {d.floor}</p>}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
