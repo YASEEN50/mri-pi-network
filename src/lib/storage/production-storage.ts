@@ -1,18 +1,19 @@
-import {
-  getFileStorage,
-  getMissingR2EnvVars,
-  getStorageProvider,
-} from '@/infrastructure/storage/storage.factory'
+import { getStorageProvider } from '@/infrastructure/storage/storage.factory'
 import type { AllowedMimeType, UploadFileOptions } from '@/core/interfaces/services/file-storage.interface'
 import { randomUUID } from 'crypto'
-import { mkdir, writeFile } from 'fs/promises'
+import { mkdir, readFile, writeFile } from 'fs/promises'
 import { join } from 'path'
+import {
+  downloadFile,
+  getMissingR2ClientEnvVars,
+  uploadFile,
+} from '@/lib/storage/r2-client'
 
 export function productionStorageBlockedMessage(): string | null {
   const provider = getStorageProvider()
 
   if (provider === 'r2') {
-    const missing = getMissingR2EnvVars()
+    const missing = getMissingR2ClientEnvVars()
     if (missing.length > 0) {
       return `إعدادات R2 ناقصة في Vercel: ${missing.join(', ')}`
     }
@@ -26,36 +27,77 @@ export function productionStorageBlockedMessage(): string | null {
   return null
 }
 
+export function getActiveStorageBucket(): 'local' | 'r2' {
+  return getStorageProvider() === 'r2' ? 'r2' : 'local'
+}
+
 const MIME_EXT: Record<string, string> = {
   'image/jpeg': '.jpg',
   'image/png': '.png',
   'application/pdf': '.pdf',
 }
 
+/** Map IFileStorage folder names to legacy local/R2 key prefixes. */
+const FOLDER_ALIASES: Record<string, string> = {
+  licenses: 'license',
+  credentials: 'credential',
+}
+
+function resolveStorageFolder(folder: string): string {
+  return FOLDER_ALIASES[folder] ?? folder
+}
+
 function localFilesUrl(storageKey: string): string {
   return `/api/files/${storageKey.split('/').map(encodeURIComponent).join('/')}`
+}
+
+export async function saveBufferByKey(
+  buffer: Buffer,
+  storageKey: string,
+  mimeType: AllowedMimeType,
+): Promise<{ url: string; key: string; bucket: 'local' | 'r2' }> {
+  const key = storageKey.replace(/^\/+/, '')
+
+  if (getStorageProvider() === 'r2') {
+    const uploaded = await uploadFile({
+      key,
+      body: buffer,
+      contentType: mimeType,
+    })
+    return { url: uploaded.url, key: uploaded.key, bucket: 'r2' }
+  }
+
+  const localDir = join(process.cwd(), '.local-storage', key.split('/')[0] ?? '')
+  await mkdir(localDir, { recursive: true })
+  await writeFile(join(process.cwd(), '.local-storage', key), buffer)
+  return { url: localFilesUrl(key), key, bucket: 'local' }
+}
+
+export async function readBufferByKey(
+  storageKey: string,
+  storageBucket?: string | null,
+): Promise<Buffer> {
+  const key = storageKey.replace(/^\/+/, '')
+  const useR2 = storageBucket === 'r2' || (storageBucket !== 'local' && getStorageProvider() === 'r2')
+
+  if (useR2) {
+    return downloadFile(key)
+  }
+
+  return readFile(join(process.cwd(), '.local-storage', key))
 }
 
 export async function saveUploadedFile(
   buffer: Buffer,
   options: UploadFileOptions,
 ): Promise<string> {
-  const provider = getStorageProvider()
-
-  if (provider === 'r2') {
-    const storage = getFileStorage()
-    const uploaded = await storage.upload(buffer, options)
-    return uploaded.url
-  }
-
+  const folder = resolveStorageFolder(options.folder)
   const ext = MIME_EXT[options.mimeType] ?? '.bin'
   const filename = options.filename
     ? `${options.filename}-${randomUUID()}${ext}`
     : `${randomUUID()}${ext}`
-  const storageKey = `${options.folder}/${filename}`
-  const localDir = join(process.cwd(), '.local-storage', options.folder)
+  const storageKey = `${folder}/${filename}`
 
-  await mkdir(localDir, { recursive: true })
-  await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
-  return localFilesUrl(storageKey)
+  const saved = await saveBufferByKey(buffer, storageKey, options.mimeType)
+  return saved.url
 }

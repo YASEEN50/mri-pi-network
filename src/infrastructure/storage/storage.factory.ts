@@ -4,6 +4,7 @@
 // =============================================================================
 
 import { IFileStorage } from '@/core/interfaces/services/file-storage.interface'
+import { getMissingR2ClientEnvVars } from '@/lib/storage/r2-client'
 
 let _instance: IFileStorage | null = null
 
@@ -12,13 +13,7 @@ export function getStorageProvider(): string {
 }
 
 export function getMissingR2EnvVars(): string[] {
-  return [
-    'R2_ACCOUNT_ID',
-    'R2_ACCESS_KEY_ID',
-    'R2_SECRET_ACCESS_KEY',
-    'R2_BUCKET_NAME',
-    'R2_PUBLIC_URL',
-  ].filter((key) => !process.env[key]?.trim())
+  return getMissingR2ClientEnvVars()
 }
 
 export function getFileStorage(): IFileStorage {

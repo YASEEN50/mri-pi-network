@@ -15,8 +15,11 @@ import {
 } from '@/lib/verification/document-types'
 import { Role } from '@prisma/client'
 import { randomUUID, createHash } from 'crypto'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import {
+  productionStorageBlockedMessage,
+  saveBufferByKey,
+} from '@/lib/storage/production-storage'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -34,6 +37,11 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireAuth({ roles: [Role.DOCTOR] })
     if (!auth.success) return fromAppError(auth.error)
+
+    const storageBlocked = productionStorageBlockedMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
 
     const { userId } = auth.context
     const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
@@ -148,9 +156,11 @@ const UPLOAD_DOC_TYPES = [DOC_TYPES.CREDENTIAL, DOC_TYPES.DATAFLOW, DOC_TYPES.ID
     const folder = FOLDER_MAP[docType] ?? 'misc'
     const storageKey = `${folder}/${randomUUID()}${ext}`
     const sha256 = createHash('sha256').update(buffer).digest('hex')
-
-    await mkdir(join(process.cwd(), '.local-storage', folder), { recursive: true })
-    await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
+    const stored = await saveBufferByKey(
+      buffer,
+      storageKey,
+      validation.mimeType! as AllowedMimeType,
+    )
 
     const document = await db.verificationDocument.create({
       data: {
@@ -161,7 +171,7 @@ const UPLOAD_DOC_TYPES = [DOC_TYPES.CREDENTIAL, DOC_TYPES.DATAFLOW, DOC_TYPES.ID
         legalName: legalName ?? undefined,
         title: subType ?? undefined,
         storageKey,
-        storageBucket: 'local',
+        storageBucket: stored.bucket,
         mimeType: validation.mimeType!,
         fileSizeBytes: buffer.length,
         sha256Hash: sha256,

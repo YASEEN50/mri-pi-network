@@ -6,9 +6,8 @@ import { prisma, db } from '@/lib/prisma'
 import { getFaceService }            from '@/lib/verification/face.service'
 import { z }                         from 'zod'
 import { createHmac, randomUUID }    from 'crypto'
-import { readFile }                  from 'fs/promises'
-import { join }                      from 'path'
 import { requireEnv }                from '@/lib/env'
+import { readBufferByKey }           from '@/lib/storage/production-storage'
 import {
   ensureLegacyHumanQueue,
   logVerificationPhase,
@@ -62,10 +61,15 @@ export async function POST(req: NextRequest) {
     let selfieBuffer: Buffer
     let idBuffer: Buffer
 
+    const selfieDoc = await db.verificationDocument.findUnique({
+      where: { id: job.selfieDocId },
+      select: { storageBucket: true },
+    }).catch(() => null)
+
     try {
       ;[selfieBuffer, idBuffer] = await Promise.all([
-        readFile(join(process.cwd(), '.local-storage', job.selfieKey)),
-        readFile(join(process.cwd(), '.local-storage', job.idKey)),
+        readBufferByKey(job.selfieKey, selfieDoc?.storageBucket),
+        readBufferByKey(job.idKey, selfieDoc?.storageBucket),
       ])
     } catch (fileErr) {
       console.warn('[face-worker] Files not found — advancing to PENDING_HUMAN without face comparison')

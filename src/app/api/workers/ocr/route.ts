@@ -7,11 +7,9 @@ import { prisma, db } from '@/lib/prisma'
 import { OcrService }                from '@/lib/verification/ocr.service'
 import { validateFileBuffer }        from '@/lib/verification/file-validator'
 import { z }                         from 'zod'
-import { createHash, createHmac }    from 'crypto'
-import { readFile }                  from 'fs/promises'
-import { join }                      from 'path'
-import { randomUUID }                from 'crypto'
-import { requireEnv }                from '@/lib/env'
+import { createHash, createHmac, randomUUID } from 'crypto'
+import { requireEnv } from '@/lib/env'
+import { readBufferByKey } from '@/lib/storage/production-storage'
 import {
   logVerificationPhase,
   VerificationPipelinePhase,
@@ -71,14 +69,16 @@ export async function POST(req: NextRequest) {
   }).catch(() => {})
 
   try {
-    // ── Read file from local storage ──────────────────────────────────────
-    const filePath = join(process.cwd(), '.local-storage', job.storageKey)
+    const docMeta = await db.verificationDocument.findUnique({
+      where: { id: job.documentId },
+      select: { storageBucket: true },
+    }).catch(() => null)
 
     let buffer: Buffer | null = null
     try {
-      buffer = await readFile(filePath)
+      buffer = await readBufferByKey(job.storageKey, docMeta?.storageBucket)
     } catch (fileErr) {
-      console.warn(`[ocr-worker] File not found: ${filePath} — advancing session anyway`)
+      console.warn(`[ocr-worker] File not found: ${job.storageKey} — advancing session anyway`, fileErr)
       // الملف غير موجود (Vercel / بيئة بلا storage) — نُحدّث الحالة ونُكمل
       await prisma.$transaction([
         prisma.verificationSession.updateMany({

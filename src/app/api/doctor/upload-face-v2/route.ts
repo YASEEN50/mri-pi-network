@@ -10,9 +10,12 @@ import { fromAppError, serverError } from '@/lib/api-response'
 import { validateFileBuffer }        from '@/lib/verification/file-validator'
 import { Role }                      from '@prisma/client'
 import { randomUUID, createHash }    from 'crypto'
-import { writeFile, mkdir }          from 'fs/promises'
-import { join }                      from 'path'
 import { requireEnv }                from '@/lib/env'
+import {
+  productionStorageBlockedMessage,
+  saveBufferByKey,
+} from '@/lib/storage/production-storage'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime     = 'nodejs'
 export const maxDuration = 30
@@ -21,6 +24,12 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireAuth({ roles: [Role.DOCTOR] })
     if (!auth.success) return fromAppError(auth.error)
+
+    const storageBlocked = productionStorageBlockedMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
+
     const { userId } = auth.context
     const ip       = req.headers.get('x-forwarded-for') ?? 'unknown'
     const deviceId = req.headers.get('x-device-id') ?? 'unknown'
@@ -72,19 +81,18 @@ export async function POST(req: NextRequest) {
     async function storeFile(buffer: Buffer, folder: string, mimeType: string) {
       const ext = { 'image/jpeg': '.jpg', 'image/png': '.png' }[mimeType] ?? '.jpg'
       const key = `${folder}/${randomUUID()}${ext}`
-      await mkdir(join(process.cwd(), '.local-storage', folder), { recursive: true })
-      await writeFile(join(process.cwd(), '.local-storage', key), buffer)
-      return { key, sha256: createHash('sha256').update(buffer).digest('hex') }
+      const stored = await saveBufferByKey(buffer, key, mimeType as AllowedMimeType)
+      return { key: stored.key, sha256: createHash('sha256').update(buffer).digest('hex'), bucket: stored.bucket }
     }
 
-    const { key: selfieKey, sha256: selfieSha } = await storeFile(selfieBuffer, 'selfie', selfieValidation.mimeType!)
+    const { key: selfieKey, sha256: selfieSha, bucket } = await storeFile(selfieBuffer, 'selfie', selfieValidation.mimeType!)
     const { key: idKey,     sha256: idSha }     = await storeFile(idBuffer,     'id-doc', idValidation.mimeType!)
 
     // Save documents in DB
     const selfieDoc = await db.verificationDocument.create({
       data: {
         sessionId: session.id, doctorId: doctor.id, docType: 'SELFIE',
-        storageKey: selfieKey, storageBucket: 'local',
+        storageKey: selfieKey, storageBucket: bucket,
         mimeType: selfieValidation.mimeType!, fileSizeBytes: selfieBuffer.length,
         sha256Hash: selfieSha, isProcessed: false,
       },
@@ -93,7 +101,7 @@ export async function POST(req: NextRequest) {
     const idDoc = await db.verificationDocument.create({
       data: {
         sessionId: session.id, doctorId: doctor.id, docType: 'ID_DOCUMENT',
-        storageKey: idKey, storageBucket: 'local',
+        storageKey: idKey, storageBucket: bucket,
         mimeType: idValidation.mimeType!, fileSizeBytes: idBuffer.length,
         sha256Hash: idSha, isProcessed: false,
       },

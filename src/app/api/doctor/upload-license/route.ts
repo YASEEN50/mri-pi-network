@@ -11,8 +11,11 @@ import { fromAppError, serverError } from '@/lib/api-response'
 import { validateFileBuffer }        from '@/lib/verification/file-validator'
 import { Role }                      from '@prisma/client'
 import { randomUUID, createHash }    from 'crypto'
-import { writeFile, mkdir }          from 'fs/promises'
-import { join }                      from 'path'
+import {
+  productionStorageBlockedMessage,
+  saveBufferByKey,
+} from '@/lib/storage/production-storage'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 import {
   logVerificationPhase,
   VerificationPipelinePhase,
@@ -27,6 +30,11 @@ export async function POST(req: NextRequest) {
     const auth = await requireAuth({ roles: [Role.DOCTOR] })
     if (!auth.success) return fromAppError(auth.error)
     const { userId } = auth.context
+
+    const storageBlocked = productionStorageBlockedMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
 
     // Rate limiting — 5 رفوعات/دقيقة لكل طبيب (Upstash)
     const rl = await rateLimitUploadLicense(userId)
@@ -95,10 +103,11 @@ export async function POST(req: NextRequest) {
     const ext        = { 'image/jpeg': '.jpg', 'image/png': '.png', 'application/pdf': '.pdf' }[validation.mimeType!] ?? ''
     const storageKey = `license/${randomUUID()}${ext}`
     const sha256     = createHash('sha256').update(buffer).digest('hex')
-    const storageDir = join(process.cwd(), '.local-storage', 'license')
-
-    await mkdir(storageDir, { recursive: true })
-    await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
+    const stored = await saveBufferByKey(
+      buffer,
+      storageKey,
+      validation.mimeType! as AllowedMimeType,
+    )
 
     // ── 8. Get or create verification session ─────────────────────────────
     let session = await db.verificationSession.findFirst({
@@ -132,7 +141,7 @@ export async function POST(req: NextRequest) {
         doctorId:      doctor.id,
         docType:       'LICENSE',
         storageKey,
-        storageBucket: 'local',
+        storageBucket: stored.bucket,
         mimeType:      validation.mimeType!,
         fileSizeBytes: buffer.length,
         sha256Hash:    sha256,
@@ -142,7 +151,7 @@ export async function POST(req: NextRequest) {
 
     await prisma.doctorProfile.update({
       where: { id: doctor.id },
-      data:  { licenseImageUrl: `/api/files/${storageKey.split('/').map(encodeURIComponent).join('/')}` },
+      data:  { licenseImageUrl: stored.url },
     })
 
     // ── 10. Enqueue OCR job ───────────────────────────────────────────────

@@ -10,6 +10,7 @@ import { collectIntelligence }                    from '@/lib/fraud-intelligence
 import { z }                                      from 'zod'
 import { randomUUID }                             from 'crypto'
 import { requireEnv }                             from '@/lib/env'
+import { readBufferByKey }                        from '@/lib/storage/production-storage'
 import {
   ensureLegacyHumanQueue,
   logVerificationPhase,
@@ -85,9 +86,7 @@ export async function POST(req: NextRequest) {
 
       // ب. pHash — تشابه بصري
       try {
-        const { readFile } = await import('fs/promises')
-        const { join }     = await import('path')
-        const buffer       = await readFile(join(process.cwd(), '.local-storage', doc.storageKey))
+        const buffer = await readBufferByKey(doc.storageKey, doc.storageBucket)
         const pHash        = await computePHash(buffer)
 
         await db.verificationDocument.update({ where: { id: doc.id }, data: { pHash } })

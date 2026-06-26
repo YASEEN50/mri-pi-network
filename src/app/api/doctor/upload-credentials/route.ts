@@ -10,8 +10,11 @@ import { fromAppError, serverError } from '@/lib/api-response'
 import { validateFileBuffer }        from '@/lib/verification/file-validator'
 import { Role }                      from '@prisma/client'
 import { randomUUID, createHash }    from 'crypto'
-import { writeFile, mkdir }          from 'fs/promises'
-import { join }                      from 'path'
+import {
+  productionStorageBlockedMessage,
+  saveBufferByKey,
+} from '@/lib/storage/production-storage'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime     = 'nodejs'
 export const maxDuration = 30
@@ -21,6 +24,12 @@ export async function POST(req: NextRequest) {
     const auth = await requireAuth({ roles: [Role.DOCTOR] })
     if (!auth.success) return fromAppError(auth.error)
     const { userId } = auth.context
+
+    const storageBlocked = productionStorageBlockedMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
+
     const ip       = req.headers.get('x-forwarded-for') ?? 'unknown'
     const deviceId = req.headers.get('x-device-id') ?? 'unknown'
 
@@ -52,10 +61,11 @@ export async function POST(req: NextRequest) {
     const ext        = { 'image/jpeg': '.jpg', 'image/png': '.png', 'application/pdf': '.pdf' }[validation.mimeType!] ?? ''
     const storageKey = `credential/${randomUUID()}${ext}`
     const sha256     = createHash('sha256').update(buffer).digest('hex')
-    const storageDir = join(process.cwd(), '.local-storage', 'credential')
-
-    await mkdir(storageDir, { recursive: true })
-    await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
+    const stored = await saveBufferByKey(
+      buffer,
+      storageKey,
+      validation.mimeType! as AllowedMimeType,
+    )
 
     // الحصول على الـ session النشطة
     const session = await db.verificationSession.findFirst({
@@ -76,7 +86,7 @@ export async function POST(req: NextRequest) {
         doctorId:      doctor.id,
         docType:       'CREDENTIAL',
         storageKey,
-        storageBucket: 'local',
+        storageBucket: stored.bucket,
         mimeType:      validation.mimeType!,
         fileSizeBytes: buffer.length,
         sha256Hash:    sha256,
