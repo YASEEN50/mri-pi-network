@@ -53,6 +53,7 @@ export function markExplicitLogout(): void {
 
 export function clearExplicitLogout(): void {
   try { sessionStorage.removeItem(PI_SKIP_AUTO_LOGIN_KEY) } catch {}
+  clearPiSessionRedirectLoop()
 }
 
 export function shouldSkipPiAutoLogin(): boolean {
@@ -63,6 +64,33 @@ async function requestCookieAccess(): Promise<void> {
   if (typeof document === 'undefined') return
   if (document.requestStorageAccess) {
     try { await document.requestStorageAccess() } catch { /* ignore */ }
+  }
+}
+
+/** Request third-party cookie access in Pi iframe (exported for session bootstrap). */
+export async function requestPiCookieAccess(): Promise<void> {
+  await requestCookieAccess()
+}
+
+const PI_SESSION_LOOP_KEY = 'pi_session_redirect_count'
+
+export function markPiSessionRedirect(): void {
+  try {
+    const count = parseInt(sessionStorage.getItem(PI_SESSION_LOOP_KEY) ?? '0', 10) + 1
+    sessionStorage.setItem(PI_SESSION_LOOP_KEY, String(count))
+  } catch { /* ignore */ }
+}
+
+export function clearPiSessionRedirectLoop(): void {
+  try { sessionStorage.removeItem(PI_SESSION_LOOP_KEY) } catch { /* ignore */ }
+}
+
+export function shouldBlockPiDashboardRedirect(): boolean {
+  try {
+    const count = parseInt(sessionStorage.getItem(PI_SESSION_LOOP_KEY) ?? '0', 10)
+    return count >= 2
+  } catch {
+    return false
   }
 }
 
@@ -146,10 +174,13 @@ function isPiEntryPath(): boolean {
 export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
   if (!isPiEntryPath()) return 'idle'
   if (shouldSkipPiAutoLogin()) return 'idle'
+  if (shouldBlockPiDashboardRedirect()) return 'idle'
   try {
+    await requestPiCookieAccess()
     const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
     const session = await res.json()
     if (session?.user) {
+      clearPiSessionRedirectLoop()
       if (typeof window !== 'undefined') window.location.href = '/dashboard'
       return 'redirecting'
     }

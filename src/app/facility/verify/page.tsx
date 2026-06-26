@@ -5,10 +5,9 @@
 
 
 import { useState, useEffect, useRef } from 'react'
-
-import { useSession } from 'next-auth/react'
-
 import { useRouter } from 'next/navigation'
+import { Role } from '@prisma/client'
+import { useRequireAuth } from '@/hooks/useRequireAuth'
 
 import Image from 'next/image'
 
@@ -77,9 +76,7 @@ function FileDrop({
 
 
 export default function FacilityVerifyPage() {
-
-  const { data: session, status } = useSession()
-
+  const { session, isLoading } = useRequireAuth({ roles: [Role.FACILITY], onRoleMismatch: '/' })
   const router = useRouter()
 
   const [step, setStep] = useState<Step>('ownership')
@@ -95,18 +92,11 @@ export default function FacilityVerifyPage() {
 
 
   useEffect(() => {
-
-    if (status === 'unauthenticated') { router.push('/login'); return }
-
-    if (session?.user?.role !== 'FACILITY') { router.push('/'); return }
-
-    if (session?.user?.approvalStatus === 'APPROVED') {
-
-      router.push('/dashboard/facility/doctors'); return
-
+    if (isLoading || !session?.user) return
+    if (session.user.approvalStatus === 'APPROVED') {
+      router.push('/dashboard/facility/doctors')
     }
-
-  }, [status, session, router])
+  }, [isLoading, session, router])
 
 
 
@@ -175,7 +165,7 @@ export default function FacilityVerifyPage() {
 
 
 
-  if (status === 'loading') return (
+  if (isLoading) return (
 
     <div className="min-h-screen bg-background flex items-center justify-center">
 

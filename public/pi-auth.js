@@ -172,11 +172,15 @@ window.PiAuth = (function () {
   }
 
   function verifySessionThenGo() {
-    return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+    return requestCookieAccess()
+      .then(function () {
+        return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+      })
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (s && s.user) {
           clearSkipAuto()
+          clearSessionRedirectLoop()
           window.location.href = '/dashboard'
           return
         }
@@ -227,13 +231,37 @@ window.PiAuth = (function () {
       p === '/pi.html' || p === '/pi-login.html' || p === '/pi-email.html'
   }
 
+  var LOOP_KEY = 'pi_session_redirect_count'
+
+  function markSessionRedirect() {
+    try {
+      var n = parseInt(sessionStorage.getItem(LOOP_KEY) || '0', 10) + 1
+      sessionStorage.setItem(LOOP_KEY, String(n))
+    } catch (e) {}
+  }
+
+  function shouldBlockDashboardRedirect() {
+    try {
+      return parseInt(sessionStorage.getItem(LOOP_KEY) || '0', 10) >= 2
+    } catch (e) { return false }
+  }
+
+  function clearSessionRedirectLoop() {
+    try { sessionStorage.removeItem(LOOP_KEY) } catch (e) {}
+  }
+
   function runOnLoad() {
     if (!isEntryPath()) return Promise.resolve({ mode: 'idle' })
     if (shouldSkipAuto()) return Promise.resolve({ mode: 'idle' })
-    return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+    if (shouldBlockDashboardRedirect()) return Promise.resolve({ mode: 'idle' })
+    return requestCookieAccess()
+      .then(function () {
+        return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+      })
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (s && s.user) {
+          clearSessionRedirectLoop()
           window.location.href = '/dashboard'
           return { mode: 'redirecting' }
         }

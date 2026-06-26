@@ -37,6 +37,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang={locale} dir={isRTL ? 'rtl' : 'ltr'} suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: PI_BROWSER_REDIRECT_SCRIPT }} />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{if(document.requestStorageAccess&&/PiBrowser|pibrowser|minepi/i.test(navigator.userAgent||'')){document.requestStorageAccess().catch(function(){});}}catch(e){}})();`,
+          }}
+        />
       </head>
       <body
         suppressHydrationWarning
