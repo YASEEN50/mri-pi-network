@@ -43,6 +43,9 @@ export class R2FileStorage implements IFileStorage {
       region: 'auto',
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
       credentials: { accessKeyId, secretAccessKey },
+      // AWS SDK ≥3.729 sends checksum headers R2 does not support (501 NotImplemented)
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     })
   }
 
@@ -108,6 +111,9 @@ export class R2FileStorage implements IFileStorage {
       }
       if (detail === 'NoSuchBucket') {
         throw new StorageError('اسم الـ bucket غير موجود — راجع R2_BUCKET_NAME')
+      }
+      if (detail === 'NotImplemented') {
+        throw new StorageError('R2 رفض الطلب (NotImplemented) — أعد المحاولة بعد تحديث التطبيق')
       }
       throw new StorageError('فشل رفع الملف إلى R2 — تحقق من إعدادات Cloudflare')
     }
