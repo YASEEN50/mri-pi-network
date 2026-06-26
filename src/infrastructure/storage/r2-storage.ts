@@ -95,8 +95,21 @@ export class R2FileStorage implements IFileStorage {
         mimeType: options.mimeType,
       }
     } catch (err) {
-      console.error('[R2Storage] Upload error:', err)
-      throw new StorageError('فشل رفع الملف إلى R2')
+      const detail =
+        err && typeof err === 'object' && 'name' in err
+          ? String((err as { name?: string; Code?: string }).name ?? (err as { Code?: string }).Code ?? '')
+          : ''
+      console.error('[R2Storage] Upload error:', detail, err)
+      if (detail === 'AccessDenied' || detail === 'Forbidden') {
+        throw new StorageError('رفض R2 الطلب — تحقق من صلاحيات API Token على الـ bucket')
+      }
+      if (detail === 'InvalidAccessKeyId' || detail === 'SignatureDoesNotMatch') {
+        throw new StorageError('مفاتيح R2 غير صحيحة — راجع R2_ACCESS_KEY_ID و R2_SECRET_ACCESS_KEY')
+      }
+      if (detail === 'NoSuchBucket') {
+        throw new StorageError('اسم الـ bucket غير موجود — راجع R2_BUCKET_NAME')
+      }
+      throw new StorageError('فشل رفع الملف إلى R2 — تحقق من إعدادات Cloudflare')
     }
   }
 

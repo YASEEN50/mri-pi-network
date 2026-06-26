@@ -153,7 +153,10 @@ export default function ProfilePage() {
         setMessage({ type: 'success', text: 'تم حفظ الملف الشخصي بنجاح ✅' })
         setIsEditing(false)
       } else {
-        setMessage({ type: 'error', text: data.error?.message || 'حدث خطأ' })
+        setMessage({
+          type: 'error',
+          text: data.error?.message ?? data.message ?? data.data?.message ?? 'حدث خطأ',
+        })
       }
     } catch { setMessage({ type: 'error', text: 'حدث خطأ في الاتصال' }) }
     finally { setIsSaving(false) }

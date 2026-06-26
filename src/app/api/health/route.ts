@@ -1,7 +1,8 @@
 // src/app/api/health/route.ts
 // Health check endpoint — للتحقق من حالة النظام
 import { NextResponse } from 'next/server'
-import { prisma }       from '@/lib/prisma'
+import { getMissingR2EnvVars, getStorageProvider } from '@/infrastructure/storage/storage.factory'
+import { prisma } from '@/lib/prisma'
 import { getPiNetworkApiKey, isPiSandboxMode } from '@/lib/pi/pi-api-key'
 
 export const runtime = 'nodejs'
@@ -20,7 +21,10 @@ export async function GET() {
       version:   process.env.npm_package_version ?? '0.1.0',
       services: {
         database: { status: 'ok', latencyMs: dbLatency },
-        storage:  { status: process.env.STORAGE_PROVIDER ?? 'local' },
+        storage:  {
+          provider: getStorageProvider(),
+          r2Missing: getStorageProvider() === 'r2' ? getMissingR2EnvVars() : [],
+        },
         deepface: { status: process.env.DEEPFACE_SERVICE_URL ? 'configured' : 'fallback-local' },
         piNetwork: {
           mode:      isPiSandboxMode() ? 'sandbox' : 'live',

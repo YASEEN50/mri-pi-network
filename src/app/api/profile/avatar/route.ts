@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { fromAppError, ok, serverError } from '@/lib/api-response'
+import { StorageError } from '@/core/errors'
 import { avatarStorageUnavailableMessage, saveAvatarFile } from '@/lib/avatars/storage'
 import { prisma } from '@/lib/prisma'
 import { validateFileBuffer } from '@/lib/verification/file-validator'
@@ -76,6 +77,24 @@ export async function POST(req: NextRequest) {
     return ok({ avatarUrl, message: 'تم رفع الصورة الشخصية' })
   } catch (err) {
     console.error('[POST /api/profile/avatar]', err)
+    if (err instanceof StorageError) {
+      return NextResponse.json(
+        { success: false, error: { code: err.code, message: err.message } },
+        { status: 500 },
+      )
+    }
+    if (err instanceof Error && err.message.includes('Missing R2 environment variables')) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'STORAGE_CONFIG',
+            message: 'إعدادات R2 غير مكتملة في Vercel — راجع STORAGE_PROVIDER و R2_*',
+          },
+        },
+        { status: 503 },
+      )
+    }
     return serverError()
   }
 }

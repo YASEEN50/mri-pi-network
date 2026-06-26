@@ -3,7 +3,11 @@
 import { randomUUID } from 'crypto'
 import { mkdir, writeFile } from 'fs/promises'
 import { join } from 'path'
-import { getFileStorage } from '@/infrastructure/storage/storage.factory'
+import {
+  getFileStorage,
+  getMissingR2EnvVars,
+  getStorageProvider,
+} from '@/infrastructure/storage/storage.factory'
 import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 const LOCAL_DIR = join(process.cwd(), '.local-storage', 'avatars')
@@ -13,7 +17,7 @@ export async function saveAvatarFile(
   buffer: Buffer,
   mimeType: AllowedMimeType,
 ): Promise<string> {
-  const provider = process.env.STORAGE_PROVIDER ?? 'local'
+  const provider = getStorageProvider()
 
   if (provider === 'r2') {
     const storage = getFileStorage()
@@ -33,10 +37,19 @@ export async function saveAvatarFile(
 }
 
 export function avatarStorageUnavailableMessage(): string | null {
-  const provider = process.env.STORAGE_PROVIDER ?? 'local'
-  if (provider === 'r2') return null
-  if (process.env.VERCEL === '1') {
-    return 'رفع الصور غير متاح على الخادم — يُرجى تفعيل STORAGE_PROVIDER=r2 في Vercel'
+  const provider = getStorageProvider()
+
+  if (provider === 'r2') {
+    const missing = getMissingR2EnvVars()
+    if (missing.length > 0) {
+      return `إعدادات R2 ناقصة في Vercel: ${missing.join(', ')}`
+    }
+    return null
   }
+
+  if (process.env.VERCEL === '1') {
+    return 'رفع الصور غير متاح — عيّن STORAGE_PROVIDER=r2 في Vercel'
+  }
+
   return null
 }

@@ -1,5 +1,5 @@
 // src/app/api/profile/route.ts
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
@@ -9,7 +9,9 @@ import { z } from 'zod'
 const ProfileSchema = z.object({
   firstName:        z.string().max(50).optional(),
   lastName:         z.string().max(50).optional(),
-  avatarUrl:        z.string().url().optional().or(z.literal('')),
+  avatarUrl: z
+    .union([z.string().url(), z.string().regex(/^\/api\/avatars\//), z.literal('')])
+    .optional(),
   bio:              z.string().max(500).optional(),
   city:             z.string().max(100).optional(),
   phone:            z.string().max(20).optional(),
@@ -84,7 +86,12 @@ export async function POST(req: NextRequest) {
 
     const body = await req.json()
     const parsed = ProfileSchema.safeParse(body)
-    if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
+    if (!parsed.success) {
+      return NextResponse.json(
+        { success: false, error: { code: 'VALIDATION_ERROR', message: 'بيانات غير صحيحة' } },
+        { status: 400 },
+      )
+    }
 
     const { userId, role } = auth.context
     const data = parsed.data
