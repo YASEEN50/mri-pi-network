@@ -147,11 +147,12 @@ export default function FacilityVerifyPage() {
       const data = await res.json()
 
       if (data.error || !data.success) {
-
-        setError(data.message ?? 'حدث خطأ')
-
+        setError(
+          data.message ??
+            (typeof data.error === 'object' && data.error?.message ? data.error.message : null) ??
+            'حدث خطأ',
+        )
         return
-
       }
 
       setFile(null); setPreview('')

@@ -7,9 +7,9 @@ import { prisma } from '@/lib/prisma'
 import { fromAppError, serverError } from '@/lib/api-response'
 import { validateFileBuffer } from '@/lib/verification/file-validator'
 import { Role, ApprovalStatus } from '@prisma/client'
-import { randomUUID } from 'crypto'
-import { writeFile, mkdir } from 'fs/promises'
-import { join } from 'path'
+import { StorageError } from '@/core/errors'
+import { productionStorageBlockedMessage, saveUploadedFile } from '@/lib/storage/production-storage'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -25,6 +25,11 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireAuth({ roles: [Role.FACILITY] })
     if (!auth.success) return fromAppError(auth.error)
+
+    const storageBlocked = productionStorageBlockedMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
 
     const facility = await prisma.facilityProfile.findUnique({
       where: { userId: auth.context.userId },
@@ -53,17 +58,16 @@ export async function POST(req: NextRequest) {
 
     const buffer = Buffer.from(await file.arrayBuffer())
     const validation = validateFileBuffer(buffer)
-    if (!validation.valid) {
-      return NextResponse.json({ error: true, message: validation.error }, { status: 400 })
+    if (!validation.valid || !validation.mimeType) {
+      return NextResponse.json({ error: true, message: validation.error ?? 'نوع الملف غير مقبول' }, { status: 400 })
     }
 
-    const ext = { 'image/jpeg': '.jpg', 'image/png': '.png', 'application/pdf': '.pdf' }[validation.mimeType!] ?? ''
-    const storageKey = `facility-docs/${randomUUID()}${ext}`
-
-    await mkdir(join(process.cwd(), '.local-storage', 'facility-docs'), { recursive: true })
-    await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
-
-    const publicUrl = `/api/files/${storageKey.split('/').map(encodeURIComponent).join('/')}`
+    const publicUrl = await saveUploadedFile(buffer, {
+      folder: 'facility-docs',
+      mimeType: validation.mimeType as AllowedMimeType,
+      filename: `${facility.id}-${docType.toLowerCase()}`,
+      maxSizeBytes: 10 * 1024 * 1024,
+    })
 
     const updateData: { ownershipDocUrl?: string; licenseDocUrl?: string } = {}
     if (docType === DOC_TYPES.OWNERSHIP) {
@@ -99,6 +103,12 @@ export async function POST(req: NextRequest) {
     }, { status: 201 })
   } catch (err) {
     console.error('[POST /api/facility/upload-document]', err)
+    if (err instanceof StorageError) {
+      return NextResponse.json(
+        { success: false, error: { code: err.code, message: err.message } },
+        { status: 500 },
+      )
+    }
     return serverError()
   }
 }

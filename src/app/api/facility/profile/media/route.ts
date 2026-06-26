@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { randomUUID } from 'crypto'
-import { mkdir, writeFile } from 'fs/promises'
-import { join } from 'path'
 import { prisma } from '@/lib/prisma'
 import { fromAppError, ok, serverError } from '@/lib/api-response'
 import { requireFacilityProfile } from '@/lib/facility/require-facility-profile'
-import { buildFacilityMediaUrl } from '@/lib/facility/profile-utils'
 import { validateFileBuffer } from '@/lib/verification/file-validator'
+import { StorageError } from '@/core/errors'
+import { productionStorageBlockedMessage, saveUploadedFile } from '@/lib/storage/production-storage'
+import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime = 'nodejs'
 export const maxDuration = 30
@@ -19,6 +18,11 @@ export async function POST(req: NextRequest) {
   try {
     const auth = await requireFacilityProfile()
     if (!auth.success) return fromAppError(auth.error)
+
+    const storageBlocked = productionStorageBlockedMessage()
+    if (storageBlocked) {
+      return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
+    }
 
     const formData = await req.formData().catch(() => null)
     if (!formData) {
@@ -44,13 +48,11 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const ext = validation.mimeType === 'image/png' ? '.png' : '.jpg'
-    const storageKey = `facility-media/${auth.facilityId}-${kind}-${randomUUID()}${ext}`
-
-    await mkdir(join(process.cwd(), '.local-storage', 'facility-media'), { recursive: true })
-    await writeFile(join(process.cwd(), '.local-storage', storageKey), buffer)
-
-    const publicUrl = buildFacilityMediaUrl(storageKey)
+    const publicUrl = await saveUploadedFile(buffer, {
+      folder: 'covers',
+      mimeType: validation.mimeType as AllowedMimeType,
+      filename: `${auth.facilityId}-${kind}`,
+    })
     const field = kind === 'logo' ? 'logoUrl' : 'coverUrl'
 
     await prisma.facilityProfile.update({
@@ -61,6 +63,12 @@ export async function POST(req: NextRequest) {
     return ok({ kind, url: publicUrl, message: kind === 'logo' ? 'تم رفع الشعار' : 'تم رفع صورة الغلاف' })
   } catch (err) {
     console.error('[POST /api/facility/profile/media]', err)
+    if (err instanceof StorageError) {
+      return NextResponse.json(
+        { success: false, error: { code: err.code, message: err.message } },
+        { status: 500 },
+      )
+    }
     return serverError()
   }
 }
