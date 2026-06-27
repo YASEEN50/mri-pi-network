@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
-import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
+import { requireAdminPermissionAny, PUBLICATION_REVIEW_PERMISSIONS } from '@/lib/admin/permissions'
 import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
-import { Role, PublicationStatus } from '@prisma/client'
+import { PublicationStatus } from '@prisma/client'
 import { z } from 'zod'
 import {
   notifyDoctorPublicationApproved,
@@ -19,7 +19,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canModerateContent)
+    const auth = await requireAdminPermissionAny([...PUBLICATION_REVIEW_PERMISSIONS])
     if (!auth.success) return fromAppError(auth.error)
 
     const { id } = await params

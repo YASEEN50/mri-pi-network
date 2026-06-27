@@ -84,3 +84,29 @@ export async function requireVerificationReviewPermission(
       : ADMIN_PERMISSION_KEYS.canRejectDoctor
   return requireAdminPermission(permission)
 }
+
+/** Pass if the admin has any of the listed permissions (OWNER always allowed). */
+export async function requireAdminPermissionAny(
+  permissions: AdminPermissionKey[],
+): Promise<AuthSuccess | AuthFailure> {
+  const auth = await requireAuth({ roles: [Role.ADMIN, Role.OWNER] })
+  if (!auth.success) return auth
+
+  if (auth.context.role === Role.OWNER) return auth
+
+  for (const permission of permissions) {
+    if (await hasAdminPermission(auth.context.userId, auth.context.role, permission)) {
+      return auth
+    }
+  }
+
+  return {
+    success: false,
+    error: new UnauthorizedError('ليس لديك الصلاحية لهذا الإجراء'),
+  }
+}
+
+export const PUBLICATION_REVIEW_PERMISSIONS = [
+  ADMIN_PERMISSION_KEYS.canModerateContent,
+  ADMIN_PERMISSION_KEYS.canViewVerification,
+] as const satisfies readonly AdminPermissionKey[]

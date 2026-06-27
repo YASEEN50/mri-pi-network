@@ -1,12 +1,15 @@
 import { NextRequest } from 'next/server'
-import { requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
+import { requireAdminPermission, ADMIN_PERMISSION_KEYS, requireAdminPermissionAny, PUBLICATION_REVIEW_PERMISSIONS } from '@/lib/admin/permissions'
 import { prisma } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
-import { Role, PublicationStatus } from '@prisma/client'
+import { PublicationStatus } from '@prisma/client'
+
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 export async function GET(_req: NextRequest) {
   try {
-    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canModerateContent)
+    const auth = await requireAdminPermissionAny([...PUBLICATION_REVIEW_PERMISSIONS])
     if (!auth.success) return fromAppError(auth.error)
 
     const publications = await prisma.publication.findMany({

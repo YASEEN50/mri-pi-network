@@ -9,6 +9,7 @@ import Navbar from '@/components/common/Navbar'
 interface Stats {
   totalUsers: number; totalDoctors: number; totalClients: number
   totalFacilities: number; pendingDoctors: number; pendingFacilities: number
+  pendingPublications: number
   totalAppointments: number; completedAppointments: number; totalReviews: number
 }
 
@@ -44,6 +45,8 @@ export default function OwnerDashboard() {
   const completionRate = stats && stats.totalAppointments > 0
     ? Math.round((stats.completedAppointments / stats.totalAppointments) * 100) : 0
   const pendingTotal = (stats?.pendingDoctors ?? 0) + (stats?.pendingFacilities ?? 0)
+  const pendingPublications = stats?.pendingPublications ?? 0
+  const reviewTotal = pendingTotal + pendingPublications
   const doctorApprovalRate = stats?.totalDoctors
     ? Math.round(((stats.totalDoctors - stats.pendingDoctors) / stats.totalDoctors) * 100) : 0
 
@@ -57,6 +60,7 @@ export default function OwnerDashboard() {
   ]
 
   const quickActions = [
+    { href: '/admin/publications',      icon: '📝', label: 'مراجعة المنشورات', desc: pendingPublications > 0 ? `${pendingPublications} بانتظار المراجعة` : 'مقالات الأطباء', clr: '#fb923c' },
     { href: '/owner/moderation',       icon: '🔎', label: 'مراقبة المحتوى', desc: 'تقارير المخالفات',    clr: '#f43f5e' },
     { href: '/owner/premio-settings',   icon: '💎', label: 'البريميو',          desc: 'أسعار الاشتراكات',   clr: '#a78bfa' },
     { href: '/owner/give-premio',       icon: '🎁', label: 'منح مجاني',        desc: 'مكافأة مستخدم',      clr: '#34d399' },
@@ -134,19 +138,32 @@ export default function OwnerDashboard() {
         </div>
 
         {/* تنبيه الطلبات المعلقة */}
-        {pendingTotal > 0 && (
+        {reviewTotal > 0 && (
           <div className="rounded-2xl p-4 mb-6 flex items-center justify-between bg-warning/10 border border-warning/20">
             <div className="flex items-center gap-3">
               <span className="text-2xl">⚠️</span>
               <div>
-                <p className="text-amber-300 font-medium text-sm">يوجد {pendingTotal} طلب بانتظار مراجعتك</p>
-                <p className="text-amber-400/60 text-xs">{stats?.pendingDoctors} طبيب · {stats?.pendingFacilities} منشأة</p>
+                <p className="text-amber-300 font-medium text-sm">يوجد {reviewTotal} عنصر بانتظار مراجعتك</p>
+                <p className="text-amber-400/60 text-xs">
+                  {stats?.pendingDoctors} طبيب · {stats?.pendingFacilities} منشأة
+                  {pendingPublications > 0 ? ` · ${pendingPublications} منشور` : ''}
+                </p>
               </div>
             </div>
-            <Link href="/dashboard/admin/pending"
-              className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 bg-warning/25 text-warning border border-warning/30">
-              مراجعة الآن ←
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              {pendingPublications > 0 && (
+                <Link href="/admin/publications"
+                  className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 bg-orange-500/20 text-orange-300 border border-orange-500/30">
+                  مراجعة المنشورات
+                </Link>
+              )}
+              {pendingTotal > 0 && (
+                <Link href="/dashboard/admin/pending"
+                  className="px-4 py-2 rounded-xl text-sm font-medium transition-all hover:scale-105 bg-warning/25 text-warning border border-warning/30">
+                  الطلبات المعلقة
+                </Link>
+              )}
+            </div>
           </div>
         )}
 
@@ -183,6 +200,7 @@ export default function OwnerDashboard() {
             <div className="rounded-2xl overflow-hidden mpi-card">
               {[
                 { href:'/admin/verification-v2',   icon:'🔍', label:'التحقق من الأطباء',  badge: stats?.pendingDoctors ?? 0 },
+                { href:'/admin/publications',      icon:'📝', label:'مراجعة المنشورات', badge: pendingPublications },
                 { href:'/owner/moderation',        icon:'🔎', label:'مراقبة المحتوى',     badge: 0 },
                 { href:'/dashboard/admin/pending', icon:'⏳', label:'الطلبات المعلقة',    badge: pendingTotal },
                 { href:'/owner/assign-admin',      icon:'🛡️', label:'إدارة الفريق',       badge: 0 },

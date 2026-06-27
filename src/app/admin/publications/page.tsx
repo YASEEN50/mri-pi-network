@@ -28,18 +28,25 @@ export default function AdminPublicationsPage() {
   const router = useRouter()
   const [pubs, setPubs] = useState<PendingPub[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
   const [rejectId, setRejectId] = useState<string | null>(null)
   const [rejectNotes, setRejectNotes] = useState('')
   const [submitting, setSubmitting] = useState<string | null>(null)
 
   const load = useCallback(async () => {
+    setLoadError('')
     try {
-      const res = await fetch('/api/admin/publications/pending')
+      const res = await fetch('/api/admin/publications/pending', { cache: 'no-store' })
       const data = await res.json()
-      setPubs(data.data ?? [])
-    } catch {}
-    finally { setLoading(false) }
+      if (res.ok && data.success) {
+        setPubs(data.data ?? [])
+        return
+      }
+      setLoadError(data?.error?.message ?? 'تعذّر تحميل قائمة المنشورات')
+    } catch {
+      setLoadError('خطأ في الاتصال — أعد تحميل الصفحة')
+    } finally { setLoading(false) }
   }, [])
 
   useEffect(() => {
@@ -75,11 +82,23 @@ export default function AdminPublicationsPage() {
             className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl text-sm transition-all">
             ← لوحة الإدارة
           </Link>
+          {session?.user?.role === 'OWNER' && (
+            <Link href="/owner"
+              className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl text-sm transition-all">
+              ← لوحة المالك
+            </Link>
+          )}
           <div>
             <h1 className="text-2xl font-bold text-white">مراجعة المنشورات 📝</h1>
             <p className="text-slate-400 text-sm mt-1">{pubs.length} منشور بانتظار الموافقة</p>
           </div>
         </div>
+
+        {loadError && (
+          <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {loadError}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20">
