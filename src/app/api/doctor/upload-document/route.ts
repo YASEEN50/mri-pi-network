@@ -42,7 +42,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
     }
 
-    const { userId, doctorId, firstName, lastName } = auth
+    const { userId } = auth.context
+    const { doctorId, firstName, lastName } = auth
     const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
     const deviceId = req.headers.get('x-device-id') ?? 'unknown'
 

@@ -28,7 +28,8 @@ export async function POST(req: NextRequest) {
     // ── 1. Auth ───────────────────────────────────────────────────────────
     const auth = await requireDoctorProfile()
     if (!auth.success) return fromAppError(auth.error)
-    const { userId, doctorId, firstName, lastName } = auth
+    const { userId } = auth.context
+    const { doctorId, firstName, lastName } = auth
 
     const storageBlocked = productionStorageBlockedMessage()
     if (storageBlocked) {
