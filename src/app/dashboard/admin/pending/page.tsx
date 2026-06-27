@@ -20,6 +20,8 @@ interface PendingItem {
   email: string
   createdAt: string
   approvalStatus: string
+  hasOwnershipDoc?: boolean
+  hasLicenseDoc?: boolean
 }
 
 type Tab = 'doctors' | 'facilities'
@@ -141,7 +143,16 @@ export default function AdminPendingPage() {
               <tbody>
                 {items.map(item => (
                   <tr key={item.id} className="border-b border-white/[0.05] hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-white font-medium">{item.fullName ?? item.name}</td>
+                    <td className="px-4 py-3 text-white font-medium">
+                      {item.fullName ?? item.name}
+                      {tab === 'facilities' && (
+                        <p className="text-slate-500 text-xs font-normal mt-1">
+                          {item.hasOwnershipDoc ? '✅ ملكية' : '⏳ ملكية'}
+                          {' · '}
+                          {item.hasLicenseDoc ? '✅ تصريح' : '⏳ تصريح'}
+                        </p>
+                      )}
+                    </td>
                     <td className="px-4 py-3 text-slate-300 text-xs">{item.specialization ?? item.type}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs font-mono">{item.licenseNumber}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs">{item.city ?? '—'}</td>

@@ -9,6 +9,7 @@ import { validateFileBuffer } from '@/lib/verification/file-validator'
 import { Role, ApprovalStatus } from '@prisma/client'
 import { StorageError } from '@/core/errors'
 import { productionStorageBlockedMessage, saveUploadedFile } from '@/lib/storage/production-storage'
+import { resolveStoredDocUrl } from '@/lib/storage/local-file-url'
 import type { AllowedMimeType } from '@/core/interfaces/services/file-storage.interface'
 
 export const runtime = 'nodejs'
@@ -20,6 +21,44 @@ const DOC_TYPES = {
 } as const
 
 type FacilityDocType = typeof DOC_TYPES[keyof typeof DOC_TYPES]
+
+function hasStoredDoc(url: string | null | undefined): boolean {
+  return Boolean(resolveStoredDocUrl(url))
+}
+
+export async function GET() {
+  try {
+    const auth = await requireAuth({ roles: [Role.FACILITY] })
+    if (!auth.success) return fromAppError(auth.error)
+
+    const facility = await prisma.facilityProfile.findUnique({
+      where: { userId: auth.context.userId },
+      select: {
+        ownershipDocUrl: true,
+        licenseDocUrl: true,
+        approvalStatus: true,
+      },
+    })
+    if (!facility) {
+      return NextResponse.json({ error: true, message: 'ملف المنشأة غير موجود' }, { status: 404 })
+    }
+
+    const hasOwnership = hasStoredDoc(facility.ownershipDocUrl)
+    const hasLicense = hasStoredDoc(facility.licenseDocUrl)
+    const readyForReview = hasOwnership && hasLicense
+
+    return NextResponse.json({
+      success: true,
+      hasOwnership,
+      hasLicense,
+      readyForReview,
+      approvalStatus: facility.approvalStatus,
+    })
+  } catch (err) {
+    console.error('[GET /api/facility/upload-document]', err)
+    return serverError()
+  }
+}
 
 export async function POST(req: NextRequest) {
   try {
@@ -82,11 +121,29 @@ export async function POST(req: NextRequest) {
       select: { ownershipDocUrl: true, licenseDocUrl: true },
     })
 
-    const hasBoth = Boolean(
-      updated.ownershipDocUrl?.trim() &&
-      updated.licenseDocUrl?.trim() &&
-      !updated.licenseDocUrl.includes('placeholder'),
-    )
+    const savedUrl =
+      docType === DOC_TYPES.OWNERSHIP ? updated.ownershipDocUrl : updated.licenseDocUrl
+    if (savedUrl !== publicUrl) {
+      console.error('[POST /api/facility/upload-document] DB mismatch', {
+        facilityId: facility.id,
+        docType,
+        expected: publicUrl,
+        actual: savedUrl,
+      })
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'DB_SAVE_FAILED',
+            message: 'تم رفع الملف لكن فشل حفظه في قاعدة البيانات — تواصل مع الدعم',
+          },
+        },
+        { status: 500 },
+      )
+    }
+
+    const hasBoth =
+      hasStoredDoc(updated.ownershipDocUrl) && hasStoredDoc(updated.licenseDocUrl)
     if (hasBoth) {
       await prisma.facilityProfile.update({
         where: { id: facility.id },
@@ -107,6 +164,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { success: false, error: { code: err.code, message: err.message } },
         { status: 500 },
+      )
+    }
+    const prismaCode =
+      err && typeof err === 'object' && 'code' in err ? String((err as { code?: string }).code) : ''
+    if (prismaCode === 'P2022') {
+      return NextResponse.json(
+        {
+          success: false,
+          error: {
+            code: 'SCHEMA_OUTDATED',
+            message: 'قاعدة البيانات تحتاج تحديث — شغّل prisma migrate deploy على السيرفر',
+          },
+        },
+        { status: 503 },
       )
     }
     return serverError()

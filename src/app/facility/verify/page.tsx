@@ -86,8 +86,11 @@ export default function FacilityVerifyPage() {
   const [preview, setPreview] = useState('')
 
   const [loading, setLoading] = useState(false)
+  const [statusLoading, setStatusLoading] = useState(true)
 
   const [error, setError] = useState('')
+  const [hasOwnership, setHasOwnership] = useState(false)
+  const [hasLicense, setHasLicense] = useState(false)
 
 
 
@@ -97,6 +100,28 @@ export default function FacilityVerifyPage() {
       router.push('/dashboard/facility/doctors')
     }
   }, [isLoading, session, router])
+
+  useEffect(() => {
+    if (isLoading || !session?.user) return
+    let cancelled = false
+    void (async () => {
+      try {
+        const res = await fetch('/api/facility/upload-document')
+        const data = await res.json()
+        if (cancelled || !res.ok || !data.success) return
+        setHasOwnership(Boolean(data.hasOwnership))
+        setHasLicense(Boolean(data.hasLicense))
+        if (data.readyForReview) setStep('done')
+        else if (data.hasOwnership) setStep('license')
+        else setStep('ownership')
+      } catch {
+        /* keep default step */
+      } finally {
+        if (!cancelled) setStatusLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [isLoading, session])
 
 
 
@@ -147,15 +172,20 @@ export default function FacilityVerifyPage() {
 
       setFile(null); setPreview('')
 
-      if (docType === 'OWNERSHIP') setStep('license')
+      if (docType === 'OWNERSHIP') {
+        setHasOwnership(true)
+        setStep('license')
+      } else {
+        setHasLicense(true)
+      }
 
-      else if (data.readyForReview) {
+      if (docType === 'LICENSE' && data.readyForReview) {
 
         setStep('done')
 
         setTimeout(() => router.push('/facility/pending'), 1500)
 
-      } else setStep('done')
+      } else if (docType === 'LICENSE') setStep('done')
 
     } catch { setError('خطأ في الاتصال') }
 
@@ -165,7 +195,7 @@ export default function FacilityVerifyPage() {
 
 
 
-  if (isLoading) return (
+  if (isLoading || statusLoading) return (
 
     <div className="min-h-screen bg-background flex items-center justify-center">
 
@@ -232,6 +262,14 @@ export default function FacilityVerifyPage() {
         </div>
 
 
+
+        {(hasOwnership || hasLicense) && step !== 'done' && (
+          <div className="mb-4 p-3 rounded-xl bg-white/[0.03] border border-white/10 text-sm text-slate-400">
+            {hasOwnership ? '✅ أوراق الملكية مرفوعة' : '⏳ أوراق الملكية مطلوبة'}
+            {' · '}
+            {hasLicense ? '✅ التصريح مرفوع' : '⏳ التصريح مطلوب'}
+          </div>
+        )}
 
         <div className="mpi-card rounded-2xl p-6 space-y-5">
 

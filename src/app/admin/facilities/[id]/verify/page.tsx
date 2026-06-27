@@ -5,7 +5,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import Navbar from '@/components/common/Navbar'
 import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
@@ -39,12 +38,10 @@ function DocumentPreview({ url, mimeType, label }: { url: string; mimeType?: str
     return <iframe src={url} title={label} className="w-full h-96 rounded-xl border border-white/10 bg-white" />
   }
   return (
-    <Image
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
       src={url}
       alt={label}
-      width={800}
-      height={384}
-      unoptimized
       className="w-full max-h-96 object-contain rounded-xl border border-white/10 bg-black/20"
     />
   )
@@ -59,21 +56,29 @@ export default function FacilityVerifyPage() {
   const [facility, setFacility] = useState<FacilityDetail | null>(null)
   const [documents, setDocuments] = useState<FacilityDocuments | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [loadError, setLoadError] = useState('')
   const [rejectNotes, setRejectNotes] = useState('')
   const [showRejectForm, setShowRejectForm] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [done, setDone] = useState<'approved' | 'rejected' | null>(null)
 
   const loadData = useCallback(async () => {
+    setLoadError('')
     try {
-      const res = await fetch(`/api/admin/facilities/${facilityId}/documents`)
+      const res = await fetch(`/api/admin/facilities/${facilityId}/documents`, { cache: 'no-store' })
       const data = await res.json()
       if (res.ok && data.data) {
         setFacility(data.data.facility)
         setDocuments(data.data.documents)
+        return
       }
-    } catch {}
-    finally { setIsLoading(false) }
+      setLoadError(
+        data?.error?.message ??
+          (res.status === 401 ? 'يجب تسجيل الدخول كأدمن' : 'تعذّر تحميل المستندات'),
+      )
+    } catch {
+      setLoadError('خطأ في الاتصال — أعد تحميل الصفحة')
+    } finally { setIsLoading(false) }
   }, [facilityId])
 
   useEffect(() => {
@@ -144,12 +149,23 @@ export default function FacilityVerifyPage() {
             ]}
           />
           <div className="flex items-center justify-between mt-4">
-            <h1 className="text-2xl font-bold text-white">مراجعة منشأة: {facility.name}</h1>
+            <div>
+              <h1 className="text-2xl font-bold text-white">مراجعة منشأة: {facility.name}</h1>
+              {facility.email && (
+                <p className="text-slate-500 text-xs mt-1">📧 {facility.email}</p>
+              )}
+            </div>
             <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-sm">
               قيد المراجعة
             </span>
           </div>
         </div>
+
+        {loadError && (
+          <div className="mb-4 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+            {loadError}
+          </div>
+        )}
 
         <div className="space-y-5">
           <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-6">

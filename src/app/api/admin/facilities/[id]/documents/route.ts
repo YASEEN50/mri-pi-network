@@ -7,6 +7,9 @@ import { NotFoundError } from '@/core/errors'
 import { prisma } from '@/lib/prisma'
 import { resolveStoredDocUrl, inferMimeFromUrl } from '@/lib/storage/local-file-url'
 
+export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
+
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
