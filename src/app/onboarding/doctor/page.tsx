@@ -113,7 +113,7 @@ export default function DoctorOnboardingPage() {
       const data = await res.json()
       if (!res.ok || data.data?.error) { setError(data.data?.message || 'حدث خطأ'); return }
       await update({ isProfileComplete: true })
-      router.push('/profile')
+      router.push('/profile?tab=info')
     } catch { setError('حدث خطأ في الاتصال') }
     finally { setIsLoading(false) }
   }

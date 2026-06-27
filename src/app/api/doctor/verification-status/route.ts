@@ -16,7 +16,13 @@ export async function GET() {
       where:  { userId: auth.context.userId },
       select: { id: true, approvalStatus: true },
     })
-    if (!doctor) return ok(null)
+    if (!doctor) {
+      return ok({
+        needsOnboarding: true,
+        uploadStage: 'onboarding',
+        message: 'أكمل بيانات التسجيل كطبيب قبل رفع الوثائق',
+      })
+    }
 
     // اعتماد الملف الشخصي = موثق (حتى لو جلسة v2 غير نشطة)
     if (doctor.approvalStatus === ApprovalStatus.APPROVED) {

@@ -73,6 +73,10 @@ export default function ProfilePage() {
     try {
       const res = await fetch('/api/profile')
       const data = await res.json()
+      if (session?.user?.role === 'DOCTOR' && data.success && data.data === null) {
+        router.replace('/onboarding/doctor')
+        return
+      }
       if (data.success && data.data) setProfile(data.data)
     } finally { setIsLoading(false) }
   }

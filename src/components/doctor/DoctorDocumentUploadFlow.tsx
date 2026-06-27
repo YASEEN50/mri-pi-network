@@ -72,6 +72,14 @@ function FileDropZone({
   )
 }
 
+function apiErrorMessage(
+  data: { error?: { message?: string } | boolean; message?: string; data?: { message?: string } },
+  fallback = 'حدث خطأ',
+) {
+  if (data.error && typeof data.error === 'object' && data.error.message) return data.error.message
+  return data.message ?? data.data?.message ?? fallback
+}
+
 function ErrorBox({ msg }: { msg: string }) {
   if (!msg) return null
   return (
@@ -174,7 +182,7 @@ function DegreeStage({ onDone, compact }: { onDone: () => void; compact?: boolea
         body: fd,
       })
       const data = await res.json()
-      if (data.error || !data.success) { setError(data.message ?? 'حدث خطأ'); return }
+      if (!res.ok || data.error || !data.success) { setError(apiErrorMessage(data)); return }
       onDone()
     } catch { setError('خطأ في الاتصال') }
     finally { setLoading(false) }
@@ -272,8 +280,8 @@ function LicenseStage({ onDone, compact }: { onDone: () => void; compact?: boole
         body: formData,
       })
       const data = await res.json()
-      if (data.error || data.data?.error) {
-        setError(data.message ?? data.data?.message ?? 'حدث خطأ')
+      if (!res.ok || data.error || data.data?.error) {
+        setError(apiErrorMessage(data))
         return
       }
       const jId = data.jobId ?? data.data?.jobId
@@ -337,7 +345,7 @@ function DataflowStage({ onDone, compact }: { onDone: () => void; compact?: bool
         body: fd,
       })
       const data = await res.json()
-      if (data.error || !data.success) { setError(data.message ?? 'حدث خطأ'); return }
+      if (!res.ok || data.error || !data.success) { setError(apiErrorMessage(data)); return }
       onDone()
     } catch { setError('خطأ في الاتصال') }
     finally { setLoading(false) }
@@ -391,7 +399,7 @@ function IdentityStage({ certificateName, onDone, compact }: { certificateName: 
         body: fd,
       })
       const data = await res.json()
-      if (data.error || !data.success) { setError(data.message ?? 'حدث خطأ'); return }
+      if (!res.ok || data.error || !data.success) { setError(apiErrorMessage(data)); return }
       onDone()
     } catch { setError('خطأ في الاتصال') }
     finally { setLoading(false) }
@@ -484,7 +492,7 @@ function SelfieStage({ onDone, compact }: { onDone: () => void; compact?: boolea
         body: fd,
       })
       const data = await res.json()
-      if (data.error || !data.success) { setError(data.message ?? 'حدث خطأ'); return }
+      if (!res.ok || data.error || !data.success) { setError(apiErrorMessage(data)); return }
       startFacePolling()
     } catch { setError('خطأ في الاتصال') }
     finally { setLoading(false) }
@@ -556,12 +564,18 @@ export default function DoctorDocumentUploadFlow({
   const [stage, setStage] = useState<UploadStageKey>('degree')
   const [certificateName, setCertificateName] = useState('')
   const [verificationStatus, setVerificationStatus] = useState<string>('')
+  const [needsOnboarding, setNeedsOnboarding] = useState(false)
   const [loading, setLoading] = useState(true)
 
   const refreshStatus = useCallback(async () => {
     try {
       const res = await fetch('/api/doctor/verification-status')
       const d = await res.json()
+      if (d.data?.needsOnboarding) {
+        setNeedsOnboarding(true)
+        return
+      }
+      setNeedsOnboarding(false)
       const uploadStage = (d.data?.uploadStage ?? 'degree') as UploadStageKey
       setStage(uploadStage)
       setVerificationStatus(d.data?.verificationStatus ?? '')
@@ -584,6 +598,21 @@ export default function DoctorDocumentUploadFlow({
     return (
       <div className={`flex justify-center ${compact ? 'py-8' : 'py-16'}`}>
         <div className="animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full" />
+      </div>
+    )
+  }
+
+  if (needsOnboarding) {
+    return (
+      <div className={`rounded-xl bg-amber-500/10 border border-amber-500/20 ${compact ? 'p-4' : 'p-6'}`}>
+        <p className="text-amber-300 font-medium text-sm mb-2">⚠️ أكمل تسجيل الطبيب أولاً</p>
+        <p className="text-slate-400 text-xs mb-4 leading-relaxed">
+          لا يمكن رفع الشهادات قبل إدخال بياناتك المهنية (الاسم، التخصص، رقم الرخصة...).
+        </p>
+        <Link href="/onboarding/doctor"
+          className="inline-block w-full text-center py-2.5 rounded-xl text-white text-xs font-semibold bg-primary hover:bg-primary-600 transition-all">
+          إكمال التسجيل كطبيب →
+        </Link>
       </div>
     )
   }

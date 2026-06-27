@@ -2,7 +2,7 @@
 // رفع وثيقة تحقق واحدة (شهادة، dataflow، هوية، سيلفي)
 
 import { NextRequest, NextResponse } from 'next/server'
-import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
+import { requireDoctorProfile } from '@/lib/doctor/require-doctor-profile'
 import { prisma, db } from '@/lib/prisma'
 import { fromAppError, serverError } from '@/lib/api-response'
 import { validateFileBuffer } from '@/lib/verification/file-validator'
@@ -13,7 +13,6 @@ import {
   DEGREE_TYPES,
   type DegreeType,
 } from '@/lib/verification/document-types'
-import { Role } from '@prisma/client'
 import { randomUUID, createHash } from 'crypto'
 import {
   productionStorageBlockedMessage,
@@ -35,7 +34,7 @@ type DocSummary = { docType: string; legalName: string | null; subType: string |
 
 export async function POST(req: NextRequest) {
   try {
-    const auth = await requireAuth({ roles: [Role.DOCTOR] })
+    const auth = await requireDoctorProfile()
     if (!auth.success) return fromAppError(auth.error)
 
     const storageBlocked = productionStorageBlockedMessage()
@@ -43,18 +42,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: true, message: storageBlocked }, { status: 503 })
     }
 
-    const { userId } = auth.context
+    const { userId, doctorId, firstName, lastName } = auth
     const ip = req.headers.get('x-forwarded-for') ?? 'unknown'
     const deviceId = req.headers.get('x-device-id') ?? 'unknown'
 
-    const doctor = await prisma.doctorProfile.findUnique({
-      where: { userId },
-      select: { id: true, firstName: true, lastName: true },
-    })
-    if (!doctor) {
-      return NextResponse.json({ error: true, message: 'ملف الطبيب غير موجود' }, { status: 404 })
-    }
-
+    const doctor = { id: doctorId, firstName, lastName }
     const formData = await req.formData().catch(() => null)
     if (!formData) {
       return NextResponse.json({ error: true, message: 'يجب رفع الملف كـ multipart' }, { status: 400 })

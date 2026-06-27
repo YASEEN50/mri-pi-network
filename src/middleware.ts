@@ -95,6 +95,15 @@ const authMiddleware = withAuth(
 
     const isExempt = PROFILE_EXEMPT_PATHS.some(p => pathname.startsWith(p))
     if (!isProfileComplete && !isExempt) {
+      if (role === Role.DOCTOR) {
+        return NextResponse.redirect(new URL('/onboarding/doctor', req.url))
+      }
+      if (role === Role.FACILITY) {
+        return NextResponse.redirect(new URL('/onboarding/facility', req.url))
+      }
+      if (role === Role.CLIENT) {
+        return NextResponse.redirect(new URL('/onboarding/client', req.url))
+      }
       return NextResponse.redirect(new URL('/select-role', req.url))
     }
 
@@ -169,5 +178,7 @@ export const config = {
     '/onboarding/:path*',
     '/dashboard',
     '/dashboard/:path*',
+    '/profile',
+    '/profile/:path*',
   ],
 }

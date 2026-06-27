@@ -5,11 +5,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { rateLimitUploadLicense, rateLimitResponse } from '@/lib/upstash-rate-limit'
 import { collectIntelligence } from '@/lib/fraud-intelligence'
-import { requireAuth }               from '@/infrastructure/auth/providers/role-guard'
+import { requireDoctorProfile } from '@/lib/doctor/require-doctor-profile'
 import { prisma, db } from '@/lib/prisma'
 import { fromAppError, serverError } from '@/lib/api-response'
 import { validateFileBuffer }        from '@/lib/verification/file-validator'
-import { Role }                      from '@prisma/client'
 import { randomUUID, createHash }    from 'crypto'
 import {
   productionStorageBlockedMessage,
@@ -27,9 +26,9 @@ export const maxDuration = 30
 export async function POST(req: NextRequest) {
   try {
     // ── 1. Auth ───────────────────────────────────────────────────────────
-    const auth = await requireAuth({ roles: [Role.DOCTOR] })
+    const auth = await requireDoctorProfile()
     if (!auth.success) return fromAppError(auth.error)
-    const { userId } = auth.context
+    const { userId, doctorId, firstName, lastName } = auth
 
     const storageBlocked = productionStorageBlockedMessage()
     if (storageBlocked) {
@@ -59,17 +58,7 @@ export async function POST(req: NextRequest) {
     }
 
     // ── 3. Get doctor profile ─────────────────────────────────────────────
-    const doctor = await prisma.doctorProfile.findUnique({
-      where:  { userId },
-      select: { id: true, firstName: true, lastName: true },
-    })
-    if (!doctor) {
-      return NextResponse.json(
-        { error: true, message: 'أكمل بيانات التسجيل أولاً' },
-        { status: 404 }
-      )
-    }
-
+    const doctor = { id: doctorId, firstName, lastName }
     // ── 4. Parse multipart ────────────────────────────────────────────────
     const formData = await req.formData().catch(() => null)
     if (!formData) {
