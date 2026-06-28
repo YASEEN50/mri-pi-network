@@ -5,6 +5,10 @@ import { prisma, db } from '@/lib/prisma'
 import { ok, created, fromAppError, serverError } from '@/lib/api-response'
 import { getChatRoomForUser, getChatRecipientUserId } from '@/lib/chat/access'
 import { CHAT_MESSAGES_PAGE_SIZE } from '@/lib/chat/constants'
+import {
+  isUserViewingChatRoom,
+  touchChatPresence,
+} from '@/lib/chat/presence'
 import { z } from 'zod'
 
 const MsgSchema = z.object({
@@ -45,6 +49,10 @@ export async function GET(
 
     const room = await getChatRoomForUser(roomId, auth.context.userId, auth.context.role)
     if (!room) return ok({ error: true, message: 'الغرفة غير موجودة' })
+
+    if (room.status === 'ACTIVE') {
+      await touchChatPresence(auth.context.userId, roomId)
+    }
 
     if (since) {
       const sinceDate = new Date(since)
@@ -137,19 +145,22 @@ export async function POST(
 
     const recipientUserId = await getChatRecipientUserId(room, auth.context.userId)
     if (recipientUserId) {
-      const preview = parsed.data.content.length > 80
-        ? `${parsed.data.content.slice(0, 80)}…`
-        : parsed.data.content
+      const viewing = await isUserViewingChatRoom(recipientUserId, roomId)
+      if (!viewing) {
+        const preview = parsed.data.content.length > 80
+          ? `${parsed.data.content.slice(0, 80)}…`
+          : parsed.data.content
 
-      await prisma.notification.create({
-        data: {
-          userId: recipientUserId,
-          title:  '💬 رسالة جديدة',
-          body:   preview,
-          type:   'CHAT_MESSAGE',
-          data:   { roomId, messageId: message.id },
-        },
-      })
+        await prisma.notification.create({
+          data: {
+            userId: recipientUserId,
+            title:  '💬 رسالة جديدة',
+            body:   preview,
+            type:   'CHAT_MESSAGE',
+            data:   { roomId, messageId: message.id },
+          },
+        })
+      }
     }
 
     return created(mapMessage(message))

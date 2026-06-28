@@ -1153,6 +1153,15 @@ model ChatMessage {
   @@map("chat_messages")
 }
 
+model ChatPresence {
+  userId    String   @id
+  roomId    String
+  updatedAt DateTime @updatedAt
+
+  @@index([roomId])
+  @@map("chat_presence")
+}
+
 // =============================================================================
 // INSTANT CONSULT (استشارة فورية)
 // =============================================================================

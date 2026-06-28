@@ -124,6 +124,11 @@ export function useChat() {
   }, [active?.id, fetchMessages])
 
   useEffect(() => {
+    if (active?.id) return
+    void fetch('/api/chat/presence', { method: 'DELETE' }).catch(() => {})
+  }, [active?.id])
+
+  useEffect(() => {
     if (status !== 'authenticated' || !active) return
 
     const pollMessages = () => {
