@@ -349,7 +349,12 @@
       "client_empty_hint": "لا توجد محادثات بعد. احجز موعداً مع طبيب للبدء.",
       "doctor_fallback": "طبيب",
       "video": "فيديو",
-      "back_to_list": "رجوع للقائمة"
+      "back_to_list": "رجوع للقائمة",
+      "end_conversation": "إنهاء المحادثة",
+      "end_confirm": "هل تريد إنهاء هذه المحادثة؟ لن يمكن إرسال رسائل جديدة.",
+      "end_confirm_doctor": "إنهاء الجلسة وإغلاق المحادثة مع المريض؟",
+      "ending": "جاري الإنهاء...",
+      "conversation_ended": "تم إنهاء المحادثة"
     },
     "medical_records": {
       "title": "السجل الطبي",

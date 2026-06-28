@@ -14,7 +14,7 @@ interface ChatWorkspaceProps {
 export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps) {
   const t = useTranslations('dashboard.chat')
   const td = useTranslations('dashboard.doctor')
-  const { dateLocale } = useAppLocale()
+  const { dateLocale, locale } = useAppLocale()
   const {
     rooms,
     active,
@@ -24,12 +24,15 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
     setInput,
     loading,
     sending,
+    closing,
     sendMessage,
+    endConversation,
     myId,
   } = useChat()
 
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [videoPath, setVideoPath] = useState<string | null>(null)
+  const [showEndConfirm, setShowEndConfirm] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -64,6 +67,15 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
     setActive(room)
     setMobileChatOpen(true)
   }
+
+  async function handleEndConversation() {
+    const ok = await endConversation()
+    setShowEndConfirm(false)
+    if (ok) setMobileChatOpen(false)
+  }
+
+  const endConfirmText =
+    variant === 'doctor' ? t('end_confirm_doctor') : t('end_confirm')
 
   if (loading) {
     return (
@@ -159,7 +171,41 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                     📹 {t('video')}
                   </Link>
                 )}
+                {(active.status ?? 'ACTIVE') === 'ACTIVE' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEndConfirm(true)}
+                    disabled={closing}
+                    className="shrink-0 px-3 py-2 rounded-xl bg-red-600/80 hover:bg-red-500 disabled:opacity-50 text-white text-xs font-medium"
+                  >
+                    {closing ? t('ending') : t('end_conversation')}
+                  </button>
+                )}
               </div>
+
+              {showEndConfirm && (
+                <div className="px-3 sm:px-5 py-3 bg-red-500/10 border-b border-red-500/20 flex flex-col sm:flex-row sm:items-center gap-3 shrink-0">
+                  <p className="text-red-200 text-sm flex-1">{endConfirmText}</p>
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => void handleEndConversation()}
+                      disabled={closing}
+                      className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white text-xs font-medium disabled:opacity-50"
+                    >
+                      {closing ? t('ending') : t('end_conversation')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowEndConfirm(false)}
+                      disabled={closing}
+                      className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-300 text-xs"
+                    >
+                      {locale === 'ar' ? 'إلغاء' : 'Cancel'}
+                    </button>
+                  </div>
+                </div>
+              )}
 
               <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 min-h-0">
                 {messages.length === 0 && (

@@ -7,6 +7,7 @@ import { CHAT_MESSAGES_POLL_MS, CHAT_ROOMS_POLL_MS } from '@/lib/chat/constants'
 
 export interface ChatRoom {
   id: string
+  status?: 'ACTIVE' | 'CLOSED' | 'ARCHIVED'
   otherParty: { name?: string; specialization?: string; avatarUrl?: string } | null
   lastMessage: string | null
   lastMessageAt: string
@@ -41,6 +42,7 @@ export function useChat() {
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [closing, setClosing] = useState(false)
   const latestMessageAtRef = useRef<string | null>(null)
   const activeRoomIdRef = useRef<string | null>(null)
 
@@ -57,7 +59,7 @@ export function useChat() {
         }
         if (prev) {
           const updated = list.find(r => r.id === prev.id)
-          return updated ?? prev
+          return updated ?? null
         }
         return list.length > 0 ? list[0] : null
       })
@@ -183,6 +185,27 @@ export function useChat() {
     }
   }, [input, active, sending, session?.user?.id, fetchRooms])
 
+  const endConversation = useCallback(async () => {
+    if (!active || closing) return false
+    setClosing(true)
+    try {
+      const res = await fetch(`/api/chat/${active.id}/close`, { method: 'POST' })
+      const data = await res.json()
+      if (data.data?.closed) {
+        setActive(null)
+        setMessages([])
+        setInput('')
+        await fetchRooms(true)
+        return true
+      }
+      return false
+    } catch {
+      return false
+    } finally {
+      setClosing(false)
+    }
+  }, [active, closing, fetchRooms])
+
   return {
     session,
     status,
@@ -194,7 +217,9 @@ export function useChat() {
     setInput,
     loading,
     sending,
+    closing,
     sendMessage,
+    endConversation,
     myId: session?.user?.id,
   }
 }

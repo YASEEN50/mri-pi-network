@@ -349,7 +349,12 @@
       "client_empty_hint": "No conversations yet. Book an appointment with a doctor to get started.",
       "doctor_fallback": "Doctor",
       "video": "Video",
-      "back_to_list": "Back to list"
+      "back_to_list": "Back to list",
+      "end_conversation": "End chat",
+      "end_confirm": "End this conversation? You will not be able to send new messages.",
+      "end_confirm_doctor": "End the session and close the chat with this patient?",
+      "ending": "Ending...",
+      "conversation_ended": "Conversation ended"
     },
     "medical_records": {
       "title": "Medical Records",

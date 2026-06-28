@@ -30,6 +30,12 @@ export async function POST(
         where: { id },
         data: { status: InstantConsultStatus.COMPLETED, completedAt: new Date() },
       })
+      if (request.chatRoomId) {
+        await prisma.chatRoom.update({
+          where: { id: request.chatRoomId },
+          data: { status: 'CLOSED' },
+        })
+      }
       return ok({ completed: true })
     }
 
