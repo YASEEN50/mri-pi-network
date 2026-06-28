@@ -93,10 +93,29 @@ export function getDashboardHref(role?: string): string {
     case Role.FACILITY:
       return '/dashboard/facility/overview'
     case Role.CLIENT:
-      return '/dashboard/client/appointments'
+      return '/'
     default:
       return '/'
   }
+}
+
+const DASHBOARD_ROLE_DEFAULT: Record<string, string> = {
+  client: '/dashboard/client/appointments',
+  doctor: '/dashboard/doctor/schedule',
+  facility: '/dashboard/facility/overview',
+  admin: '/dashboard/admin/verification',
+}
+
+/** Map dashboard folder paths that have no index page to a real route. */
+export function normalizeNavHref(path: string, role?: string): string {
+  if (path === '/dashboard') return getDashboardHref(role)
+
+  const roleRoot = path.match(/^\/dashboard\/(client|doctor|facility|admin)$/)
+  if (roleRoot) {
+    return DASHBOARD_ROLE_DEFAULT[roleRoot[1]] ?? getDashboardHref(role)
+  }
+
+  return path
 }
 
 export function getDashboardLabel(locale: 'ar' | 'en', role?: string): string {
@@ -108,7 +127,7 @@ export function getDashboardLabel(locale: 'ar' | 'en', role?: string): string {
 }
 
 /** Parent path for the prominent back button (may skip intermediate UUID segments). */
-export function resolveBackHref(pathname: string): string | null {
+export function resolveBackHref(pathname: string, role?: string): string | null {
   if (HIDDEN_PATHS.has(pathname)) return null
 
   const rules: Array<[RegExp, string | ((pathname: string) => string)]> = [
@@ -119,6 +138,9 @@ export function resolveBackHref(pathname: string): string | null {
     [/^\/admin\/publications$/, '/admin'],
     [/^\/admin\/verification\/[^/]+$/, '/admin/verification'],
     [/^\/owner\/admins\/[^/]+$/, '/owner'],
+    [/^\/dashboard\/client\/chat$/, '/dashboard/client/appointments'],
+    [/^\/dashboard\/doctor\/chat$/, '/dashboard/doctor/schedule'],
+    [/^\/consult-now\/[^/]+\/video$/, '/consult-now'],
     [/^\/doctors\/([^/]+)\/reviews$/, (p) => `/doctors/${p.split('/')[2]}`],
     [/^\/facilities\/[^/]+$/, '/facilities'],
     [/^\/doctors\/[^/]+$/, '/doctors'],
@@ -129,17 +151,19 @@ export function resolveBackHref(pathname: string): string | null {
 
   for (const [pattern, target] of rules) {
     if (pattern.test(pathname)) {
-      return typeof target === 'function' ? target(pathname) : target
+      const href = typeof target === 'function' ? target(pathname) : target
+      return normalizeNavHref(href, role)
     }
   }
 
   const segments = pathname.split('/').filter(Boolean)
   if (segments.length <= 1) {
-    return segments.length === 1 ? '/' : null
+    const href = segments.length === 1 ? '/' : null
+    return href ? normalizeNavHref(href, role) : null
   }
 
   segments.pop()
-  return `/${segments.join('/')}`
+  return normalizeNavHref(`/${segments.join('/')}`, role)
 }
 
 function prependRootCrumb(
@@ -182,12 +206,12 @@ export function buildNavigationTrail(
     const isLast = i === segments.length - 1
     crumbs.push({
       label: segmentLabel(segments[i], locale),
-      href: isLast ? undefined : path,
+      href: isLast ? undefined : normalizeNavHref(path, role),
     })
   }
 
   const trail = prependRootCrumb(pathname, crumbs, locale, role)
-  const backHref = resolveBackHref(pathname)
+  const backHref = resolveBackHref(pathname, role)
 
   let backLabel: string | null = null
   if (backHref) {
