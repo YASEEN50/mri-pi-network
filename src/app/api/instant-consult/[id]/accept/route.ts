@@ -8,6 +8,7 @@ import {
   doctorHasActiveInstantSession,
   notifyClientInstantAccepted,
 } from '@/lib/instant-consult/service'
+import { refundInstantConsultPayment, settleInstantConsultOnAccept } from '@/lib/payment/instant-consult-escrow'
 
 export async function POST(
   _req: NextRequest,
@@ -35,7 +36,8 @@ export async function POST(
         where: { id },
         data: { status: InstantConsultStatus.EXPIRED },
       })
-      return ok({ error: true, message: 'انتهت مهلة قبول الطلب' })
+      await refundInstantConsultPayment(id)
+      return ok({ error: true, message: 'انتهت مهلة قبول الطلب — تم استرداد المبلغ للمريض' })
     }
 
     if (await doctorHasActiveInstantSession(doctor.id, id)) {
@@ -61,6 +63,8 @@ export async function POST(
       id,
       `د. ${doctor.firstName} ${doctor.lastName}`,
     )
+
+    await settleInstantConsultOnAccept(id)
 
     return ok({ id, chatRoomId, sessionEndsAt: sessionEndsAt.toISOString() })
   } catch (err) {

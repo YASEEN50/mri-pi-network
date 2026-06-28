@@ -3,6 +3,7 @@ import { InstantConsultStatus, Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
+import { refundInstantConsultPayment } from '@/lib/payment/instant-consult-escrow'
 
 export async function POST(
   _req: NextRequest,
@@ -29,6 +30,8 @@ export async function POST(
       data: { status: InstantConsultStatus.REJECTED, rejectedAt: new Date() },
     })
 
+    const refund = await refundInstantConsultPayment(id)
+
     const client = await prisma.clientProfile.findUnique({
       where: { id: request.clientId },
       select: { userId: true },
@@ -38,7 +41,9 @@ export async function POST(
         data: {
           userId: client.userId,
           title: '❌ لم يقبل الطبيب',
-          body: 'لم يقبل الطبيب الاستشارة الفورية — جرّب طبيباً آخر',
+          body: refund.refunded
+            ? `لم يقبل الطبيب الاستشارة — أُرجِع ${refund.amount?.toFixed(4) ?? ''} π إلى رصيدك في المنصة`
+            : 'لم يقبل الطبيب الاستشارة الفورية — جرّب طبيباً آخر',
           type: 'INSTANT_CONSULT_REJECTED',
           data: { requestId: id },
         },

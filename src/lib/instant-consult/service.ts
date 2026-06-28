@@ -2,16 +2,25 @@ import { InstantConsultStatus } from '@prisma/client'
 import { prisma, db } from '@/lib/prisma'
 import { doctorProfileApprovedWhere } from '@/lib/premio/active-premio'
 import { INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC } from '@/lib/instant-consult/constants'
+import { refundInstantConsultPayment } from '@/lib/payment/instant-consult-escrow'
 
 export async function expireStaleInstantConsults(): Promise<void> {
   const now = new Date()
-  await prisma.instantConsultRequest.updateMany({
+  const expired = await prisma.instantConsultRequest.findMany({
     where: {
       status: InstantConsultStatus.PENDING,
       expiresAt: { lte: now },
     },
-    data: { status: InstantConsultStatus.EXPIRED },
+    select: { id: true },
   })
+
+  for (const row of expired) {
+    await prisma.instantConsultRequest.update({
+      where: { id: row.id },
+      data: { status: InstantConsultStatus.EXPIRED },
+    })
+    await refundInstantConsultPayment(row.id)
+  }
 }
 
 export async function doctorHasActiveInstantSession(

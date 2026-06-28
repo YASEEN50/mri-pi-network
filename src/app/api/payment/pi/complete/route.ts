@@ -69,9 +69,7 @@ export async function POST(req: NextRequest) {
     if (meta.purpose === 'APPOINTMENT' && transaction.doctorId) {
       await settleDoctorPayment(transaction)
     }
-    if (meta.purpose === 'INSTANT_CONSULT' && transaction.doctorId) {
-      await settleDoctorPayment(transaction)
-    }
+    // INSTANT_CONSULT: escrow — doctor paid only on accept (see settleInstantConsultOnAccept)
 
     if (meta.purpose === 'PREMIO' && meta.planType) {
       const premio = await fulfillPremioPurchase(

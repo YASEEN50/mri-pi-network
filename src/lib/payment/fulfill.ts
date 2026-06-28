@@ -7,6 +7,7 @@ import {
   acceptDeadlineFromNow,
   notifyDoctorInstantRequest,
 } from '@/lib/instant-consult/service'
+import { linkInstantConsultTransaction } from '@/lib/payment/instant-consult-escrow'
 
 export async function fulfillPremioPurchase(
   userId: string,
@@ -130,6 +131,8 @@ export async function fulfillInstantConsultPayment(
     instantConsultId,
     `${request.client.firstName} ${request.client.lastName}`,
   )
+
+  await linkInstantConsultTransaction(instantConsultId, transactionId)
 
   await prisma.notification.create({
     data: {

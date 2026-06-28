@@ -69,7 +69,11 @@ export default function ConsultNowPage() {
         setPhase('accepted')
       } else if (req?.status === 'REJECTED' || req?.status === 'EXPIRED') {
         setPhase('failed')
-        setError(req.status === 'EXPIRED' ? 'انتهت مهلة انتظار الطبيب' : 'رفض الطبيب الطلب')
+        setError(
+          req.status === 'EXPIRED'
+            ? 'انتهت مهلة انتظار الطبيب — أُرجِع المبلغ إلى رصيدك في المنصة'
+            : 'رفض الطبيب الطلب — أُرجِع المبلغ إلى رصيدك في المنصة',
+        )
       }
     }
 

@@ -302,6 +302,8 @@ model ClientProfile {
   medicalRecords MedicalRecord[]
   instantConsultRequests InstantConsultRequest[]
 
+  piCreditBalance Decimal @default(0) @db.Decimal(12, 4) // refund credit (π)
+
   @@index([userId])
   @@index([deletedAt])
   @@map("client_profiles")
@@ -1180,6 +1182,7 @@ model InstantConsultRequest {
   rejectedAt    DateTime?
   completedAt   DateTime?
   chatRoomId    String?
+  transactionId String?
   createdAt     DateTime             @default(now())
   updatedAt     DateTime             @updatedAt
 
