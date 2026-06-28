@@ -731,6 +731,11 @@ model PaidAdvertisement {
   advertiserPhone String?
   placement       PaidAdPlacement @default(HOME_SIDEBAR)
   status          PaidAdStatus    @default(PENDING_REVIEW)
+  pricePi         Decimal?        @db.Decimal(10, 4)
+  durationDays    Int?
+  rejectionReason String?
+  reviewedBy      String?
+  reviewedAt      DateTime?
   startsAt        DateTime?
   endsAt          DateTime?
   clickCount      Int             @default(0)
@@ -741,6 +746,20 @@ model PaidAdvertisement {
   @@index([status, placement, sortOrder])
   @@index([startsAt, endsAt])
   @@map("paid_advertisements")
+}
+
+// إعدادات أسعار الإعلانات — يتحكم بها المالك
+model AdSettings {
+  id                    String   @id @default(uuid())
+  sidebarWeeklyPricePi  Decimal  @default(10) @db.Decimal(10, 4)
+  sidebarMonthlyPricePi Decimal  @default(25) @db.Decimal(10, 4)
+  defaultDurationDays   Int      @default(30)
+  isAcceptingRequests   Boolean  @default(true)
+  updatedBy             String
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@map("ad_settings")
 }
 
 // =============================================================================

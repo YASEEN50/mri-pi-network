@@ -66,6 +66,7 @@ const SEGMENT_LABELS: Record<string, { ar: string; en: string }> = {
   terms: { ar: 'الشروط', en: 'Terms' },
   signup: { ar: 'تسجيل', en: 'Signup' },
   'doctors-map': { ar: 'خريطة الأطباء', en: 'Doctors map' },
+  ads: { ar: 'الإعلانات', en: 'Ads' },
   advertise: { ar: 'إعلان مدفوع', en: 'Advertise' },
   unauthorized: { ar: 'غير مصرح', en: 'Unauthorized' },
 }

@@ -1,10 +1,18 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
 
+interface Pricing {
+  sidebarWeeklyPricePi: number
+  sidebarMonthlyPricePi: number
+  defaultDurationDays: number
+  isAcceptingRequests: boolean
+}
+
 export default function AdvertisePage() {
+  const [pricing, setPricing] = useState<Pricing | null>(null)
   const [form, setForm] = useState({
     title: '',
     description: '',
@@ -16,6 +24,13 @@ export default function AdvertisePage() {
   })
   const [submitting, setSubmitting] = useState(false)
   const [result, setResult] = useState<{ type: 'success' | 'error'; msg: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/ads/pricing')
+      .then((r) => r.json())
+      .then((d) => { if (d.data) setPricing(d.data) })
+      .catch(() => {})
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -67,6 +82,22 @@ export default function AdvertisePage() {
             اعرض خدماتك أو منتجاتك الطبية في الشريط الجانبي للصفحة الرئيسية. يُراجع كل إعلان قبل النشر
             ويتم تفعيله بعد الدفع والموافقة.
           </p>
+        </div>
+
+        <div className="mpi-card p-6 mb-6">
+          <h2 className="text-white font-semibold mb-3">الأسعار الحالية</h2>
+          {pricing ? (
+            <ul className="text-slate-300 text-sm space-y-2">
+              <li>📅 أسبوع في الشريط الجانبي: <strong className="text-amber-300">{pricing.sidebarWeeklyPricePi} π</strong></li>
+              <li>📆 شهر في الشريط الجانبي: <strong className="text-amber-300">{pricing.sidebarMonthlyPricePi} π</strong></li>
+              <li>⏱️ مدة العرض: {pricing.defaultDurationDays} يوم</li>
+              {!pricing.isAcceptingRequests && (
+                <li className="text-red-400">⚠️ استقبال الطلبات متوقف مؤقتاً</li>
+              )}
+            </ul>
+          ) : (
+            <p className="text-slate-500 text-sm">جاري تحميل الأسعار...</p>
+          )}
         </div>
 
         <div className="mpi-card p-6 mb-6">
