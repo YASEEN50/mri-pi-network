@@ -1,9 +1,10 @@
 'use client'
 // src/components/admin/DashboardBreadcrumb.tsx
+// مسار مخصص — يُدمج مع PageBackNav عبر تسمية الصفحة الحالية
 
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
-import { Role } from '@prisma/client'
+import { getDashboardHref as getDashHref, getDashboardLabel as getDashLabel } from '@/lib/navigation/breadcrumbs'
 
 export interface BreadcrumbItem {
   label: string
@@ -16,27 +17,30 @@ interface Props {
 }
 
 export function getAdminDashboardHref(role?: string): string {
-  return role === Role.OWNER ? '/owner' : '/dashboard/admin/verification'
+  return getDashHref(role)
 }
 
 export function getAdminDashboardLabel(role?: string): string {
-  return role === Role.OWNER ? 'لوحة المالك' : 'لوحة التحكم'
+  return getDashLabel('ar', role)
 }
 
+/** يعرض مساراً إضافياً عند الحاجة لتسمية مخصصة (الرجوع العام في Navbar). */
 export default function DashboardBreadcrumb({ items, className = '' }: Props) {
   const { data: session } = useSession()
   const role = session?.user?.role
-  const dashboardHref = getAdminDashboardHref(role)
-  const dashboardLabel = getAdminDashboardLabel(role)
+  const dashboardHref = getDashHref(role)
+  const dashboardLabel = getDashLabel('ar', role)
 
   const crumbs: BreadcrumbItem[] = [
     { label: dashboardLabel, href: dashboardHref },
     ...items,
   ]
 
+  if (items.length === 0) return null
+
   return (
     <nav
-      className={`flex items-center flex-wrap gap-x-1.5 gap-y-1 text-sm ${className}`}
+      className={`flex items-center flex-wrap gap-x-1.5 gap-y-1 text-sm mb-3 ${className}`}
       aria-label="مسار التنقل"
     >
       {crumbs.map((crumb, i) => {
@@ -47,9 +51,8 @@ export default function DashboardBreadcrumb({ items, className = '' }: Props) {
             {crumb.href && !isLast ? (
               <Link
                 href={crumb.href}
-                className="text-slate-400 hover:text-accent transition-colors inline-flex items-center gap-1"
+                className="text-slate-400 hover:text-accent transition-colors"
               >
-                {i === 0 && <span aria-hidden>←</span>}
                 {crumb.label}
               </Link>
             ) : (

@@ -6,7 +6,6 @@ import { useState, useEffect, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter }  from 'next/navigation'
 import Navbar from '@/components/common/Navbar'
-import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 interface SessionRow {
   sessionId:      string
@@ -71,9 +70,7 @@ export default function VerificationV2Page() {
     <div className="min-h-screen bg-background" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-6xl mx-auto px-4 py-8">
-        <DashboardBreadcrumb items={[{ label: 'التحقق المتقدم (v2)' }]} />
-
-        <div className="flex items-center justify-between mb-6 mt-2">
+        <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-white">مراجعة التحقق من الأطباء</h1>
             <p className="text-slate-400 text-sm mt-1">نظام v2 — مرتب حسب درجة المخاطرة</p>

@@ -4,9 +4,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import Navbar from '@/components/common/Navbar'
-import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 interface PendingPub {
   id: string
@@ -76,22 +74,9 @@ export default function AdminPublicationsPage() {
     <div className="min-h-screen bg-slate-950" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-8">
-        <DashboardBreadcrumb items={[{ label: 'مراجعة المنشورات' }]} className="mb-4" />
-        <div className="flex flex-wrap items-center gap-3 mb-8">
-          <Link href="/admin"
-            className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl text-sm transition-all">
-            ← لوحة الإدارة
-          </Link>
-          {session?.user?.role === 'OWNER' && (
-            <Link href="/owner"
-              className="px-4 py-2 bg-white/5 border border-white/10 text-slate-300 hover:text-white rounded-xl text-sm transition-all">
-              ← لوحة المالك
-            </Link>
-          )}
-          <div>
-            <h1 className="text-2xl font-bold text-white">مراجعة المنشورات 📝</h1>
-            <p className="text-slate-400 text-sm mt-1">{pubs.length} منشور بانتظار الموافقة</p>
-          </div>
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-white">مراجعة المنشورات 📝</h1>
+          <p className="text-slate-400 text-sm mt-1">{pubs.length} منشور بانتظار الموافقة</p>
         </div>
 
         {loadError && (

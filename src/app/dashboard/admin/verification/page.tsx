@@ -5,7 +5,6 @@ import { useState, useEffect } from 'react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import DashboardShell from '@/components/dashboard/DashboardShell'
-import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 type Tab = 'doctors' | 'facilities'
 
@@ -76,8 +75,7 @@ export default function AdminVerificationPage() {
   return (
     <DashboardShell className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-12">
-        <DashboardBreadcrumb items={[{ label: ta('verification_breadcrumb') }]} />
-        <h1 className="text-2xl font-bold text-white mb-8 mt-2">{td('verification')}</h1>
+        <h1 className="text-2xl font-bold text-white mb-8">{td('verification')}</h1>
 
         {/* Tabs */}
         <div className="flex gap-2 mb-8 p-1 bg-white/5 rounded-xl w-fit">

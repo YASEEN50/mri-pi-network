@@ -6,7 +6,6 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/common/Navbar'
-import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 const TYPE_LABELS: Record<string, string> = {
   CLINIC: 'عيادة', HOSPITAL: 'مستشفى', MEDICAL_CENTER: 'مركز طبي',
@@ -142,13 +141,7 @@ export default function FacilityVerifyPage() {
       <Navbar locale="ar" />
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <div className="mb-6">
-          <DashboardBreadcrumb
-            items={[
-              { label: 'الطلبات المعلقة', href: '/dashboard/admin/pending' },
-              { label: 'مراجعة المنشأة' },
-            ]}
-          />
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-white">مراجعة منشأة: {facility.name}</h1>
               {facility.email && (

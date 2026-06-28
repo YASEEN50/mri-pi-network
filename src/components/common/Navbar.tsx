@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { Role } from '@prisma/client'
 import SearchBar from '@/components/common/SearchBar'
 import NotificationBell from '@/components/NotificationBell'
+import PageBackNav from '@/components/common/PageBackNav'
 import { performLogout } from '@/lib/auth-logout'
 import { cn } from '@/lib/cn'
 
@@ -208,6 +209,7 @@ export default function Navbar({ locale }: NavbarProps) {
           </div>
         )}
       </div>
+      <PageBackNav locale={locale} />
     </nav>
   )
 }

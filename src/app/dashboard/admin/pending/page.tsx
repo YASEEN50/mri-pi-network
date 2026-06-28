@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl'
 import DashboardShell from '@/components/dashboard/DashboardShell'
 import { useAppLocale } from '@/hooks/useAppLocale'
 import Link from 'next/link'
-import DashboardBreadcrumb, { getAdminDashboardHref, getAdminDashboardLabel } from '@/components/admin/DashboardBreadcrumb'
+import { getAdminDashboardHref, getAdminDashboardLabel } from '@/components/admin/DashboardBreadcrumb'
 
 interface PendingItem {
   id: string
@@ -86,9 +86,7 @@ export default function AdminPendingPage() {
   return (
     <DashboardShell className="min-h-screen bg-background">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-10">
-        <DashboardBreadcrumb items={[{ label: ta('pending_title') }]} />
-
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-8 mt-2">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
           <div>
             <h1 className="text-2xl font-bold text-white">{ta('pending_title')}</h1>
             <p className="text-slate-400 text-sm mt-1">{ta('pending_subtitle')}</p>

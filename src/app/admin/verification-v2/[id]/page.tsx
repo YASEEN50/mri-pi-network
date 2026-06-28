@@ -7,7 +7,6 @@ import { useSession }  from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Navbar from '@/components/common/Navbar'
-import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 import AdminDocumentModal from '@/components/admin/AdminDocumentModal'
 
 const RISK_COLORS: Record<string, string> = {
@@ -102,13 +101,7 @@ export default function VerificationDetailPage() {
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
         {/* Header */}
-        <DashboardBreadcrumb
-          items={[
-            { label: 'التحقق المتقدم (v2)', href: '/admin/verification-v2' },
-            { label: data.doctor?.name ?? 'مراجعة الطلب' },
-          ]}
-        />
-        <div className="flex items-center gap-3 mt-4">
+        <div className="flex items-center gap-3 mt-2">
           <h1 className="text-xl font-bold text-white">مراجعة طلب التحقق</h1>
           <span className="text-slate-500 text-sm font-mono">{sessionId.slice(0, 8)}...</span>
         </div>

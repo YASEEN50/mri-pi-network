@@ -7,7 +7,6 @@ import { useRouter, useParams } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import Navbar from '@/components/common/Navbar'
-import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
 
 interface DoctorDetail {
   id: string
@@ -162,13 +161,7 @@ export default function DoctorVerifyPage() {
 
         {/* Header */}
         <div className="mb-6">
-          <DashboardBreadcrumb
-            items={[
-              { label: 'الطلبات المعلقة', href: '/dashboard/admin/pending' },
-              { label: 'مراجعة الطبيب' },
-            ]}
-          />
-          <div className="flex items-center justify-between mt-4">
+          <div className="flex items-center justify-between">
             <h1 className="text-2xl font-bold text-white">مراجعة ملف الطبيب</h1>
             <span className="px-3 py-1 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-full text-sm">
               قيد المراجعة
