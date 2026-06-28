@@ -132,62 +132,60 @@ export default function AdminPendingPage() {
               <p className="text-slate-400">{ta('no_pending')}</p>
             </div>
           ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.08]">
-                  {[ta('table_name'), ta('table_specialization'), ta('table_license'), ta('table_city'), ta('table_email'), ta('table_date'), ta('table_action')].map(h => (
-                    <th key={h} className="text-start text-slate-400 font-medium px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {items.map(item => (
-                  <tr key={item.id} className="border-b border-white/[0.05] hover:bg-white/[0.02]">
-                    <td className="px-4 py-3 text-white font-medium">
-                      {item.fullName ?? item.name}
-                      {tab === 'facilities' && (
-                        <p className="text-slate-500 text-xs font-normal mt-1">
-                          {item.hasOwnershipDoc ? '✅ ملكية' : '⏳ ملكية'}
-                          {' · '}
-                          {item.hasLicenseDoc ? '✅ تصريح' : '⏳ تصريح'}
-                        </p>
-                      )}
-                    </td>
-                    <td className="px-4 py-3 text-slate-300 text-xs">{item.specialization ?? item.type}</td>
-                    <td className="px-4 py-3 text-slate-400 text-xs font-mono">{item.licenseNumber}</td>
-                    <td className="px-4 py-3 text-slate-400 text-xs">{item.city ?? '—'}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{item.email}</td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">
-                      {new Date(item.createdAt).toLocaleDateString(dateLocale)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2 flex-wrap">
-                        {tab === 'doctors' && (
-                          <Link href={`/admin/doctors/${item.id}/verify`}
-                            className="px-3 py-1 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
-                            {ta('documents')}
-                          </Link>
-                        )}
+            <div className="divide-y divide-white/[0.06]">
+              {items.map(item => {
+                const name = item.fullName ?? item.name ?? '—'
+                const profileHref = tab === 'doctors'
+                  ? `/admin/doctors/${item.id}/verify`
+                  : `/admin/facilities/${item.id}/verify`
+
+                return (
+                  <div key={item.id} className="p-4 sm:p-5 hover:bg-white/[0.02]">
+                    <div className="flex flex-col gap-3">
+                      <div className="min-w-0">
+                        <Link href={profileHref}
+                          className="text-white font-semibold text-base hover:text-accent transition-colors">
+                          {name}
+                        </Link>
                         {tab === 'facilities' && (
-                          <Link href={`/admin/facilities/${item.id}/verify`}
-                            className="px-3 py-1 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
-                            {ta('documents')}
-                          </Link>
+                          <p className="text-slate-500 text-xs font-normal mt-1">
+                            {item.hasOwnershipDoc ? '✅ ملكية' : '⏳ ملكية'}
+                            {' · '}
+                            {item.hasLicenseDoc ? '✅ تصريح' : '⏳ تصريح'}
+                          </p>
                         )}
+                        <p className="text-slate-400 text-sm mt-1">
+                          {item.specialization ?? item.type ?? '—'}
+                          {' · '}
+                          <span className="font-mono text-xs">{item.licenseNumber}</span>
+                        </p>
+                        <p className="text-slate-500 text-xs mt-1 truncate">
+                          {item.city ?? '—'} · {item.email}
+                        </p>
+                        <p className="text-slate-600 text-xs mt-1">
+                          {new Date(item.createdAt).toLocaleDateString(dateLocale)}
+                        </p>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        <Link href={profileHref}
+                          className="px-3 py-2 bg-primary/20 hover:bg-primary/30 border border-primary/30 text-accent rounded-lg text-xs transition-all">
+                          {ta('documents')}
+                        </Link>
                         <button onClick={() => handleApprove(tab, item.id)}
-                          className="px-3 py-1 bg-success/20 hover:bg-success/30 border border-success/30 text-success rounded-lg text-xs transition-all">
+                          className="px-3 py-2 bg-success/20 hover:bg-success/30 border border-success/30 text-success rounded-lg text-xs transition-all">
                           {ta('accept')}
                         </button>
                         <button onClick={() => handleReject(tab, item.id)}
-                          className="px-3 py-1 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg text-xs transition-all">
+                          className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 rounded-lg text-xs transition-all">
                           ❌ {t('reject')}
                         </button>
                       </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
           )}
         </div>
       </div>

@@ -5,8 +5,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useSession }  from 'next-auth/react'
 import { useRouter, useParams } from 'next/navigation'
+import Link from 'next/link'
 import Navbar from '@/components/common/Navbar'
 import DashboardBreadcrumb from '@/components/admin/DashboardBreadcrumb'
+import AdminDocumentModal from '@/components/admin/AdminDocumentModal'
 
 const RISK_COLORS: Record<string, string> = {
   HIGH: '#ef4444', MEDIUM: '#f59e0b', LOW: '#10b981',
@@ -33,6 +35,7 @@ export default function VerificationDetailPage() {
   const [notes,   setNotes]   = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [result,  setResult]  = useState<{type:'success'|'error', msg:string} | null>(null)
+  const [preview, setPreview] = useState<{ url: string; mimeType?: string; label: string } | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -122,9 +125,16 @@ export default function VerificationDetailPage() {
               ['البريد',       data.doctor?.email],
               ['تاريخ التسجيل', data.doctor?.memberSince ? new Date(data.doctor.memberSince).toLocaleDateString('ar-SA') : '-'],
             ].map(([label, value]) => (
-              <div key={label}>
+              <div key={label as string}>
                 <span className="text-slate-500">{label}: </span>
-                <span className="text-slate-200">{value ?? '-'}</span>
+                {label === 'الاسم' && data.doctor?.id ? (
+                  <Link href={`/admin/doctors/${data.doctor.id}/verify`}
+                    className="text-accent hover:underline">
+                    {value ?? '-'}
+                  </Link>
+                ) : (
+                  <span className="text-slate-200">{value ?? '-'}</span>
+                )}
               </div>
             ))}
           </div>
@@ -211,7 +221,7 @@ export default function VerificationDetailPage() {
         {/* Documents */}
         <div className="rounded-2xl p-5" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)'}}>
           <h2 className="text-white font-semibold mb-3">📁 الوثائق المرفوعة ({data.documents?.length})</h2>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             {data.documents?.map((doc: any) => (
               <div key={doc.id} className="rounded-xl p-3 flex items-center justify-between gap-2"
                 style={{
@@ -239,10 +249,16 @@ export default function VerificationDetailPage() {
                   </div>
                 </div>
                 {doc.url && (
-                  <a href={doc.url} target="_blank" rel="noopener noreferrer"
+                  <button
+                    type="button"
+                    onClick={() => setPreview({
+                      url: doc.url,
+                      mimeType: doc.mimeType,
+                      label: DOC_LABELS[doc.docType] ?? doc.docType,
+                    })}
                     className="shrink-0 px-3 py-1.5 rounded-lg text-xs text-blue-400 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20">
-                    عرض ↗
-                  </a>
+                    عرض
+                  </button>
                 )}
               </div>
             ))}
@@ -303,6 +319,14 @@ export default function VerificationDetailPage() {
         )}
 
       </div>
+
+      <AdminDocumentModal
+        open={!!preview}
+        url={preview?.url ?? ''}
+        mimeType={preview?.mimeType}
+        label={preview?.label ?? 'وثيقة'}
+        onClose={() => setPreview(null)}
+      />
     </div>
   )
 }
