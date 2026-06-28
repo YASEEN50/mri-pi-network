@@ -12,6 +12,7 @@ const TYPE_OPTS = [
   { v: 'ARTICLE', l: 'مقال طبي' },
   { v: 'RESEARCH', l: 'بحث علمي' },
   { v: 'CASE_STUDY', l: 'دراسة حالة' },
+  { v: 'TIP', l: 'نصيحة طبية' },
   { v: 'ANNOUNCEMENT', l: 'إعلان' },
 ]
 

@@ -19,7 +19,11 @@
     "stats_doctors": "طبيب معتمد",
     "stats_facilities": "منشأة طبية",
     "stats_appointments": "موعد محجوز",
-    "stats_cities": "مدينة"
+    "stats_cities": "مدينة",
+    "feed_title": "منشورات الأطباء",
+    "feed_subtitle": "أبحاث، مقالات، نصائح طبية، ودراسات من أطباء معتمدين",
+    "feed_view_all": "عرض الكل",
+    "feed_empty": "لا توجد منشورات منشورة بعد — تابعنا قريباً"
   },
   "doctors": {
     "title": "الأطباء",

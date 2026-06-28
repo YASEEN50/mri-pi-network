@@ -86,6 +86,19 @@ enum PublicationType {
   RESEARCH
   CASE_STUDY
   ANNOUNCEMENT
+  TIP
+}
+
+enum PaidAdStatus {
+  PENDING_REVIEW
+  ACTIVE
+  PAUSED
+  EXPIRED
+  REJECTED
+}
+
+enum PaidAdPlacement {
+  HOME_SIDEBAR
 }
 
 // أنواع البريميو
@@ -705,6 +718,29 @@ model Publication {
   @@index([publishedAt])
   @@index([deletedAt])
   @@map("publications")
+}
+
+model PaidAdvertisement {
+  id              String          @id @default(uuid())
+  title           String
+  description     String?
+  imageUrl        String?
+  linkUrl         String
+  advertiserName  String
+  advertiserEmail String?
+  advertiserPhone String?
+  placement       PaidAdPlacement @default(HOME_SIDEBAR)
+  status          PaidAdStatus    @default(PENDING_REVIEW)
+  startsAt        DateTime?
+  endsAt          DateTime?
+  clickCount      Int             @default(0)
+  sortOrder       Int             @default(0)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([status, placement, sortOrder])
+  @@index([startsAt, endsAt])
+  @@map("paid_advertisements")
 }
 
 // =============================================================================

@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
         where,
         skip,
         take: limit,
-        orderBy: { updatedAt: 'desc' },
+        orderBy: [{ publishedAt: 'desc' }, { createdAt: 'desc' }],
         include: {
           doctor: { select: { firstName: true, lastName: true, specialization: true, avatarUrl: true } },
         },

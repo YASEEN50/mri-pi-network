@@ -18,7 +18,7 @@ interface PendingPub {
 }
 
 const TYPE_LABELS: Record<string, string> = {
-  ARTICLE: 'مقال', RESEARCH: 'بحث', CASE_STUDY: 'دراسة حالة', ANNOUNCEMENT: 'إعلان',
+  ARTICLE: 'مقال', RESEARCH: 'بحث', CASE_STUDY: 'دراسة حالة', ANNOUNCEMENT: 'إعلان', TIP: 'نصيحة',
 }
 
 export default function AdminPublicationsPage() {

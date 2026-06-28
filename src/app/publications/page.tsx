@@ -4,17 +4,9 @@ import { useState, useEffect, useCallback } from 'react'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
 import Image from 'next/image'
+import { publicationTypeLabel, PUBLICATION_TYPE_COLORS } from '@/lib/publications/constants'
 
-const TYPE_LABELS: Record<string, string> = {
-  ARTICLE: 'مقال', RESEARCH: 'بحث', CASE_STUDY: 'دراسة حالة',
-  ANNOUNCEMENT: 'إعلان',
-}
-const TYPE_COLORS: Record<string, string> = {
-  ARTICLE: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-  RESEARCH: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
-  CASE_STUDY: 'bg-teal-500/10 text-teal-400 border-teal-500/20',
-  ANNOUNCEMENT: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-}
+const TYPE_FILTER_KEYS = ['', 'ARTICLE', 'RESEARCH', 'CASE_STUDY', 'TIP', 'ANNOUNCEMENT'] as const
 
 interface Pub {
   id: string; title: string; summary?: string; type: string
@@ -68,13 +60,13 @@ export default function PublicationsPage() {
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">🔍</span>
           </div>
           <div className="flex gap-2 flex-wrap">
-            {['', 'ARTICLE', 'RESEARCH', 'CASE_STUDY', 'ANNOUNCEMENT'].map(t => (
+            {TYPE_FILTER_KEYS.map(t => (
               <button key={t} onClick={() => { setType(t); setPage(1) }}
                 className={`px-4 py-2 rounded-xl text-xs font-medium border transition-all
                   ${type === t
                     ? 'bg-emerald-500/20 border-emerald-500/30 text-emerald-400'
                     : 'bg-white/5 border-white/10 text-slate-400 hover:bg-white/10'}`}>
-                {t === '' ? 'الكل' : TYPE_LABELS[t]}
+                {t === '' ? 'الكل' : publicationTypeLabel(t, 'ar')}
               </button>
             ))}
           </div>
@@ -104,8 +96,8 @@ export default function PublicationsPage() {
                 )}
                 <div className="p-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${TYPE_COLORS[pub.type] ?? ''}`}>
-                      {TYPE_LABELS[pub.type] ?? pub.type}
+                    <span className={`text-xs px-2.5 py-1 rounded-full border font-medium ${PUBLICATION_TYPE_COLORS[pub.type] ?? ''}`}>
+                      {publicationTypeLabel(pub.type, 'ar')}
                     </span>
                     {pub.tags.slice(0, 2).map(tag => (
                       <span key={tag} className="text-xs text-slate-500 bg-white/5 px-2 py-0.5 rounded">#{tag}</span>

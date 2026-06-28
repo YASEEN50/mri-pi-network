@@ -32,6 +32,7 @@ function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: str
   if (!role || role === Role.CLIENT) {
     return [
       { href: '/',             label: t('nav.home') },
+      { href: '/publications', label: locale === 'ar' ? 'المنشورات' : 'Publications' },
       { href: '/doctors',      label: t('nav.doctors') },
       { href: '/facilities',   label: t('nav.facilities') },
       { href: '/publications', label: locale === 'ar' ? 'المنشورات' : 'Publications' },

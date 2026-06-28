@@ -5,12 +5,16 @@ import Link from 'next/link'
 import Navbar from '@/components/common/Navbar'
 import Footer from '@/components/common/Footer'
 import HomeHeroSearch from '@/components/home/HomeHeroSearch'
+import HomePublicationsFeed from '@/components/home/HomePublicationsFeed'
+import HomeAdsSidebar from '@/components/home/HomeAdsSidebar'
 import DoctorCard from '@/components/doctors/DoctorCard'
 import FacilityCard from '@/components/facilities/FacilityCard'
 import { prisma } from '@/lib/prisma'
 import { ApprovalStatus } from '@prisma/client'
 import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
+import { getHomePublications } from '@/lib/home/get-home-publications'
+import { getActiveHomeSidebarAds } from '@/lib/home/get-home-ads'
 
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
   return Promise.race([
@@ -49,11 +53,19 @@ export default async function HomePage() {
 
   let doctors: Awaited<ReturnType<typeof getFeaturedDoctors>> = []
   let facilities: Awaited<ReturnType<typeof getFeaturedFacilities>> = []
+  let publications: Awaited<ReturnType<typeof getHomePublications>> = []
+  let sidebarAds: Awaited<ReturnType<typeof getActiveHomeSidebarAds>> = []
   let stats = { doctors: 0, facilities: 0, appointments: 0 }
 
   try {
-    ;[doctors, facilities, stats] = await withTimeout(
-      Promise.all([getFeaturedDoctors(), getFeaturedFacilities(), getStats()]),
+    ;[doctors, facilities, publications, sidebarAds, stats] = await withTimeout(
+      Promise.all([
+        getFeaturedDoctors(),
+        getFeaturedFacilities(),
+        getHomePublications(8),
+        getActiveHomeSidebarAds(4),
+        getStats(),
+      ]),
       4000,
     )
   } catch (e) {
@@ -91,6 +103,10 @@ export default async function HomePage() {
               className="px-8 py-3.5 bg-gradient-to-r from-primary to-primary-600 hover:from-primary-400 hover:to-primary text-white font-semibold rounded-xl transition-all shadow-glow-primary text-sm">
               {t('home.hero_cta')}
             </Link>
+            <Link href="/publications"
+              className="px-8 py-3.5 bg-white/5 hover:bg-primary/10 border border-white/10 hover:border-primary/30 text-white font-semibold rounded-xl transition-all text-sm">
+              {locale === 'ar' ? 'منشورات الأطباء' : 'Doctor publications'}
+            </Link>
             <Link href="/register"
               className="px-8 py-3.5 bg-white/5 hover:bg-primary/10 border border-white/10 hover:border-primary/30 text-white font-semibold rounded-xl transition-all text-sm">
               {t('home.hero_cta_secondary')}
@@ -111,6 +127,14 @@ export default async function HomePage() {
               </div>
             ))}
           </div>
+        </div>
+      </section>
+
+      {/* Feed + Ads */}
+      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 w-full border-t border-white/5">
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] xl:grid-cols-[1fr_320px] gap-8 lg:gap-10 items-start">
+          <HomePublicationsFeed publications={publications} locale={locale} />
+          <HomeAdsSidebar ads={sidebarAds} locale={locale} />
         </div>
       </section>
 

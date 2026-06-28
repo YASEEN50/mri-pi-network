@@ -19,7 +19,11 @@
     "stats_doctors": "Verified Doctors",
     "stats_facilities": "Medical Facilities",
     "stats_appointments": "Appointments Booked",
-    "stats_cities": "Cities"
+    "stats_cities": "Cities",
+    "feed_title": "Doctor Publications",
+    "feed_subtitle": "Research, articles, medical tips, and case studies from verified doctors",
+    "feed_view_all": "View all",
+    "feed_empty": "No published posts yet — check back soon"
   },
   "doctors": {
     "title": "Doctors",
