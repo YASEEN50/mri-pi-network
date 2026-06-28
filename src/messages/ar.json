@@ -347,7 +347,9 @@
       "send": "إرسال",
       "select_room": "اختر محادثة من القائمة",
       "client_empty_hint": "لا توجد محادثات بعد. احجز موعداً مع طبيب للبدء.",
-      "doctor_fallback": "طبيب"
+      "doctor_fallback": "طبيب",
+      "video": "فيديو",
+      "back_to_list": "رجوع للقائمة"
     },
     "medical_records": {
       "title": "السجل الطبي",

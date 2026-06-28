@@ -158,12 +158,22 @@ export default function ConsultNowPage() {
         {phase === 'accepted' && chatRoomId && (
           <div className="mb-6 p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
             <p className="text-emerald-400 font-medium mb-4">✅ تم قبول الاستشارة!</p>
-            <Link
-              href="/dashboard/client/chat"
-              className="inline-block px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium"
-            >
-              فتح المحادثة →
-            </Link>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href={`/dashboard/client/chat?room=${chatRoomId}`}
+                className="inline-block px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-medium"
+              >
+                فتح المحادثة →
+              </Link>
+              {requestId && (
+                <Link
+                  href={`/consult-now/${requestId}/video`}
+                  className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium"
+                >
+                  📹 بدء مكالمة فيديو
+                </Link>
+              )}
+            </div>
           </div>
         )}
 

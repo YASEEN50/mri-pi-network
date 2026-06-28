@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSession } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { CHAT_MESSAGES_POLL_MS, CHAT_ROOMS_POLL_MS } from '@/lib/chat/constants'
 
 export interface ChatRoom {
@@ -33,6 +33,8 @@ function mergeMessages(prev: ChatMessage[], incoming: ChatMessage[]): ChatMessag
 export function useChat() {
   const { data: session, status } = useSession()
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const roomFromUrl = searchParams.get('room')
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [active, setActive] = useState<ChatRoom | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -49,6 +51,10 @@ export function useChat() {
       const list: ChatRoom[] = data.data ?? []
       setRooms(list)
       setActive(prev => {
+        if (roomFromUrl) {
+          const fromUrl = list.find(r => r.id === roomFromUrl)
+          if (fromUrl) return fromUrl
+        }
         if (prev) {
           const updated = list.find(r => r.id === prev.id)
           return updated ?? prev
@@ -59,7 +65,13 @@ export function useChat() {
     finally {
       if (!silent) setLoading(false)
     }
-  }, [])
+  }, [roomFromUrl])
+
+  useEffect(() => {
+    if (!roomFromUrl || rooms.length === 0) return
+    const match = rooms.find(r => r.id === roomFromUrl)
+    if (match) setActive(match)
+  }, [roomFromUrl, rooms])
 
   const fetchMessages = useCallback(async (roomId: string, since?: string | null) => {
     try {

@@ -347,7 +347,9 @@
       "send": "Send",
       "select_room": "Select a conversation from the list",
       "client_empty_hint": "No conversations yet. Book an appointment with a doctor to get started.",
-      "doctor_fallback": "Doctor"
+      "doctor_fallback": "Doctor",
+      "video": "Video",
+      "back_to_list": "Back to list"
     },
     "medical_records": {
       "title": "Medical Records",
