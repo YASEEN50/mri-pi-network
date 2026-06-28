@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { publicationTypeLabel, PUBLICATION_TYPE_COLORS } from '@/lib/publications/constants'
+import { publicationExcerpt, hasPublicationBody } from '@/lib/publications/excerpt'
 import type { HomePublication } from '@/lib/home/get-home-publications'
 
 interface PublicationFeedCardProps {
@@ -16,10 +17,13 @@ export default function PublicationFeedCard({ pub, locale, compact }: Publicatio
       : `Dr. ${pub.doctor.firstName} ${pub.doctor.lastName}`
     : null
 
+  const excerpt = publicationExcerpt(pub.summary, pub.content, compact ? 160 : 220)
+  const showReadMore = hasPublicationBody(pub.summary, pub.content)
+
   return (
     <Link
       href={`/publications/${pub.id}`}
-      className="mpi-card overflow-hidden hover:border-primary/30 transition-all group block h-full"
+      className="mpi-card overflow-hidden hover:border-primary/30 transition-all group flex flex-col h-full"
     >
       {pub.coverUrl && !compact && (
         <div className="h-44 overflow-hidden relative">
@@ -47,12 +51,18 @@ export default function PublicationFeedCard({ pub, locale, compact }: Publicatio
         <h3 className="text-white font-semibold text-base mb-2 line-clamp-2 group-hover:text-accent transition-colors">
           {pub.title}
         </h3>
-        {pub.summary && (
-          <p className={`text-slate-400 line-clamp-2 mb-3 ${compact ? 'text-xs' : 'text-sm'}`}>
-            {pub.summary}
+        {excerpt ? (
+          <p className={`text-slate-400 line-clamp-3 leading-relaxed mb-2 ${compact ? 'text-xs' : 'text-sm'}`}>
+            {excerpt}
           </p>
+        ) : null}
+        {showReadMore && (
+          <span className="inline-flex items-center gap-1 text-accent text-sm font-medium mb-3 group-hover:underline">
+            {locale === 'ar' ? 'قراءة المزيد' : 'Read more'}
+            <span aria-hidden>{locale === 'ar' ? '←' : '→'}</span>
+          </span>
         )}
-        <div className="flex items-center justify-between pt-3 border-t border-white/5 gap-3">
+        <div className="flex items-center justify-between pt-3 border-t border-white/5 gap-3 mt-auto">
           <div className="min-w-0">
             {authorName && (
               <p className="text-slate-300 text-xs truncate">{authorName}</p>

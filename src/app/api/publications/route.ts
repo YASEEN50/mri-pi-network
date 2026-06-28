@@ -8,6 +8,7 @@ import { z } from 'zod'
 import {
   notifyAdminsPublicationPendingReview,
 } from '@/lib/notifications/service'
+import { publicationExcerpt } from '@/lib/publications/excerpt'
 
 const CreateSchema = z.object({
   title:   z.string().min(5).max(300),
@@ -51,6 +52,7 @@ export async function GET(req: NextRequest) {
       where.OR = [
         { title:   { contains: search, mode: 'insensitive' } },
         { summary: { contains: search, mode: 'insensitive' } },
+        { content: { contains: search, mode: 'insensitive' } },
         { tags:    { has: search } },
       ]
     }
@@ -84,6 +86,7 @@ export async function GET(req: NextRequest) {
         author:      p.doctor ? `د. ${p.doctor.firstName} ${p.doctor.lastName}` : null,
         authorSpecialty: p.doctor?.specialization ?? null,
         authorAvatar:    p.doctor?.avatarUrl ?? null,
+        excerpt:     publicationExcerpt(p.summary, p.content),
       })),
       { total, page, limit }
     )
@@ -110,11 +113,15 @@ export async function POST(req: NextRequest) {
 
     const status = resolveDoctorSubmitStatus(parsed.data.publish)
 
+    const summaryText = parsed.data.summary?.trim()
+      || publicationExcerpt(null, parsed.data.content, 300)
+      || undefined
+
     const pub = await prisma.publication.create({
       data: {
         doctorId:    doctor.id,
         title:       parsed.data.title,
-        summary:     parsed.data.summary,
+        summary:     summaryText,
         content:     parsed.data.content,
         type:        parsed.data.type,
         tags:        parsed.data.tags,

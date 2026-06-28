@@ -9,7 +9,7 @@ import { publicationTypeLabel, PUBLICATION_TYPE_COLORS } from '@/lib/publication
 const TYPE_FILTER_KEYS = ['', 'ARTICLE', 'RESEARCH', 'CASE_STUDY', 'TIP', 'ANNOUNCEMENT'] as const
 
 interface Pub {
-  id: string; title: string; summary?: string; type: string
+  id: string; title: string; summary?: string; excerpt?: string; type: string
   author?: string; authorSpecialty?: string; tags: string[]
   viewCount: number; likeCount: number; publishedAt?: string; coverUrl?: string
 }
@@ -106,9 +106,14 @@ export default function PublicationsPage() {
                   <h3 className="text-white font-semibold text-sm mb-2 line-clamp-2 group-hover:text-emerald-400 transition-colors">
                     {pub.title}
                   </h3>
-                  {pub.summary && (
-                    <p className="text-slate-400 text-xs line-clamp-2 mb-3">{pub.summary}</p>
+                  {(pub.excerpt || pub.summary) && (
+                    <p className="text-slate-400 text-sm line-clamp-3 leading-relaxed mb-2">
+                      {pub.excerpt || pub.summary}
+                    </p>
                   )}
+                  <span className="inline-flex items-center gap-1 text-emerald-400 text-xs font-medium mb-3 group-hover:underline">
+                    قراءة المزيد <span aria-hidden>←</span>
+                  </span>
                   <div className="flex items-center justify-between mt-auto pt-3 border-t border-white/5">
                     <div>
                       {pub.author && <p className="text-slate-300 text-xs">{pub.author}</p>}
