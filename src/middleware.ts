@@ -27,14 +27,11 @@ function applyPiWebViewHeaders(res: NextResponse): NextResponse {
   return res
 }
 
-/** Pi Portal requires root domain — static login pages only (unless ?site=full). */
+/** Pi Portal static auth — login/register only; `/` serves the public Next.js home. */
 function piStaticRewrite(req: NextRequest): NextResponse | null {
   const { pathname, searchParams } = req.nextUrl
   if (searchParams.get('site') === 'full' || searchParams.get('mfa') === 'required') return null
 
-  if (pathname === '/') {
-    return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi.html', req.url)))
-  }
   if (pathname === '/login') {
     return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi-login.html', req.url)))
   }

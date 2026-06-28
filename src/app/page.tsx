@@ -58,18 +58,24 @@ export default async function HomePage() {
   let stats = { doctors: 0, facilities: 0, appointments: 0 }
 
   try {
-    ;[doctors, facilities, publications, sidebarAds, stats] = await withTimeout(
-      Promise.all([
-        getFeaturedDoctors(),
-        getFeaturedFacilities(),
-        getHomePublications(8),
-        getActiveHomeSidebarAds(4),
-        getStats(),
-      ]),
+    ;[doctors, facilities, stats] = await withTimeout(
+      Promise.all([getFeaturedDoctors(), getFeaturedFacilities(), getStats()]),
       4000,
     )
   } catch (e) {
-    console.error('[HomePage] DB error or timeout (Neon cold start?):', e)
+    console.error('[HomePage] core data error:', e)
+  }
+
+  try {
+    publications = await withTimeout(getHomePublications(8), 4000)
+  } catch (e) {
+    console.error('[HomePage] publications error:', e)
+  }
+
+  try {
+    sidebarAds = await withTimeout(getActiveHomeSidebarAds(4), 4000)
+  } catch (e) {
+    console.error('[HomePage] sidebar ads error:', e)
   }
 
   return (

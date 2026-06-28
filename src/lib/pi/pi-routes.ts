@@ -5,7 +5,6 @@
  */
 
 export const PI_STATIC_AUTH_PATHS = [
-  '/',
   '/login',
   '/register',
   '/pi.html',

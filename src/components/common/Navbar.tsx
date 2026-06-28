@@ -35,13 +35,13 @@ function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: str
       { href: '/publications', label: locale === 'ar' ? 'المنشورات' : 'Publications' },
       { href: '/doctors',      label: t('nav.doctors') },
       { href: '/facilities',   label: t('nav.facilities') },
-      { href: '/publications', label: locale === 'ar' ? 'المنشورات' : 'Publications' },
       { href: '/consult-now', label: locale === 'ar' ? '⚡ استشارة فورية' : 'Instant consult' },
       { href: '/appointments', label: locale === 'ar' ? 'مواعيدي' : 'My Appointments' },
     ]
   }
   if (role === Role.DOCTOR) {
     return [
+      { href: '/',                              label: t('nav.home') },
       { href: '/dashboard/doctor/schedule', label: locale === 'ar' ? 'جدولي' : 'Schedule' },
       { href: '/dashboard/doctor/instant-consult', label: locale === 'ar' ? '⚡ فوري' : 'Instant' },
       { href: '/dashboard/doctor/chat',     label: locale === 'ar' ? 'المحادثات' : 'Chat' },
@@ -50,6 +50,7 @@ function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: str
   }
   if (role === Role.FACILITY) {
     return [
+      { href: '/',                              label: t('nav.home') },
       { href: '/dashboard/facility/overview', label: locale === 'ar' ? 'لوحة المنشأة' : 'Overview' },
       { href: '/dashboard/facility/departments', label: locale === 'ar' ? 'الأقسام' : 'Departments' },
       { href: '/dashboard/facility/department-doctors', label: locale === 'ar' ? 'أطباء الأقسام' : 'Dept. doctors' },
@@ -62,9 +63,11 @@ function getRoleNavLinks(role: Role | undefined, locale: 'ar' | 'en', t: (k: str
   }
   if (role === Role.ADMIN || role === Role.OWNER) {
     return [
+      { href: '/',                         label: t('nav.home') },
       { href: getDashboardLink(role),     label: role === Role.OWNER ? (locale === 'ar' ? 'لوحة المالك' : 'Owner') : (locale === 'ar' ? 'لوحة التحكم' : 'Dashboard') },
       { href: '/dashboard/admin/pending', label: locale === 'ar' ? 'الطلبات المعلقة' : 'Pending' },
       { href: '/admin/verification-v2',   label: 'التحقق v2' },
+      { href: '/publications',            label: locale === 'ar' ? 'المنشورات' : 'Publications' },
     ]
   }
   return [

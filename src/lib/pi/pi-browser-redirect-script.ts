@@ -7,13 +7,12 @@ export const PI_BROWSER_REDIRECT_SCRIPT = `
       return;
     }
     var path = location.pathname;
-    var entryPaths = ['/', '/login', '/register'];
+    var entryPaths = ['/login', '/register'];
     if (entryPaths.indexOf(path) === -1) return;
 
     function targetForPath(p) {
       if (p === '/login') return '/pi-login.html';
       if (p === '/register') return '/pi-register.html';
-      if (p === '/') return '/pi.html';
       return null;
     }
 
