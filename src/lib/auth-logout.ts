@@ -1,11 +1,11 @@
 'use client'
 
 import { signOut } from 'next-auth/react'
-import { isPiBrowser, markExplicitLogout } from '@/lib/pi/pi-auth-client'
+import { markExplicitLogout } from '@/lib/pi/pi-auth-client'
 
-/** POST signout (no NextAuth confirmation page) then redirect. */
+/** POST signout (no NextAuth confirmation page) then redirect to guest landing. */
 export async function performLogout(redirectTo?: string): Promise<void> {
   markExplicitLogout()
-  const target = redirectTo ?? (isPiBrowser() ? '/' : '/login?site=full')
+  const target = redirectTo ?? '/'
   await signOut({ callbackUrl: target, redirect: true })
 }

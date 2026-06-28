@@ -27,6 +27,7 @@ export async function GET() {
       ads.map((ad) => ({
         ...ad,
         pricePi: ad.pricePi != null ? Number(ad.pricePi) : null,
+        paidAt: ad.paidAt?.toISOString() ?? null,
       })),
     )
   } catch (err) {
@@ -56,6 +57,13 @@ export async function POST(req: NextRequest) {
     const pricePi = parsed.data.pricePi ?? (existing.pricePi != null ? Number(existing.pricePi) : undefined)
 
     if (parsed.data.action === 'approve') {
+      if (existing.status !== PaidAdStatus.PENDING_REVIEW) {
+        return ok({ error: true, message: 'الإعلان ليس بانتظار المراجعة' })
+      }
+      if (!existing.paidAt) {
+        return ok({ error: true, message: 'لم يتم دفع هذا الإعلان بعد' })
+      }
+
       const endsAt = new Date(now)
       endsAt.setDate(endsAt.getDate() + durationDays)
 

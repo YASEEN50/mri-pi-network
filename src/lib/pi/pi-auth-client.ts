@@ -181,7 +181,7 @@ export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
     const session = await res.json()
     if (session?.user) {
       clearPiSessionRedirectLoop()
-      if (typeof window !== 'undefined') window.location.href = '/dashboard'
+      if (typeof window !== 'undefined') window.location.href = '/'
       return 'redirecting'
     }
   } catch (err) {

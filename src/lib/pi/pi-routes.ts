@@ -4,7 +4,11 @@
  * Post-login app uses Next.js pages.
  */
 
+/** Default destination after successful sign-in (authenticated home feed). */
+export const POST_LOGIN_HOME = '/'
+
 export const PI_STATIC_AUTH_PATHS = [
+  '/',
   '/login',
   '/register',
   '/pi.html',

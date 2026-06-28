@@ -6,6 +6,7 @@ import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { piPaymentService } from '@/infrastructure/pi-network/pi-payment.service'
 import { fulfillPremioPurchase, fulfillAppointmentPayment, fulfillInstantConsultPayment } from '@/lib/payment/fulfill'
+import { fulfillPaidAdPayment } from '@/lib/payment/fulfill-paid-ad'
 import { settleDoctorPayment } from '@/lib/payment/platform-fee'
 import { getPiNetworkApiKey, PI_PAYMENTS_NOT_CONFIGURED_MSG } from '@/lib/pi/pi-api-key'
 
@@ -56,6 +57,7 @@ export async function POST(req: NextRequest) {
       paymentType?: 'FULL' | 'DEPOSIT'
       transactionType?: 'APPOINTMENT_FEE' | 'DEPOSIT' | 'FINAL_PAYMENT' | 'INSTANT_CONSULT'
       instantConsultId?: string
+      adId?: string
     }
 
     await prisma.transaction.update({
@@ -118,6 +120,22 @@ export async function POST(req: NextRequest) {
       return ok({
         message: 'تم الدفع — بانتظار قبول الطبيب',
         instantConsultId: meta.instantConsultId,
+        txHash: txid,
+      })
+    }
+
+    if (meta.purpose === 'PAID_AD' && meta.adId) {
+      await fulfillPaidAdPayment(
+        meta.adId,
+        auth.context.userId,
+        Number(transaction.amountTotal),
+        txid,
+        paymentId,
+        transaction.id,
+      )
+      return ok({
+        message: 'تم الدفع — بانتظار مراجعة الإعلان',
+        adId: meta.adId,
         txHash: txid,
       })
     }

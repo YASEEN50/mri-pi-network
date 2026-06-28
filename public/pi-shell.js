@@ -82,7 +82,7 @@ window.PiApp = (function () {
   function navItems(role) {
     var chatHref = role === 'DOCTOR' ? '/dashboard/doctor/chat' : '/dashboard/client/chat'
     var items = [
-      { id: 'home', href: '/dashboard', icon: '🏠', label: 'الرئيسية' },
+      { id: 'home', href: '/', icon: '🏠', label: 'الرئيسية' },
       { id: 'doctors', href: '/doctors', icon: '👨‍⚕️', label: 'الأطباء' },
       { id: 'appointments', href: dashboardPath(role || 'CLIENT'), icon: '📅', label: 'المواعيد' },
       { id: 'chat', href: chatHref, icon: '💬', label: 'المحادثات' },

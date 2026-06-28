@@ -25,7 +25,7 @@ export default function LoginPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const paramCallback = searchParams.get('callbackUrl')
-  const [callbackUrl, setCallbackUrl] = useState('/dashboard')
+  const [callbackUrl, setCallbackUrl] = useState('/')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -43,7 +43,7 @@ export default function LoginPage() {
       setCallbackUrl(paramCallback)
       return
     }
-    if (isPiBrowser()) setCallbackUrl('/dashboard')
+    if (isPiBrowser()) setCallbackUrl('/')
   }, [searchParams, paramCallback])
 
   async function completeSignIn() {

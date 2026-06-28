@@ -90,11 +90,17 @@ enum PublicationType {
 }
 
 enum PaidAdStatus {
+  PENDING_PAYMENT
   PENDING_REVIEW
   ACTIVE
   PAUSED
   EXPIRED
   REJECTED
+}
+
+enum AdPlan {
+  WEEKLY
+  MONTHLY
 }
 
 enum PaidAdPlacement {
@@ -132,6 +138,7 @@ enum TransactionType {
   FINAL_PAYMENT     // دفعة نهائية
   REFUND            // استرداد
   REFERRAL_REWARD   // مكافأة إحالة طبيب
+  PAID_AD           // إعلان مدفوع
 }
 
 // حالة المعاملة المالية
@@ -729,10 +736,15 @@ model PaidAdvertisement {
   advertiserName  String
   advertiserEmail String?
   advertiserPhone String?
+  requesterUserId String?
   placement       PaidAdPlacement @default(HOME_SIDEBAR)
-  status          PaidAdStatus    @default(PENDING_REVIEW)
+  adPlan          AdPlan          @default(MONTHLY)
+  status          PaidAdStatus    @default(PENDING_PAYMENT)
   pricePi         Decimal?        @db.Decimal(10, 4)
   durationDays    Int?
+  piPaymentId     String?
+  piTxHash        String?
+  paidAt          DateTime?
   rejectionReason String?
   reviewedBy      String?
   reviewedAt      DateTime?

@@ -22,11 +22,13 @@ export async function authenticateForPiPayments(): Promise<void> {
 
 export interface PiPayApprovePayload {
   paymentId: string
-  purpose: 'PREMIO' | 'APPOINTMENT' | 'INSTANT_CONSULT'
+  purpose: 'PREMIO' | 'APPOINTMENT' | 'INSTANT_CONSULT' | 'PAID_AD'
   amount: number
   planType?: 'MONTHLY' | 'YEARLY' | 'LIFETIME'
   appointmentId?: string
   instantConsultId?: string
+  adId?: string
+  adPlan?: 'WEEKLY' | 'MONTHLY'
   paymentType?: 'FULL' | 'DEPOSIT'
 }
 
@@ -147,6 +149,28 @@ export async function payForInstantConsult(
       purpose: 'INSTANT_CONSULT',
       amount: fee,
       instantConsultId,
+    },
+  })
+}
+
+/** Paid sidebar advertisement via Pi U2A */
+export async function payForAdvertisement(
+  adId: string,
+  amount: number,
+  adPlan: 'WEEKLY' | 'MONTHLY',
+  title: string,
+): Promise<{ paymentId: string; txid: string }> {
+  if (amount <= 0) throw new Error('سعر الإعلان غير محدد')
+
+  return payWithPi({
+    amount,
+    memo: `إعلان MRI: ${title.slice(0, 40)}`,
+    metadata: { purpose: 'PAID_AD', adId, adPlan },
+    approvePayload: {
+      purpose: 'PAID_AD',
+      amount,
+      adId,
+      adPlan,
     },
   })
 }

@@ -181,7 +181,7 @@ window.PiAuth = (function () {
         if (s && s.user) {
           clearSkipAuto()
           clearSessionRedirectLoop()
-          window.location.href = '/dashboard'
+          window.location.href = '/'
           return
         }
         throw new Error('تم التحقق لكن الجلسة لم تُحفظ')
@@ -200,7 +200,7 @@ window.PiAuth = (function () {
           body: new URLSearchParams({
             csrfToken: csrf.csrfToken,
             accessToken: accessToken,
-            callbackUrl: '/dashboard',
+            callbackUrl: '/',
             json: 'true',
           }).toString(),
         })
@@ -262,7 +262,7 @@ window.PiAuth = (function () {
       .then(function (s) {
         if (s && s.user) {
           clearSessionRedirectLoop()
-          window.location.href = '/dashboard'
+          window.location.href = '/'
           return { mode: 'redirecting' }
         }
         return { mode: 'idle' }

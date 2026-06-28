@@ -1,4 +1,6 @@
-// src/app/page.tsx
+// src/app/page.tsx — Authenticated home (guests see pi.html via middleware)
+export const dynamic = 'force-dynamic'
+
 import { getTranslations } from 'next-intl/server'
 import { getLocale } from 'next-intl/server'
 import Link from 'next/link'
@@ -14,6 +16,7 @@ import { prisma } from '@/lib/prisma'
 import { ApprovalStatus, Role } from '@prisma/client'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { redirect } from 'next/navigation'
 import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 import { getHomePublications } from '@/lib/home/get-home-publications'
@@ -54,8 +57,11 @@ export default async function HomePage() {
   const t = await getTranslations()
   const locale = await getLocale() as 'ar' | 'en'
   const session = await getServerSession(authOptions)
-  const role = session?.user?.role as Role | undefined
-  const isLoggedIn = Boolean(session?.user)
+  if (!session?.user) {
+    redirect('/login?site=full')
+  }
+  const role = session.user.role as Role
+  const isLoggedIn = true
 
   let doctors: Awaited<ReturnType<typeof getFeaturedDoctors>> = []
   let facilities: Awaited<ReturnType<typeof getFeaturedFacilities>> = []

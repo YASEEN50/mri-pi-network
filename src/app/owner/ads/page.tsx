@@ -24,12 +24,15 @@ interface AdRow {
   status: string
   pricePi?: number | null
   durationDays?: number | null
+  adPlan?: string | null
+  paidAt?: string | null
   clickCount: number
   createdAt: string
   rejectionReason?: string | null
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  PENDING_PAYMENT: 'بانتظار الدفع',
   PENDING_REVIEW: 'قيد المراجعة',
   ACTIVE: 'نشط',
   PAUSED: 'موقوف',
@@ -118,7 +121,8 @@ export default function OwnerAdsPage() {
     void loadAll()
   }
 
-  const pending = ads.filter((a) => a.status === 'PENDING_REVIEW')
+  const pending = ads.filter((a) => a.status === 'PENDING_REVIEW' && a.paidAt)
+  const unpaid = ads.filter((a) => a.status === 'PENDING_PAYMENT')
   const active = ads.filter((a) => a.status === 'ACTIVE')
 
   if (loading) {
@@ -222,7 +226,8 @@ export default function OwnerAdsPage() {
                 {ad.description && <p className="text-slate-400 text-sm mb-2">{ad.description}</p>}
                 <p className="text-slate-500 text-xs mb-3 break-all">🔗 {ad.linkUrl}</p>
                 <p className="text-slate-400 text-xs mb-3">
-                  السعر المقترح: {ad.pricePi ?? settings.sidebarMonthlyPricePi} π · {ad.durationDays ?? settings.defaultDurationDays} يوم
+                  {ad.adPlan === 'WEEKLY' ? 'خطة أسبوع' : 'خطة شهر'} · {ad.pricePi ?? '—'} π · {ad.durationDays ?? settings.defaultDurationDays} يوم
+                  {ad.paidAt && <span className="text-success mr-2"> · مدفوع ✓</span>}
                 </p>
                 {rejectId === ad.id ? (
                   <div className="space-y-2 mt-3">
@@ -276,6 +281,17 @@ export default function OwnerAdsPage() {
           </div>
         )}
       </div>
+
+      {unpaid.length > 0 && (
+        <div className="mpi-card p-6 mb-6">
+          <h2 className="text-lg font-bold text-white mb-2">
+            💳 بانتظار الدفع ({unpaid.length})
+          </h2>
+          <p className="text-slate-500 text-sm">
+            هذه الطلبات لم تُكمل الدفع بعد ولا تظهر في قائمة المراجعة.
+          </p>
+        </div>
+      )}
 
       {/* Active ads */}
       <div className="mpi-card p-6">

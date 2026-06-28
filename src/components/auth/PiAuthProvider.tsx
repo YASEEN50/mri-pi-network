@@ -25,7 +25,7 @@ export function PiAuthProvider({ children }: { children: React.ReactNode }) {
       {children}
       {showPiSignIn && (
         <div className="fixed bottom-6 inset-x-4 z-[100] mx-auto max-w-sm rounded-xl bg-slate-900/95 border border-white/10 p-3 shadow-xl">
-          <PiLoginButton callbackUrl="/dashboard" compact />
+          <PiLoginButton callbackUrl="/" compact />
         </div>
       )}
     </>

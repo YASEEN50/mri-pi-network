@@ -1,8 +1,11 @@
-import { Role, PremioType } from '@prisma/client'
+import { Role, PremioType, AdPlan, PaidAdStatus } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { piPaymentService } from '@/infrastructure/pi-network/pi-payment.service'
 import { splitDoctorPayment, splitPremioPayment, settleDoctorPayment } from '@/lib/payment/platform-fee'
 import { fulfillPremioPurchase, fulfillAppointmentPayment } from '@/lib/payment/fulfill'
+import { fulfillPaidAdPayment } from '@/lib/payment/fulfill-paid-ad'
+import { getAdSettings } from '@/lib/ads/settings'
+import { adPlanPrice } from '@/lib/ads/pricing'
 import type { PiPaymentDto } from '@/lib/pi/pi-payment-dto'
 
 function txNotes(payload: Record<string, unknown>) {
@@ -61,6 +64,7 @@ export async function processIncompletePiPayment(
       appointmentId?: string
       paymentType?: 'FULL' | 'DEPOSIT'
       transactionType?: 'APPOINTMENT_FEE' | 'DEPOSIT' | 'FINAL_PAYMENT'
+      adId?: string
     }
 
     await prisma.transaction.update({
@@ -95,6 +99,18 @@ export async function processIncompletePiPayment(
         Number(transaction.receiverAmount),
       )
       return { message: 'تم إكمال دفع الموعد المعلق' }
+    }
+
+    if (meta.purpose === 'PAID_AD' && meta.adId) {
+      await fulfillPaidAdPayment(
+        meta.adId,
+        userId,
+        Number(transaction.amountTotal),
+        txid,
+        paymentId,
+        transaction.id,
+      )
+      return { message: 'تم إكمال دفع الإعلان المعلق' }
     }
 
     return { message: 'تم إكمال الدفع المعلق' }
@@ -191,6 +207,36 @@ async function createPendingTransaction(userId: string, role: Role, payment: PiP
           paymentType,
           transactionType,
         }),
+      },
+    })
+  }
+
+  if (purpose === 'PAID_AD') {
+    const adId = payment.metadata.adId as string | undefined
+    const adPlan = payment.metadata.adPlan as AdPlan | undefined
+    if (!adId || !adPlan) throw new Error('بيانات الإعلان ناقصة')
+
+    const ad = await prisma.paidAdvertisement.findFirst({
+      where: { id: adId, requesterUserId: userId, status: PaidAdStatus.PENDING_PAYMENT },
+    })
+    if (!ad) throw new Error('طلب الإعلان غير موجود')
+
+    const settings = await getAdSettings()
+    const expected = adPlanPrice(settings, adPlan)
+    if (Math.abs(expected - amount) > 0.0001) {
+      throw new Error('مبلغ الدفع لا يطابق سعر الإعلان')
+    }
+
+    const { platformFee, receiverAmount } = splitPremioPayment(amount)
+    return prisma.transaction.create({
+      data: {
+        userId,
+        type: 'PAID_AD',
+        status: 'PENDING',
+        amountTotal: amount,
+        platformFee,
+        receiverAmount,
+        notes: txNotes({ piPaymentId: paymentId, purpose: 'PAID_AD', adId, adPlan }),
       },
     })
   }

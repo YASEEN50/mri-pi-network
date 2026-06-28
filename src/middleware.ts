@@ -1,5 +1,6 @@
 // src/middleware.ts — Edge-safe (no @prisma/client imports)
 import { withAuth, NextRequestWithAuth } from 'next-auth/middleware'
+import { getToken } from 'next-auth/jwt'
 import { NextResponse } from 'next/server'
 import type { NextFetchEvent, NextRequest } from 'next/server'
 
@@ -27,7 +28,7 @@ function applyPiWebViewHeaders(res: NextResponse): NextResponse {
   return res
 }
 
-/** Pi Portal static auth — login/register only; `/` serves the public Next.js home. */
+/** Pi Portal static auth — login/register; `/` landing for guests, Next.js home when signed in. */
 function piStaticRewrite(req: NextRequest): NextResponse | null {
   const { pathname, searchParams } = req.nextUrl
   if (searchParams.get('site') === 'full' || searchParams.get('mfa') === 'required') return null
@@ -141,10 +142,35 @@ const authMiddleware = withAuth(
   { callbacks: { authorized: ({ token }) => !!token } },
 )
 
-export default function middleware(req: NextRequest, event: NextFetchEvent) {
+export default async function middleware(req: NextRequest, event: NextFetchEvent) {
   try {
     const piRewrite = piStaticRewrite(req)
     if (piRewrite) return piRewrite
+
+    if (req.nextUrl.pathname === '/') {
+      const token = await getToken({ req, secret: process.env.NEXTAUTH_SECRET })
+      if (!token) {
+        if (req.nextUrl.searchParams.get('site') === 'full') {
+          return NextResponse.redirect(new URL('/login?site=full', req.url))
+        }
+        return applyPiWebViewHeaders(NextResponse.rewrite(new URL('/pi.html', req.url)))
+      }
+
+      const isProfileComplete = token.isProfileComplete as boolean | undefined
+      if (isProfileComplete === false) {
+        const role = token.role as string
+        if (role === Role.DOCTOR) {
+          return NextResponse.redirect(new URL('/onboarding/doctor', req.url))
+        }
+        if (role === Role.FACILITY) {
+          return NextResponse.redirect(new URL('/onboarding/facility', req.url))
+        }
+        if (role === Role.CLIENT) {
+          return NextResponse.redirect(new URL('/onboarding/client', req.url))
+        }
+        return NextResponse.redirect(new URL('/select-role', req.url))
+      }
+    }
 
     let res: NextResponse
     if (isProtectedPath(req.nextUrl.pathname)) {

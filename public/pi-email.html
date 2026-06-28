@@ -91,7 +91,7 @@
       .then(function (s) {
         if (s && s.user) {
           clearSkipAuto()
-          window.location.href = '/dashboard'
+          window.location.href = '/'
           return
         }
         throw new Error('تم التحقق لكن الجلسة لم تُحفظ. أغلق التطبيق وافتحه من Pi مرة أخرى.')
@@ -116,7 +116,7 @@
           csrfToken: csrf.csrfToken,
           email: email,
           password: password,
-          callbackUrl: '/dashboard',
+          callbackUrl: '/',
           json: 'true',
         }).toString(),
       })
@@ -145,7 +145,7 @@
           csrfToken: csrf.csrfToken,
           userId: userId,
           token: token,
-          callbackUrl: '/dashboard',
+          callbackUrl: '/',
           json: 'true',
         }).toString(),
       })
