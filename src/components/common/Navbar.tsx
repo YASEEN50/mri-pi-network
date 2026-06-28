@@ -1,7 +1,7 @@
 'use client'
 // src/components/common/Navbar.tsx
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
@@ -213,7 +213,9 @@ export default function Navbar({ locale }: NavbarProps) {
           </div>
         )}
       </div>
-      <PageBackNav locale={locale} />
+      <Suspense fallback={null}>
+        <PageBackNav locale={locale} />
+      </Suspense>
     </nav>
   )
 }

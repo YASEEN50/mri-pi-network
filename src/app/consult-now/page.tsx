@@ -167,7 +167,7 @@ export default function ConsultNowPage() {
               </Link>
               {requestId && (
                 <Link
-                  href={`/consult-now/${requestId}/video`}
+                  href={`/consult-now/${requestId}/video?room=${chatRoomId}`}
                   className="inline-block px-6 py-3 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-sm font-medium"
                 >
                   📹 بدء مكالمة فيديو

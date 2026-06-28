@@ -354,7 +354,10 @@
       "end_confirm": "End this conversation? You will not be able to send new messages.",
       "end_confirm_doctor": "End the session and close the chat with this patient?",
       "ending": "Ending...",
-      "conversation_ended": "Conversation ended"
+      "conversation_ended": "Conversation ended",
+      "back_to_chat": "Back to messaging",
+      "video_return_hint": "When the call ends, return to messaging to continue the conversation",
+      "video_end_flow_hint": "Finished the call? Return to messaging to continue by text or end the session entirely."
     },
     "medical_records": {
       "title": "Medical Records",

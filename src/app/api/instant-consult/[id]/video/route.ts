@@ -6,6 +6,7 @@ import {
   buildInstantConsultEmbedUrl,
   canAccessInstantConsultVideo,
 } from '@/lib/instant-consult/video'
+import { getChatPath } from '@/lib/chat/paths'
 
 export async function GET(
   _req: Request,
@@ -49,6 +50,8 @@ export async function GET(
       canJoin: true,
       embedUrl: buildInstantConsultEmbedUrl(consult.id, displayName),
       sessionEndsAt: consult.sessionEndsAt?.toISOString() ?? null,
+      chatRoomId: consult.chatRoomId,
+      chatHref: getChatPath(auth.context.role, consult.chatRoomId),
     })
   } catch (err) {
     console.error('[GET /api/instant-consult/[id]/video]', err)

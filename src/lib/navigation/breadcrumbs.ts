@@ -1,4 +1,5 @@
 import { Role } from '@prisma/client'
+import { getChatPath } from '@/lib/chat/paths'
 
 export interface NavCrumb {
   label: string
@@ -126,11 +127,23 @@ export function getDashboardLabel(locale: 'ar' | 'en', role?: string): string {
   return locale === 'ar' ? 'الرئيسية' : 'Home'
 }
 
+export interface NavOptions {
+  roomId?: string | null
+}
+
+type BackRuleTarget =
+  | string
+  | ((pathname: string, role?: string, options?: NavOptions) => string)
+
 /** Parent path for the prominent back button (may skip intermediate UUID segments). */
-export function resolveBackHref(pathname: string, role?: string): string | null {
+export function resolveBackHref(
+  pathname: string,
+  role?: string,
+  options?: NavOptions,
+): string | null {
   if (HIDDEN_PATHS.has(pathname)) return null
 
-  const rules: Array<[RegExp, string | ((pathname: string) => string)]> = [
+  const rules: Array<[RegExp, BackRuleTarget]> = [
     [/^\/admin\/doctors\/[^/]+\/verify$/, '/dashboard/admin/pending'],
     [/^\/admin\/facilities\/[^/]+\/verify$/, '/dashboard/admin/pending'],
     [/^\/admin\/verification-v2\/[^/]+$/, '/admin/verification-v2'],
@@ -140,7 +153,10 @@ export function resolveBackHref(pathname: string, role?: string): string | null 
     [/^\/owner\/admins\/[^/]+$/, '/owner'],
     [/^\/dashboard\/client\/chat$/, '/dashboard/client/appointments'],
     [/^\/dashboard\/doctor\/chat$/, '/dashboard/doctor/schedule'],
-    [/^\/consult-now\/[^/]+\/video$/, '/consult-now'],
+    [
+      /^\/consult-now\/[^/]+\/video$/,
+      (_p, r, opts) => getChatPath(r ?? Role.CLIENT, opts?.roomId),
+    ],
     [/^\/doctors\/([^/]+)\/reviews$/, (p) => `/doctors/${p.split('/')[2]}`],
     [/^\/facilities\/[^/]+$/, '/facilities'],
     [/^\/doctors\/[^/]+$/, '/doctors'],
@@ -151,7 +167,8 @@ export function resolveBackHref(pathname: string, role?: string): string | null 
 
   for (const [pattern, target] of rules) {
     if (pattern.test(pathname)) {
-      const href = typeof target === 'function' ? target(pathname) : target
+      const href =
+        typeof target === 'function' ? target(pathname, role, options) : target
       return normalizeNavHref(href, role)
     }
   }
@@ -192,6 +209,7 @@ export function buildNavigationTrail(
   pathname: string,
   locale: 'ar' | 'en',
   role?: string,
+  options?: NavOptions,
 ): { backHref: string | null; backLabel: string | null; crumbs: NavCrumb[] } | null {
   if (HIDDEN_PATHS.has(pathname)) return null
 
@@ -211,7 +229,7 @@ export function buildNavigationTrail(
   }
 
   const trail = prependRootCrumb(pathname, crumbs, locale, role)
-  const backHref = resolveBackHref(pathname, role)
+  const backHref = resolveBackHref(pathname, role, options)
 
   let backLabel: string | null = null
   if (backHref) {

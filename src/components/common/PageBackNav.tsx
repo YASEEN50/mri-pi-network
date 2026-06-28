@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { buildNavigationTrail } from '@/lib/navigation/breadcrumbs'
 
@@ -11,8 +11,11 @@ interface PageBackNavProps {
 
 export default function PageBackNav({ locale }: PageBackNavProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { data: session } = useSession()
-  const trail = buildNavigationTrail(pathname, locale, session?.user?.role)
+  const trail = buildNavigationTrail(pathname, locale, session?.user?.role, {
+    roomId: searchParams.get('room'),
+  })
 
   if (!trail?.backHref) return null
 

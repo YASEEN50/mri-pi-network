@@ -1,12 +1,10 @@
 import { getJitsiEmbedUrl, getJitsiServerUrl, isOnlineBookingEnabled } from '@/lib/appointments/online-video'
 
+export { getInstantConsultVideoPath } from '@/lib/chat/paths'
+
 export function getInstantConsultVideoRoomName(consultId: string): string {
   const slug = consultId.replace(/[^a-zA-Z0-9]/g, '').slice(0, 24)
   return `mriInstant${slug}`
-}
-
-export function getInstantConsultVideoPath(consultId: string): string {
-  return `/consult-now/${consultId}/video`
 }
 
 export function canAccessInstantConsultVideo(params: {
