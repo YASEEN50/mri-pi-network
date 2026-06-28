@@ -2,13 +2,12 @@
 // عرض الملفات المحلية (.local-storage) — للأدمن/المالك/الطبيب صاحب الملف
 
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
-import { join } from 'path'
 import { Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { fromAppError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
 import { isServeableStorageKey } from '@/lib/storage/local-file-url'
+import { readBufferByKey } from '@/lib/storage/production-storage'
 
 const MIME: Record<string, string> = {
   '.jpg':  'image/jpeg',
@@ -65,13 +64,17 @@ export async function GET(
       }
     }
 
-    const ext = storageKey.slice(storageKey.lastIndexOf('.')).toLowerCase()
-    const filePath = join(process.cwd(), '.local-storage', storageKey)
-    const buffer = await readFile(filePath)
+    const docMeta = await prisma.verificationDocument.findFirst({
+      where: { storageKey },
+      select: { mimeType: true, storageBucket: true },
+    })
 
-    return new NextResponse(buffer, {
+    const ext = storageKey.slice(storageKey.lastIndexOf('.')).toLowerCase()
+    const buffer = await readBufferByKey(storageKey, docMeta?.storageBucket)
+
+    return new NextResponse(new Uint8Array(buffer), {
       headers: {
-        'Content-Type': MIME[ext] ?? 'application/octet-stream',
+        'Content-Type': docMeta?.mimeType ?? MIME[ext] ?? 'application/octet-stream',
         'Cache-Control': 'private, max-age=3600',
       },
     })
