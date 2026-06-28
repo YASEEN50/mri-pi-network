@@ -38,8 +38,8 @@ export async function POST(
       return ok({ error: true, message: 'انتهت مهلة قبول الطلب' })
     }
 
-    if (await doctorHasActiveInstantSession(doctor.id)) {
-      return ok({ error: true, message: 'لديك استشارة نشطة بالفعل' })
+    if (await doctorHasActiveInstantSession(doctor.id, id)) {
+      return ok({ error: true, message: 'لديك استشارة نشطة أخرى' })
     }
 
     const chatRoomId = await createChatRoomForInstantConsult(request.clientId, doctor.id)

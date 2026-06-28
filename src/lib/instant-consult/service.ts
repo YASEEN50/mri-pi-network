@@ -14,11 +14,15 @@ export async function expireStaleInstantConsults(): Promise<void> {
   })
 }
 
-export async function doctorHasActiveInstantSession(doctorId: string): Promise<boolean> {
+export async function doctorHasActiveInstantSession(
+  doctorId: string,
+  excludeRequestId?: string,
+): Promise<boolean> {
   const now = new Date()
   const active = await prisma.instantConsultRequest.findFirst({
     where: {
       doctorId,
+      ...(excludeRequestId ? { id: { not: excludeRequestId } } : {}),
       OR: [
         { status: InstantConsultStatus.PENDING, expiresAt: { gt: now } },
         { status: InstantConsultStatus.ACCEPTED, sessionEndsAt: { gt: now } },

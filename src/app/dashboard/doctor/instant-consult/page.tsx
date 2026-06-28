@@ -99,16 +99,31 @@ export default function DoctorInstantConsultPage() {
   }
 
   async function acceptRequest(id: string) {
+    setMessage('')
     const res = await fetch(`/api/instant-consult/${id}/accept`, { method: 'POST' })
     const data = await res.json()
-    if (data.success && data.data?.chatRoomId) {
-      router.push(`/dashboard/doctor/chat?room=${data.data.chatRoomId}`)
+    if (!data.success || data.data?.error) {
+      setMessage(`❌ ${data.data?.message ?? data.error?.message ?? 'فشل قبول الطلب'}`)
+      await load()
+      return
     }
+    if (data.data?.chatRoomId) {
+      router.push(`/dashboard/doctor/chat?room=${data.data.chatRoomId}`)
+      return
+    }
+    setMessage('✅ تم قبول الطلب')
     await load()
   }
 
   async function rejectRequest(id: string) {
-    await fetch(`/api/instant-consult/${id}/reject`, { method: 'POST' })
+    setMessage('')
+    const res = await fetch(`/api/instant-consult/${id}/reject`, { method: 'POST' })
+    const data = await res.json()
+    if (!data.success || data.data?.error) {
+      setMessage(`❌ ${data.data?.message ?? 'فشل رفض الطلب'}`)
+    } else {
+      setMessage('تم رفض الطلب')
+    }
     await load()
   }
 
@@ -122,7 +137,11 @@ export default function DoctorInstantConsultPage() {
 
   return (
     <DoctorSubpageLayout title="⚡ الاستشارة الفورية" subtitle="استقبل طلبات المرضى العاجلة غير الطارئة">
-      {message && <p className="mb-4 text-emerald-400 text-sm">{message}</p>}
+      {message && (
+        <p className={`mb-4 text-sm ${message.startsWith('❌') ? 'text-red-400' : 'text-emerald-400'}`}>
+          {message}
+        </p>
+      )}
 
       {settings && (
         <div className="bg-white/[0.03] border border-white/[0.08] rounded-2xl p-5 mb-6 space-y-4">
