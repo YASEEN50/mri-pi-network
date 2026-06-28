@@ -7,10 +7,13 @@ import Footer from '@/components/common/Footer'
 import HomeHeroSearch from '@/components/home/HomeHeroSearch'
 import HomePublicationsFeed from '@/components/home/HomePublicationsFeed'
 import HomeAdsSidebar from '@/components/home/HomeAdsSidebar'
+import HomeHeroActions from '@/components/home/HomeHeroActions'
 import DoctorCard from '@/components/doctors/DoctorCard'
 import FacilityCard from '@/components/facilities/FacilityCard'
 import { prisma } from '@/lib/prisma'
-import { ApprovalStatus } from '@prisma/client'
+import { ApprovalStatus, Role } from '@prisma/client'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 import { getHomePublications } from '@/lib/home/get-home-publications'
@@ -50,6 +53,9 @@ async function getStats() {
 export default async function HomePage() {
   const t = await getTranslations()
   const locale = await getLocale() as 'ar' | 'en'
+  const session = await getServerSession(authOptions)
+  const role = session?.user?.role as Role | undefined
+  const isLoggedIn = Boolean(session?.user)
 
   let doctors: Awaited<ReturnType<typeof getFeaturedDoctors>> = []
   let facilities: Awaited<ReturnType<typeof getFeaturedFacilities>> = []
@@ -104,20 +110,7 @@ export default async function HomePage() {
             <HomeHeroSearch />
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/doctors"
-              className="px-8 py-3.5 bg-gradient-to-r from-primary to-primary-600 hover:from-primary-400 hover:to-primary text-white font-semibold rounded-xl transition-all shadow-glow-primary text-sm">
-              {t('home.hero_cta')}
-            </Link>
-            <Link href="/publications"
-              className="px-8 py-3.5 bg-white/5 hover:bg-primary/10 border border-white/10 hover:border-primary/30 text-white font-semibold rounded-xl transition-all text-sm">
-              {locale === 'ar' ? 'منشورات الأطباء' : 'Doctor publications'}
-            </Link>
-            <Link href="/register"
-              className="px-8 py-3.5 bg-white/5 hover:bg-primary/10 border border-white/10 hover:border-primary/30 text-white font-semibold rounded-xl transition-all text-sm">
-              {t('home.hero_cta_secondary')}
-            </Link>
-          </div>
+          <HomeHeroActions locale={locale} role={role} isLoggedIn={isLoggedIn} />
 
           {/* Stats */}
           <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto mt-16">
