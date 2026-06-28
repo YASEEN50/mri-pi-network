@@ -36,7 +36,7 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
     timer.current = setTimeout(async () => {
       setLoading(true)
       try {
-        const res  = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=4`)
+        const res  = await fetch(`/api/search?q=${encodeURIComponent(query)}&limit=10`)
         const data = await res.json()
         setResults(data.data)
         setOpen(true)
@@ -136,6 +136,16 @@ export default function SearchBar({ variant = 'default' }: SearchBarProps) {
                     </Link>
                   ))}
                 </div>
+              )}
+
+              {(results!.doctors.length > 0 || results!.facilities.length > 0) && (
+                <Link
+                  href={`/doctors?search=${encodeURIComponent(query)}`}
+                  onClick={() => setOpen(false)}
+                  className="block px-4 py-3 text-center text-sm text-accent hover:bg-white/5 border-t border-white/5"
+                >
+                  عرض كل الأطباء ←
+                </Link>
               )}
             </div>
           )}

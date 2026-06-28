@@ -200,6 +200,9 @@ export default function ConsultNowPage() {
               <div className="text-center py-16 bg-white/[0.03] border border-white/[0.08] rounded-2xl">
                 <p className="text-4xl mb-3">😴</p>
                 <p className="text-slate-400">لا يوجد أطباء متاحون الآن</p>
+                <p className="text-slate-500 text-xs mt-2 max-w-sm mx-auto">
+                  يظهر الطبيب هنا عند تفعيل «متاح الآن» وتحديد رسوم الاستشارة من لوحة الطبيب
+                </p>
                 <button
                   type="button"
                   onClick={() => void loadDoctors()}

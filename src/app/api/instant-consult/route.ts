@@ -8,7 +8,6 @@ import {
   doctorHasActiveInstantSession,
   expireStaleInstantConsults,
 } from '@/lib/instant-consult/service'
-import { doctorHasActivePremioByProfileId } from '@/lib/premio/active-premio'
 
 const CreateSchema = z.object({
   doctorId: z.string().uuid(),
@@ -129,9 +128,6 @@ export async function POST(req: NextRequest) {
       select: { id: true, instantConsultFee: true, firstName: true, lastName: true },
     })
     if (!doctor) return ok({ error: true, message: 'الطبيب غير متاح للاستشارة الفورية' })
-
-    const listed = await doctorHasActivePremioByProfileId(doctor.id)
-    if (!listed) return ok({ error: true, message: 'الطبيب غير متاح حالياً' })
 
     if (await doctorHasActiveInstantSession(doctor.id)) {
       return ok({ error: true, message: 'الطبيب مشغول في استشارة أخرى — جرّب طبيباً آخر' })

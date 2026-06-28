@@ -3,6 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { ok, serverError } from '@/lib/api-response'
 import { rateLimitDoctors, rateLimitResponse } from '@/lib/upstash-rate-limit'
+import { buildDoctorTextSearch } from '@/lib/doctors/search-text'
 import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 import { prisma } from '@/lib/prisma'
@@ -29,13 +30,7 @@ export async function GET(req: NextRequest) {
     await expireStalePremios()
 
     const where = {
-      ...(search && {
-        OR: [
-          { firstName: { contains: search, mode: 'insensitive' as const } },
-          { lastName:  { contains: search, mode: 'insensitive' as const } },
-          { specialization: { contains: search, mode: 'insensitive' as const } },
-        ],
-      }),
+      ...(search ? buildDoctorTextSearch(search) : {}),
       ...(specialization && { specialization: { contains: specialization, mode: 'insensitive' as const } }),
       ...(city && { city: { contains: city, mode: 'insensitive' as const } }),
     }

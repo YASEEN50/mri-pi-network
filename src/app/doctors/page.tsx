@@ -4,11 +4,12 @@ import Navbar from '@/components/common/Navbar'
 import Footer from '@/components/common/Footer'
 import DoctorCard from '@/components/doctors/DoctorCard'
 import { prisma } from '@/lib/prisma'
+import { buildDoctorTextSearch } from '@/lib/doctors/search-text'
 import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 
 interface PageProps {
-  searchParams: Promise<{ specialization?: string; city?: string; page?: string }>
+  searchParams: Promise<{ search?: string; specialization?: string; city?: string; page?: string }>
 }
 
 export default async function DoctorsPage({ searchParams }: PageProps) {
@@ -20,17 +21,17 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
 
   await expireStalePremios()
 
-  const where = doctorProfilePublicWhere({
-    ...(params.specialization && { specialization: { contains: params.specialization, mode: 'insensitive' } }),
-    ...(params.city && { city: { contains: params.city, mode: 'insensitive' } }),
-  })
+  const filters = {
+    ...(params.search ? buildDoctorTextSearch(params.search) : {}),
+    ...(params.specialization && { specialization: { contains: params.specialization, mode: 'insensitive' as const } }),
+    ...(params.city && { city: { contains: params.city, mode: 'insensitive' as const } }),
+  }
+
+  const where = doctorProfilePublicWhere(filters)
 
   const [doctors, total] = await Promise.all([
     listPublicDoctors({
-      where: {
-        ...(params.specialization && { specialization: { contains: params.specialization, mode: 'insensitive' } }),
-        ...(params.city && { city: { contains: params.city, mode: 'insensitive' } }),
-      },
+      where: filters,
       skip: (page - 1) * limit,
       take: limit,
     }),
@@ -39,6 +40,7 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
 
   const qs = (p: number) => {
     const parts = [`page=${p}`]
+    if (params.search) parts.push(`search=${encodeURIComponent(params.search)}`)
     if (params.specialization) parts.push(`specialization=${encodeURIComponent(params.specialization)}`)
     if (params.city) parts.push(`city=${encodeURIComponent(params.city)}`)
     return `?${parts.join('&')}`
@@ -57,6 +59,9 @@ export default async function DoctorsPage({ searchParams }: PageProps) {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex-1 w-full">
         <form className="flex flex-col sm:flex-row gap-3 mb-8 mpi-card p-4" method="GET">
+          <input name="search" defaultValue={params.search}
+            placeholder={locale === 'ar' ? 'ابحث بالاسم أو التخصص...' : 'Search name or specialty...'}
+            className="flex-1 bg-surface/80 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all" />
           <input name="specialization" defaultValue={params.specialization}
             placeholder={t('doctors.search_placeholder')}
             className="flex-1 bg-surface/80 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder-slate-500 focus:outline-none focus:border-primary/50 focus:ring-1 focus:ring-primary/20 transition-all" />

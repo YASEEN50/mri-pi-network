@@ -1,6 +1,6 @@
 import { InstantConsultStatus } from '@prisma/client'
 import { prisma, db } from '@/lib/prisma'
-import { doctorProfilePublicWhere } from '@/lib/premio/active-premio'
+import { doctorProfileApprovedWhere } from '@/lib/premio/active-premio'
 import { INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC } from '@/lib/instant-consult/constants'
 
 export async function expireStaleInstantConsults(): Promise<void> {
@@ -33,7 +33,7 @@ export async function listAvailableInstantDoctors(specialization?: string | null
   await expireStaleInstantConsults()
 
   const doctors = await prisma.doctorProfile.findMany({
-    where: doctorProfilePublicWhere({
+    where: doctorProfileApprovedWhere({
       acceptsInstantConsult: true,
       isOnlineForInstant: true,
       instantConsultFee: { not: null, gt: 0 },

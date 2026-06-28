@@ -56,6 +56,31 @@ export default function DoctorInstantConsultPage() {
     return () => window.clearInterval(timer)
   }, [load])
 
+  async function toggleOnline() {
+    if (!settings) return
+    const goingOnline = !settings.isOnlineForInstant
+    if (goingOnline && (!settings.instantConsultFee || settings.instantConsultFee <= 0)) {
+      setMessage('⚠️ حدّد رسوم الاستشارة (π) ثم احفظ قبل التفعيل')
+      return
+    }
+    setSaving(true)
+    setMessage('')
+    const patch = goingOnline
+      ? { isOnlineForInstant: true, acceptsInstantConsult: true }
+      : { isOnlineForInstant: false }
+    const res = await fetch('/api/doctor/instant-consult', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setSettings(data.data)
+      setMessage(goingOnline ? 'أنت متاح الآن — سيظهر اسمك للمرضى ✅' : 'تم إيقاف التوفر')
+    }
+    setSaving(false)
+  }
+
   async function saveSettings(patch: Partial<Settings>) {
     if (!settings) return
     setSaving(true)
@@ -104,12 +129,12 @@ export default function DoctorInstantConsultPage() {
           <div className="flex items-center justify-between gap-4">
             <div>
               <p className="text-white font-medium">متاح الآن للاستشارة الفورية</p>
-              <p className="text-slate-500 text-xs">عند التفعيل يظهر اسمك في /consult-now</p>
+              <p className="text-slate-500 text-xs">عند التفعيل يظهر اسمك في /consult-now (لا يشترط البريميو)</p>
             </div>
             <button
               type="button"
               disabled={saving}
-              onClick={() => void saveSettings({ isOnlineForInstant: !settings.isOnlineForInstant })}
+              onClick={() => void toggleOnline()}
               className={`px-4 py-2 rounded-xl text-sm font-medium border ${
                 settings.isOnlineForInstant
                   ? 'border-emerald-500/40 bg-emerald-500/15 text-emerald-300'

@@ -4,6 +4,7 @@ import { NextRequest } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { ok, serverError } from '@/lib/api-response'
 import { PublicationStatus, ApprovalStatus } from '@prisma/client'
+import { buildDoctorTextSearch } from '@/lib/doctors/search-text'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 import { attachPremioTiers } from '@/lib/premio/list-doctors'
 import { sortByPremioTier } from '@/lib/premio/tiers'
@@ -20,12 +21,7 @@ export async function GET(req: NextRequest) {
     await expireStalePremios()
 
     const doctorSearchWhere = doctorProfilePublicWhere({
-      OR: [
-        { firstName:      { contains: q, mode: 'insensitive' as const } },
-        { lastName:       { contains: q, mode: 'insensitive' as const } },
-        { specialization: { contains: q, mode: 'insensitive' as const } },
-        { bio:            { contains: q, mode: 'insensitive' as const } },
-      ],
+      ...buildDoctorTextSearch(q),
       ...(city && { city: { contains: city, mode: 'insensitive' as const } }),
     })
 
@@ -34,7 +30,7 @@ export async function GET(req: NextRequest) {
         ? attachPremioTiers(
             await prisma.doctorProfile.findMany({
               where: doctorSearchWhere,
-              take: limit * 2,
+              take: limit * 3,
               select: {
                 id: true, userId: true, firstName: true, lastName: true,
                 specialization: true, city: true, avatarUrl: true,

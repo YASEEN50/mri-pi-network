@@ -12,6 +12,17 @@ export function activePremioWhere(now = new Date()): Prisma.PremioWhereInput {
   }
 }
 
+/** Approved doctor profile (no Premio gate — e.g. instant consult) */
+export function doctorProfileApprovedWhere(
+  extra?: Prisma.DoctorProfileWhereInput
+): Prisma.DoctorProfileWhereInput {
+  return {
+    approvalStatus: ApprovalStatus.APPROVED,
+    deletedAt: null,
+    ...extra,
+  }
+}
+
 /** Public doctor listing: approved + active premio on linked user */
 export function doctorProfilePublicWhere(
   extra?: Prisma.DoctorProfileWhereInput
