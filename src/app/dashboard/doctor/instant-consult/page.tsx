@@ -123,8 +123,10 @@ export default function DoctorInstantConsultPage() {
     const data = await res.json()
     if (!data.success || data.data?.error) {
       setMessage(`❌ ${data.data?.message ?? 'فشل رفض الطلب'}`)
+    } else if (data.data?.dismissed) {
+      setMessage('تم تجاهل طلب البث — لا يُسترد للمريض حتى ينتهي الطلب أو يرفض الطبيب المعيّن')
     } else {
-      setMessage('تم رفض الطلب')
+      setMessage('تم رفض الطلب — أُرجِع المبلغ لرصيد المريض في المنصة')
     }
     await load()
   }
@@ -252,7 +254,7 @@ export default function DoctorInstantConsultPage() {
                     onClick={() => void rejectRequest(r.id)}
                     className="flex-1 py-2 rounded-xl bg-red-500/20 border border-red-500/30 text-red-400 text-sm"
                   >
-                    رفض
+                    {r.isBroadcast ? 'تجاهل' : 'رفض'}
                   </button>
                 </div>
               )}

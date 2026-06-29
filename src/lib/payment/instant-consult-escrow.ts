@@ -1,6 +1,6 @@
 import { TransactionStatus, TransactionType } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
-import { settleDoctorPayment } from '@/lib/payment/platform-fee'
+import { settleDoctorPayment, splitDoctorPayment } from '@/lib/payment/platform-fee'
 
 function parseNotes(notes: string | null): Record<string, unknown> {
   try {
@@ -41,24 +41,34 @@ export async function findInstantConsultTransaction(instantConsultId: string) {
 export async function settleInstantConsultOnAccept(instantConsultId: string): Promise<void> {
   const request = await prisma.instantConsultRequest.findUnique({
     where: { id: instantConsultId },
-    select: { doctorId: true },
+    select: { doctorId: true, fee: true },
   })
 
   const tx = await findInstantConsultTransaction(instantConsultId)
   if (!tx || tx.status !== TransactionStatus.COMPLETED) return
 
-  if (request?.doctorId && !tx.doctorId) {
+  const doctorId = request?.doctorId ?? tx.doctorId
+  if (doctorId && !tx.doctorId) {
     await prisma.transaction.update({
       where: { id: tx.id },
-      data: { doctorId: request.doctorId },
+      data: { doctorId },
     })
-    tx.doctorId = request.doctorId
+    tx.doctorId = doctorId
   }
 
   const meta = parseNotes(tx.notes)
   if (meta.doctorSettled === true) return
 
-  await settleDoctorPayment(tx)
+  const totalFee = Number(request?.fee ?? tx.amountTotal)
+  const { platformFee, receiverAmount } = splitDoctorPayment(totalFee)
+
+  await settleDoctorPayment({
+    id: tx.id,
+    doctorId: tx.doctorId,
+    receiverAmount,
+    platformFee,
+    amountTotal: totalFee,
+  })
   await prisma.transaction.update({
     where: { id: tx.id },
     data: { notes: txNotes({ ...meta, doctorSettled: true }) },
@@ -79,7 +89,6 @@ export async function refundInstantConsultPayment(
   if (!request?.isPaid) return { refunded: false, already: true }
 
   const tx = await findInstantConsultTransaction(instantConsultId)
-  if (!tx) return { refunded: false }
 
   const existingRefund = await prisma.transaction.findFirst({
     where: {
@@ -88,16 +97,17 @@ export async function refundInstantConsultPayment(
       notes: { contains: instantConsultId },
     },
   })
-  if (existingRefund || tx.status === TransactionStatus.REFUNDED) {
+  if (existingRefund || tx?.status === TransactionStatus.REFUNDED) {
     return { refunded: false, already: true }
   }
 
-  const meta = parseNotes(tx.notes)
-  const amount = Number(tx.amountTotal)
-  const receiver = Number(tx.receiverAmount)
+  const meta = tx ? parseNotes(tx.notes) : {}
+  // Full consult fee (π from wallet + platform credit applied at checkout)
+  const amount = Number(request.fee)
+  const receiver = tx ? Number(tx.receiverAmount) : 0
 
   await prisma.$transaction(async (db) => {
-    if (meta.doctorSettled === true && tx.doctorId && receiver > 0) {
+    if (meta.doctorSettled === true && tx?.doctorId && receiver > 0) {
       const doctor = await db.doctorProfile.findUnique({
         where: { id: tx.doctorId },
         select: { piBalance: true },
@@ -119,7 +129,7 @@ export async function refundInstantConsultPayment(
     await db.transaction.create({
       data: {
         userId: request.client.userId,
-        doctorId: tx.doctorId,
+        doctorId: tx?.doctorId ?? null,
         type: TransactionType.REFUND,
         status: TransactionStatus.COMPLETED,
         amountTotal: amount,
@@ -128,15 +138,18 @@ export async function refundInstantConsultPayment(
         notes: txNotes({
           purpose: 'INSTANT_CONSULT_REFUND',
           instantConsultId,
-          originalTransactionId: tx.id,
+          originalTransactionId: tx?.id ?? null,
+          creditApplied: Number(request.creditApplied ?? 0),
         }),
       },
     })
 
-    await db.transaction.update({
-      where: { id: tx.id },
-      data: { status: TransactionStatus.REFUNDED },
-    })
+    if (tx) {
+      await db.transaction.update({
+        where: { id: tx.id },
+        data: { status: TransactionStatus.REFUNDED },
+      })
+    }
   })
 
   await prisma.notification.create({

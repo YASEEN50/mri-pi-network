@@ -22,6 +22,7 @@ export const ALL_ADMIN_PERMISSIONS = [
   { key: 'canViewUsers', label: 'عرض بيانات المستخدمين', category: 'المستخدمون' },
   { key: 'canManageSupport', label: 'إدارة طلبات الدعم', category: 'الدعم' },
   { key: 'canViewAnalytics', label: 'عرض الإحصائيات والتقارير', category: 'التقارير' },
+  { key: 'canManageWithdrawals', label: 'موافقة سحب مستحقات الأطباء', category: 'المالية' },
   { key: 'canAssignTasks', label: 'إسناد المهام لأدمن آخر', category: 'الإدارة' },
 ] as const
 

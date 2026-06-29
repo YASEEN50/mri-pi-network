@@ -7,6 +7,8 @@ import { getPiNetworkApiKey } from '@/lib/pi/pi-api-key'
 import {
   IPiPaymentService,
   CreatePiPaymentInput,
+  CreateA2UPaymentInput,
+  A2UPaymentResult,
   PiPaymentResult,
   PaymentStatus,
 } from './pi-payments.interface'
@@ -27,6 +29,17 @@ class SimulatedPiPaymentService implements IPiPaymentService {
     return 'COMPLETED'
   }
   async handleIncompletePayment(_paymentId: string): Promise<void> {}
+  async createA2UPayment(input: CreateA2UPaymentInput): Promise<A2UPaymentResult> {
+    const paymentId = `SIM_A2U_${Date.now()}`
+    console.log('[Pi Simulation] A2U payment:', { paymentId, amount: input.amount, uid: input.uid })
+    return {
+      paymentId,
+      toAddress: 'SIM_RECIPIENT_ADDRESS',
+      amount: input.amount,
+      status: 'APPROVED',
+      createdAt: new Date(),
+    }
+  }
 }
 
 class RealPiPaymentService implements IPiPaymentService {
@@ -79,6 +92,36 @@ class RealPiPaymentService implements IPiPaymentService {
 
   async handleIncompletePayment(paymentId: string): Promise<void> {
     await this.approvePayment(paymentId)
+  }
+
+  async createA2UPayment(input: CreateA2UPaymentInput): Promise<A2UPaymentResult> {
+    const res = await fetch(`${this.baseUrl}/v2/payments`, {
+      method: 'POST',
+      headers: this.headers,
+      body: JSON.stringify({
+        payment: {
+          amount: input.amount,
+          memo: input.memo,
+          metadata: input.metadata ?? {},
+          uid: input.uid,
+        },
+      }),
+    })
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      throw new Error(`Pi A2U create failed: ${res.status} ${body}`)
+    }
+    const data = await res.json() as Record<string, unknown>
+    const paymentId = String(data.identifier ?? data.payment_id ?? '')
+    if (!paymentId) throw new Error('Pi A2U: missing payment identifier')
+
+    return {
+      paymentId,
+      toAddress: (data.to_address ?? data.recipient ?? data.to_address) as string | undefined,
+      amount: Number(data.amount ?? input.amount),
+      status: (data.status as PaymentStatus) ?? 'APPROVED',
+      createdAt: new Date(String(data.created_at ?? Date.now())),
+    }
   }
 }
 

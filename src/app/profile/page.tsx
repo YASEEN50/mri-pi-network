@@ -270,9 +270,10 @@ export default function ProfilePage() {
               {session.user.piUsername && (
                 <p className="text-purple-400 text-xs mt-1">🟣 @{session.user.piUsername}</p>
               )}
-              {isClient && (profile.piCreditBalance ?? 0) > 0 && (
+              {isClient && (
                 <p className="text-emerald-400 text-xs mt-1">
-                  💰 رصيد المنصة: {Number(profile.piCreditBalance).toFixed(4)} π
+                  💰 رصيد المنصة: {Number(profile.piCreditBalance ?? 0).toFixed(4)} π
+                  <span className="text-slate-500 block">يُستخدم تلقائياً في الاستشارة الفورية — ليس محفظة Pi</span>
                 </p>
               )}
             </div>

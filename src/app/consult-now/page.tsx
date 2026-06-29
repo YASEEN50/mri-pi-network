@@ -77,10 +77,16 @@ export default function ConsultNowPage() {
         setPhase('accepted')
       } else if (req?.status === 'REJECTED' || req?.status === 'EXPIRED') {
         setPhase('failed')
+        fetch('/api/profile')
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.data?.piCreditBalance != null) setPiCredit(Number(d.data.piCreditBalance))
+          })
+          .catch(() => {})
         setError(
           req.status === 'EXPIRED'
-            ? 'انتهت مهلة انتظار الطبيب — أُرجِع المبلغ إلى رصيدك في المنصة'
-            : 'رفض الطبيب الطلب — أُرجِع المبلغ إلى رصيدك في المنصة',
+            ? 'انتهت مهلة انتظار الطبيب — أُرجِع المبلغ إلى رصيدك في المنصة (الملف الشخصي)'
+            : 'رفض الطبيب الطلب — أُرجِع المبلغ إلى رصيدك في المنصة (الملف الشخصي)',
         )
       }
     }

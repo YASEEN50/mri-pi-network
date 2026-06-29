@@ -80,6 +80,12 @@ export default function DoctorAnalyticsPage() {
               💎 {tp('upgrade_hint')}
             </Link>
           )}
+          {!isLocked('earnings') && (
+            <Link href="/dashboard/doctor/withdrawals"
+              className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-sm hover:bg-emerald-500/30 transition-all">
+              💸 سحب المستحقات
+            </Link>
+          )}
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">

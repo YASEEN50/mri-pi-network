@@ -72,7 +72,10 @@ export default function DoctorPaymentSettingsPage() {
             🟣 المنصة تقبل <strong>عملة Pi الرقمية فقط</strong>. رسوم الاستشارة تُعرض بالـ Pi ويُدفع عبر Pi Browser.
           </p>
           <p className="text-slate-400 text-xs mt-2">
-            يُخصم <strong className="text-warning">5%</strong> عمولة المنصة تلقائياً من كل مبلغ يتقاضاه الطبيب — يُضاف الباقي (95%) لرصيدك فوراً.
+            يُخصم <strong className="text-warning">5%</strong> عمولة المنصة تلقائياً من كل مبلغ يتقاضاه الطبيب — يُضاف الباقي (95%) لرصيدك.{' '}
+            <a href="/dashboard/doctor/withdrawals" className="text-emerald-400 underline">
+              سحب المستحقات → محفظة Pi
+            </a>
           </p>
         </div>
         {message && (

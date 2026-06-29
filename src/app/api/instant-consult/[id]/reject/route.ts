@@ -16,9 +16,29 @@ export async function POST(
     const { id } = await params
     const doctor = await prisma.doctorProfile.findUnique({
       where: { userId: auth.context.userId },
-      select: { id: true },
+      select: { id: true, specialization: true },
     })
     if (!doctor) return ok({ error: true, message: 'ملف الطبيب غير موجود' })
+
+    const broadcastDismiss = await prisma.instantConsultRequest.findFirst({
+      where: {
+        id,
+        status: InstantConsultStatus.PENDING,
+        isBroadcast: true,
+        doctorId: null,
+        targetSpecialization: {
+          contains: doctor.specialization,
+          mode: 'insensitive',
+        },
+      },
+    })
+    if (broadcastDismiss) {
+      return ok({
+        rejected: true,
+        dismissed: true,
+        message: 'تم تجاهل طلب البث — الطلب ما زال متاحاً لأطباء آخرين',
+      })
+    }
 
     const request = await prisma.instantConsultRequest.findFirst({
       where: { id, doctorId: doctor.id, status: InstantConsultStatus.PENDING },
