@@ -47,6 +47,7 @@ export default function VerificationDetailPage() {
   const [submitting, setSubmitting] = useState(false)
   const [result,  setResult]  = useState<{type:'success'|'error', msg:string} | null>(null)
   const [preview, setPreview] = useState<{ url: string; mimeType?: string; label: string } | null>(null)
+  const [authReady, setAuthReady] = useState(false)
 
   const loadNotes = useCallback(async () => {
     try {
@@ -77,13 +78,23 @@ export default function VerificationDetailPage() {
   }, [sessionId, loadNotes, loadReviewers])
 
   useEffect(() => {
-    if (status === 'unauthenticated') { router.push('/login'); return }
-    if (status === 'authenticated') {
-      const role = (authSession?.user as any)?.role
-      if (role !== 'ADMIN' && role !== 'OWNER') { router.push('/unauthorized'); return }
-      void loadData()
+    if (status === 'loading') return
+    if (status === 'unauthenticated') {
+      router.replace('/login')
+      return
     }
-  }, [status, authSession, router, loadData])
+    const role = (authSession?.user as { role?: string })?.role
+    if (role !== 'ADMIN' && role !== 'OWNER') {
+      router.replace('/unauthorized')
+      return
+    }
+    setAuthReady(true)
+  }, [status, authSession, router])
+
+  useEffect(() => {
+    if (!authReady || status !== 'authenticated') return
+    void loadData()
+  }, [authReady, status, loadData])
 
   async function decide(decision: 'APPROVE' | 'REJECT') {
     if (decision === 'REJECT' && !notes.trim()) {
@@ -140,34 +151,44 @@ export default function VerificationDetailPage() {
     finally { setAssigning(false) }
   }
 
-  if (status === 'loading' || loading) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
-    </div>
-  )
-
-  if (!data) return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="text-center">
-        <div className="text-4xl mb-3">😕</div>
-        <p className="text-slate-400">الجلسة غير موجودة</p>
-        <button onClick={() => router.back()} className="mt-4 text-blue-400 text-sm">← رجوع</button>
-      </div>
-    </div>
-  )
-
-  const canDecide = data.currentState === 'PENDING_HUMAN' || data.currentState === 'ADMIN_REVIEW'
+  const canDecide = data?.currentState === 'PENDING_HUMAN' || data?.currentState === 'ADMIN_REVIEW'
 
   return (
     <div className="min-h-screen bg-background" dir="rtl">
       <Navbar locale="ar" />
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-6">
 
-        {/* Header */}
-        <div className="flex items-center gap-3 mt-2">
-          <h1 className="text-xl font-bold text-white">مراجعة طلب التحقق</h1>
-          <span className="text-slate-500 text-sm font-mono">{sessionId.slice(0, 8)}...</span>
+        {/* Header — رجوع دائماً متاح */}
+        <div className="flex items-center justify-between gap-3 mt-2 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            <Link
+              href="/admin/verification-v2"
+              className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-slate-300 bg-white/5 border border-white/10 hover:bg-white/10 hover:text-white transition-all">
+              ← القائمة
+            </Link>
+            <h1 className="text-xl font-bold text-white truncate">مراجعة طلب التحقق</h1>
+            <span className="text-slate-500 text-sm font-mono shrink-0">{sessionId.slice(0, 8)}...</span>
+          </div>
         </div>
+
+        {(status === 'loading' || loading) && (
+          <div className="flex justify-center py-24">
+            <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
+          </div>
+        )}
+
+        {!loading && status === 'authenticated' && !data && (
+          <div className="text-center py-24">
+            <div className="text-4xl mb-3">😕</div>
+            <p className="text-slate-400">الجلسة غير موجودة أو تعذّر تحميلها</p>
+            <Link href="/admin/verification-v2" className="inline-block mt-4 text-blue-400 text-sm hover:underline">
+              ← العودة للقائمة
+            </Link>
+          </div>
+        )}
+
+        {!loading && data && (
+          <>
 
         {/* Assignment */}
         {canDecide && (
@@ -462,6 +483,9 @@ export default function VerificationDetailPage() {
               <p className="text-slate-500 text-sm mt-2">سبب الرفض: {data.rejectionReason}</p>
             )}
           </div>
+        )}
+
+          </>
         )}
 
       </div>

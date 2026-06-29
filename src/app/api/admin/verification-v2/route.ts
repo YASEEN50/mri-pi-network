@@ -25,11 +25,16 @@ export async function GET(req: NextRequest) {
 
     const assignFilter = req.nextUrl.searchParams.get('assign') ?? 'all'
     const reviewerId   = auth.context.userId
+    const isHumanQueue =
+      statusParam === 'PENDING_HUMAN' ||
+      (typeof currentStateFilter === 'object' &&
+        'in' in currentStateFilter &&
+        currentStateFilter.in?.includes('PENDING_HUMAN'))
 
     const assignWhere =
-      assignFilter === 'mine'
+      isHumanQueue && assignFilter === 'mine'
         ? { assignedToId: reviewerId }
-        : assignFilter === 'unassigned'
+        : isHumanQueue && assignFilter === 'unassigned'
           ? { assignedToId: null }
           : {}
 
