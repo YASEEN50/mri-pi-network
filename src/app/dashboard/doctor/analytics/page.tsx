@@ -46,7 +46,7 @@ export default function DoctorAnalyticsPage() {
     { label: tdoc('stats_pending'), value: o.pendingCount ?? 0, color: 'text-amber-400', sub: tdoc('stats_cancelled_sub', { count: o.cancelledTotal ?? 0 }) },
     { label: tdoc('stats_rating'), value: data?.reviews?.average ?? 0, color: 'text-yellow-400', sub: tdoc('stats_reviews_sub', { count: data?.reviews?.total ?? 0 }) },
     ...(!isLocked('publications') ? [{ label: tdoc('stats_publications'), value: data?.publications?.total ?? 0, color: 'text-violet-400', sub: tdoc('stats_publications_sub') }] : []),
-    ...(!isLocked('earnings') ? [{ label: tdoc('stats_pi_balance'), value: `${(data?.earnings?.piBalance ?? 0).toFixed(2)} π`, color: 'text-purple-400', sub: tdoc('stats_pi_commission') }] : []),
+    { label: tdoc('stats_pi_balance'), value: `${(data?.earnings?.piBalance ?? 0).toFixed(4)} π`, color: 'text-purple-400', sub: tdoc('stats_pi_commission') },
   ]
 
   const STATUS_COLORS: Record<string, string> = {
@@ -80,12 +80,10 @@ export default function DoctorAnalyticsPage() {
               💎 {tp('upgrade_hint')}
             </Link>
           )}
-          {!isLocked('earnings') && (
-            <Link href="/dashboard/doctor/withdrawals"
-              className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-sm hover:bg-emerald-500/30 transition-all">
-              💸 سحب المستحقات
-            </Link>
-          )}
+          <Link href="/dashboard/doctor/withdrawals"
+            className="px-4 py-2 bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-sm hover:bg-emerald-500/30 transition-all">
+            💸 سحب المستحقات
+          </Link>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">

@@ -40,6 +40,7 @@ interface ProfileData {
   specialization?: string
   yearsOfExperience?: number
   piCreditBalance?: number
+  piBalance?: number
 }
 
 export default function ProfilePage() {
@@ -274,6 +275,14 @@ export default function ProfilePage() {
                 <p className="text-emerald-400 text-xs mt-1">
                   💰 رصيد المنصة: {Number(profile.piCreditBalance ?? 0).toFixed(4)} π
                   <span className="text-slate-500 block">يُستخدم تلقائياً في الاستشارة الفورية — ليس محفظة Pi</span>
+                </p>
+              )}
+              {isDoctor && (
+                <p className="text-purple-400 text-xs mt-1">
+                  💰 مستحقاتك: {Number(profile.piBalance ?? 0).toFixed(4)} π
+                  <Link href="/dashboard/doctor/withdrawals" className="text-emerald-400 block underline mt-0.5">
+                    سحب إلى محفظة Pi ←
+                  </Link>
                 </p>
               )}
             </div>

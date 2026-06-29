@@ -27,6 +27,8 @@ export default function DoctorSchedulePage() {
 
   const profileApproved = session?.user?.approvalStatus === 'APPROVED'
   const [verifState, setVerifState] = useState<string | null>(null)
+  const [piBalance, setPiBalance] = useState<number | null>(null)
+
   useEffect(() => {
     if (profileApproved) {
       setVerifState('APPROVED')
@@ -37,6 +39,15 @@ export default function DoctorSchedulePage() {
       .then(d => setVerifState(d.data?.verificationStatus ?? 'UNVERIFIED'))
       .catch(() => {})
   }, [profileApproved])
+
+  useEffect(() => {
+    fetch('/api/doctor/withdrawals')
+      .then(r => r.json())
+      .then(d => {
+        if (d.data?.balance != null) setPiBalance(Number(d.data.balance))
+      })
+      .catch(() => {})
+  }, [])
 
   if (isLoading) return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center">
@@ -88,6 +99,21 @@ export default function DoctorSchedulePage() {
           </div>
         </div>
 
+        {piBalance != null && (
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/25">
+            <div>
+              <p className="text-slate-400 text-xs">مستحقاتك (بعد عمولة 5%)</p>
+              <p className="text-2xl font-bold text-purple-300" dir="ltr">{piBalance.toFixed(4)} π</p>
+            </div>
+            <Link
+              href="/dashboard/doctor/withdrawals"
+              className="px-4 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium"
+            >
+              💸 {tn('withdrawals')}
+            </Link>
+          </div>
+        )}
+
         <div className="flex gap-3 mb-6 flex-wrap">
           <Link href="/dashboard/doctor/availability"
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
@@ -96,6 +122,14 @@ export default function DoctorSchedulePage() {
           <Link href="/dashboard/doctor/payment-settings"
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
             {tn('payment_settings')}
+          </Link>
+          <Link href="/dashboard/doctor/withdrawals"
+            className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-sm transition-all">
+            {tn('withdrawals')}
+          </Link>
+          <Link href="/dashboard/doctor/instant-consult"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
+            {tn('instant_consult')}
           </Link>
           <Link href="/dashboard/doctor/analytics"
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">

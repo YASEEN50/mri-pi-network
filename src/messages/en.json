@@ -133,6 +133,8 @@
     "nav": {
       "availability": "⏰ Availability",
       "payment_settings": "💳 Payment Settings",
+      "withdrawals": "💸 Withdraw earnings",
+      "instant_consult": "⚡ Instant consult",
       "analytics": "📊 Analytics",
       "publications": "✍️ Publications",
       "chat": "💬 Chat",

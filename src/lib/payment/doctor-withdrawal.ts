@@ -303,11 +303,16 @@ export async function listDoctorWithdrawals(userId: string) {
   })
   if (!doctor) return { balance: 0, requests: [] as ReturnType<typeof mapWithdrawalRow>[] }
 
-  const rows = await prisma.withdrawalRequest.findMany({
-    where: { doctorId: doctor.id },
-    orderBy: { createdAt: 'desc' },
-    take: 30,
-  })
+  let rows: Awaited<ReturnType<typeof prisma.withdrawalRequest.findMany>> = []
+  try {
+    rows = await prisma.withdrawalRequest.findMany({
+      where: { doctorId: doctor.id },
+      orderBy: { createdAt: 'desc' },
+      take: 30,
+    })
+  } catch (err) {
+    console.error('[listDoctorWithdrawals] withdrawal_requests query failed — run migrate deploy?', err)
+  }
 
   return {
     balance: Number(doctor.piBalance),

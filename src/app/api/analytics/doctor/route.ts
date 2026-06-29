@@ -97,7 +97,7 @@ export async function GET() {
       premioTier: tier,
       analyticsLevel,
       lockedFeatures: analyticsLevel === 'basic'
-        ? ['earnings', 'statusBreakdown', 'publications', 'referrals']
+        ? ['statusBreakdown', 'publications', 'referrals', 'earningsDetail']
         : analyticsLevel === 'full'
           ? ['referrals']
           : [],
@@ -121,15 +121,19 @@ export async function GET() {
         scheduledAt: a.scheduledAt,
         clientName:  a.client?.email ?? 'مريض',
       })),
+      earnings: {
+        piBalance: Number(doctor.piBalance),
+        ...(analyticsLevel !== 'basic'
+          ? {
+              totalReceived: Number(earningsSum._sum.receiverAmount ?? 0),
+              platformFees: Number(earningsSum._sum.platformFee ?? 0),
+            }
+          : {}),
+      },
     }
 
     if (analyticsLevel !== 'basic') {
       payload.publications = { total: totalPublications }
-      payload.earnings = {
-        piBalance:     Number(doctor.piBalance),
-        totalReceived: Number(earningsSum._sum.receiverAmount ?? 0),
-        platformFees:  Number(earningsSum._sum.platformFee ?? 0),
-      }
       payload.appointmentsByStatus = Object.fromEntries(
         appointmentsByDay.map(g => [g.status, g._count.id]),
       )

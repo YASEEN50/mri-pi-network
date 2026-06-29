@@ -69,6 +69,7 @@ export async function GET() {
         gender:            profile.gender,
         specialization:    profile.specialization,
         yearsOfExperience: profile.yearsOfExperience,
+        piBalance:         Number(profile.piBalance),
       })
     }
 
