@@ -39,6 +39,7 @@ interface ProfileData {
   healthStatus?: string
   specialization?: string
   yearsOfExperience?: number
+  piCreditBalance?: number
 }
 
 export default function ProfilePage() {
@@ -268,6 +269,11 @@ export default function ProfilePage() {
               </div>
               {session.user.piUsername && (
                 <p className="text-purple-400 text-xs mt-1">🟣 @{session.user.piUsername}</p>
+              )}
+              {isClient && (profile.piCreditBalance ?? 0) > 0 && (
+                <p className="text-emerald-400 text-xs mt-1">
+                  💰 رصيد المنصة: {Number(profile.piCreditBalance).toFixed(4)} π
+                </p>
               )}
             </div>
 

@@ -27,12 +27,14 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
     closing,
     sendMessage,
     endConversation,
+    uploadAttachment,
     myId,
   } = useChat()
 
   const [mobileChatOpen, setMobileChatOpen] = useState(false)
   const [videoPath, setVideoPath] = useState<string | null>(null)
   const [showEndConfirm, setShowEndConfirm] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -222,6 +224,16 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                             : 'bg-white/10 text-white rounded-tl-sm'}`}
                       >
                         {msg.content}
+                        {msg.fileUrl && (
+                          <a
+                            href={msg.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="block mt-2 text-xs text-emerald-300 underline break-all"
+                          >
+                            📎 {t('attachment')}
+                          </a>
+                        )}
                         <p className="text-xs opacity-50 mt-1">
                           {new Date(msg.createdAt).toLocaleTimeString(dateLocale, {
                             hour: '2-digit',
@@ -239,6 +251,26 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                 className="shrink-0 p-3 sm:p-4 border-t border-white/[0.08] bg-slate-950/95 flex gap-2 sm:gap-3 items-end"
                 style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
               >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,application/pdf"
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0]
+                    if (f) void uploadAttachment(f)
+                    e.target.value = ''
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={sending}
+                  className="shrink-0 p-3 rounded-xl bg-white/5 border border-white/10 text-slate-300 hover:text-white disabled:opacity-40"
+                  aria-label={t('attachment')}
+                >
+                  📎
+                </button>
                 <input
                   ref={inputRef}
                   value={input}

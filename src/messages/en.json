@@ -357,7 +357,8 @@
       "conversation_ended": "Conversation ended",
       "back_to_chat": "Back to messaging",
       "video_return_hint": "When the call ends, return to messaging to continue the conversation",
-      "video_end_flow_hint": "Finished the call? Return to messaging to continue by text or end the session entirely."
+      "video_end_flow_hint": "Finished the call? Return to messaging to continue by text or end the session entirely.",
+      "attachment": "Attachment"
     },
     "medical_records": {
       "title": "Medical Records",

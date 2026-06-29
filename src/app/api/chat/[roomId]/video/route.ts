@@ -42,6 +42,10 @@ export async function GET(
       return ok({ canJoin: false, reason: access.reason, consultId: consult.id })
     }
 
+    if (!consult.doctor) {
+      return ok({ canJoin: false, reason: 'no_doctor', consultId: consult.id })
+    }
+
     const isDoctor = auth.context.role === 'DOCTOR'
     const displayName = isDoctor
       ? `د. ${consult.doctor.firstName} ${consult.doctor.lastName}`

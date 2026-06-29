@@ -1177,30 +1177,34 @@ enum InstantConsultStatus {
 }
 
 model InstantConsultRequest {
-  id            String               @id @default(uuid())
-  clientId      String
-  doctorId      String
-  status        InstantConsultStatus @default(AWAITING_PAYMENT)
-  reason        String?
-  fee           Decimal              @db.Decimal(10, 4)
-  isPaid        Boolean              @default(false)
-  paidAt        DateTime?
-  expiresAt     DateTime?
-  sessionEndsAt DateTime?
-  acceptedAt    DateTime?
-  rejectedAt    DateTime?
-  completedAt   DateTime?
-  chatRoomId    String?
-  transactionId String?
-  createdAt     DateTime             @default(now())
-  updatedAt     DateTime             @updatedAt
+  id                    String               @id @default(uuid())
+  clientId              String
+  doctorId              String?
+  status                InstantConsultStatus @default(AWAITING_PAYMENT)
+  reason                String?
+  fee                   Decimal              @db.Decimal(10, 4)
+  creditApplied         Decimal              @default(0) @db.Decimal(10, 4)
+  isBroadcast           Boolean              @default(false)
+  targetSpecialization  String?
+  isPaid                Boolean              @default(false)
+  paidAt                DateTime?
+  expiresAt             DateTime?
+  sessionEndsAt         DateTime?
+  acceptedAt            DateTime?
+  rejectedAt            DateTime?
+  completedAt           DateTime?
+  chatRoomId            String?
+  transactionId         String?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
 
-  client ClientProfile @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  doctor DoctorProfile @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  client ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  doctor DoctorProfile? @relation(fields: [doctorId], references: [id], onDelete: Cascade)
 
   @@index([doctorId, status])
   @@index([clientId, status])
   @@index([expiresAt])
+  @@index([isBroadcast, status])
   @@map("instant_consult_requests")
 }
 

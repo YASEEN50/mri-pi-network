@@ -13,7 +13,7 @@ import { z } from 'zod'
 
 const MsgSchema = z.object({
   content:  z.string().min(1).max(2000),
-  fileUrl:  z.string().url().optional(),
+  fileUrl:  z.string().min(1).max(2048).optional(),
   fileType: z.string().optional(),
 })
 

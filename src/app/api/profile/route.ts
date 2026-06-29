@@ -41,6 +41,7 @@ export async function GET() {
         firstName:       profile.firstName,
         lastName:        profile.lastName,
         avatarUrl:       profile.avatarUrl,
+        piCreditBalance: Number(profile.piCreditBalance),
         phone:           (profile as any).phone,
         city:            profile.city,
         gender:          profile.gender,

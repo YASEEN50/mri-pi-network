@@ -21,16 +21,38 @@ export async function POST(
     const { id } = await params
     const doctor = await prisma.doctorProfile.findUnique({
       where: { userId: auth.context.userId },
-      select: { id: true, firstName: true, lastName: true, instantConsultDurationMinutes: true, isOnlineForInstant: true },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        specialization: true,
+        instantConsultDurationMinutes: true,
+        isOnlineForInstant: true,
+      },
     })
     if (!doctor) return ok({ error: true, message: 'ملف الطبيب غير موجود' })
     if (!doctor.isOnlineForInstant) return ok({ error: true, message: 'فعّل «متاح الآن» أولاً' })
 
     const request = await prisma.instantConsultRequest.findFirst({
-      where: { id, doctorId: doctor.id, status: InstantConsultStatus.PENDING },
+      where: {
+        id,
+        status: InstantConsultStatus.PENDING,
+        OR: [
+          { doctorId: doctor.id },
+          {
+            isBroadcast: true,
+            doctorId: null,
+            targetSpecialization: {
+              contains: doctor.specialization,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      },
       include: { client: { select: { id: true, userId: true } } },
     })
     if (!request) return ok({ error: true, message: 'الطلب غير موجود أو انتهت مهلة القبول' })
+
     if (request.expiresAt && request.expiresAt <= new Date()) {
       await prisma.instantConsultRequest.update({
         where: { id },
@@ -48,15 +70,27 @@ export async function POST(
     const now = new Date()
     const sessionEndsAt = new Date(now.getTime() + doctor.instantConsultDurationMinutes * 60 * 1000)
 
-    await prisma.instantConsultRequest.update({
-      where: { id },
+    const claimed = await prisma.instantConsultRequest.updateMany({
+      where: {
+        id,
+        status: InstantConsultStatus.PENDING,
+        OR: [
+          { doctorId: doctor.id },
+          { isBroadcast: true, doctorId: null },
+        ],
+      },
       data: {
         status: InstantConsultStatus.ACCEPTED,
+        doctorId: doctor.id,
         acceptedAt: now,
         chatRoomId,
         sessionEndsAt,
       },
     })
+
+    if (claimed.count === 0) {
+      return ok({ error: true, message: 'قبل طبيب آخر هذا الطلب' })
+    }
 
     await notifyClientInstantAccepted(
       request.client.userId,

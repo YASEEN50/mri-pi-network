@@ -142,12 +142,13 @@ export async function POST(req: NextRequest) {
       })
       if (!consult) return ok({ error: true, message: 'طلب الاستشارة غير موجود' })
 
-      const expected = Number(consult.fee)
+      const expected =
+        Number(consult.fee) - Number(consult.creditApplied ?? 0)
       if (Math.abs(expected - amount) > 0.0001) {
         return ok({ error: true, message: 'مبلغ الدفع لا يطابق رسوم الاستشارة' })
       }
 
-      doctorId = consult.doctorId
+      doctorId = consult.doctorId ?? undefined
       transactionType = 'INSTANT_CONSULT'
       meta.instantConsultId = instantConsultId
       meta.transactionType = transactionType

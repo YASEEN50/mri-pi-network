@@ -35,6 +35,8 @@ export default function ConsultNowPage() {
   const [chatRoomId, setChatRoomId] = useState<string | null>(null)
   const [error, setError] = useState('')
   const [countdown, setCountdown] = useState(INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC)
+  const [piCredit, setPiCredit] = useState(0)
+  const [broadcastingSpec, setBroadcastingSpec] = useState<string | null>(null)
 
   const loadDoctors = useCallback(async () => {
     setLoading(true)
@@ -54,8 +56,14 @@ export default function ConsultNowPage() {
   }, [loadDoctors])
 
   useEffect(() => {
-    if (status === 'unauthenticated') router.push('/login?redirect=/consult-now')
-  }, [status, router])
+    if (status !== 'authenticated') return
+    fetch('/api/profile')
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.data?.piCreditBalance != null) setPiCredit(Number(d.data.piCreditBalance))
+      })
+      .catch(() => {})
+  }, [status])
 
   useEffect(() => {
     if (phase !== 'waiting' || !requestId) return
@@ -93,6 +101,60 @@ export default function ConsultNowPage() {
     return () => window.clearTimeout(t)
   }, [phase, countdown])
 
+  useEffect(() => {
+    if (status === 'unauthenticated') router.push('/login?redirect=/consult-now')
+  }, [status, router])
+
+  const specializations = [...new Set(doctors.map((d) => d.specialization))]
+
+  async function payAndWait(id: string, label: string, fee: number) {
+    setRequestId(id)
+    await payForInstantConsult(id, fee)
+    setSelected((prev) => (prev ? { ...prev, fullName: label, fee } : prev))
+    setCountdown(INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC)
+    setPhase('waiting')
+  }
+
+  async function startBroadcast(specialization: string) {
+    if (!session) {
+      router.push('/login?redirect=/consult-now')
+      return
+    }
+    setError('')
+    setBroadcastingSpec(specialization)
+
+    try {
+      const res = await fetch('/api/instant-consult', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ broadcast: true, specialization, reason: reason || undefined }),
+      })
+      const data = await res.json()
+      if (!data.success || data.data?.error) {
+        setError(data.data?.message ?? 'تعذر إنشاء الطلب')
+        return
+      }
+
+      const id = data.data.id as string
+      const fee = Number(data.data.fee)
+      setSelected({
+        id: 'broadcast',
+        fullName: `أطباء ${specialization}`,
+        specialization,
+        avatarUrl: null,
+        averageRating: 0,
+        totalReviews: 0,
+        fee,
+        durationMinutes: 0,
+      })
+      await payAndWait(id, `أطباء ${specialization}`, fee)
+    } catch (err) {
+      setError(piPaymentErrorMessage(err))
+    } finally {
+      setBroadcastingSpec(null)
+    }
+  }
+
   async function startConsult(doctor: AvailableDoctor) {
     if (!session) {
       router.push('/login?redirect=/consult-now')
@@ -117,11 +179,7 @@ export default function ConsultNowPage() {
       }
 
       const id = data.data.id as string
-      setRequestId(id)
-      await payForInstantConsult(id, doctor.fee)
-
-      setCountdown(INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC)
-      setPhase('waiting')
+      await payAndWait(id, doctor.fullName, doctor.fee)
       setPayingDoctorId(null)
     } catch (err) {
       setError(piPaymentErrorMessage(err))
@@ -146,12 +204,18 @@ export default function ConsultNowPage() {
           ⚠️ للحالات الطارئة اتصل بالإسعاف 997 — هذه الخدمة للاستشارات غير الطارئة فقط.
         </div>
 
+        {piCredit > 0 && phase === 'browse' && (
+          <div className="mb-6 p-4 rounded-xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-200 text-sm">
+            💰 رصيدك في المنصة: <strong>{piCredit.toFixed(4)} π</strong> — يُستخدم تلقائياً عند الدفع
+          </div>
+        )}
+
         {phase === 'waiting' && selected && (
           <div className="mb-6 p-6 rounded-2xl bg-purple-500/10 border border-purple-500/30 text-center">
             <div className="animate-pulse text-4xl mb-3">⏳</div>
             <p className="text-white font-medium">بانتظار قبول {selected.fullName}</p>
             <p className="text-purple-300 text-2xl font-bold mt-2">{countdown} ث</p>
-            <p className="text-slate-400 text-xs mt-2">سيُبلّغ الطبيب فوراً</p>
+            <p className="text-slate-400 text-xs mt-2">سيُبلّغ الطبيب (أو الأطباء) فوراً</p>
           </div>
         )}
 
@@ -226,6 +290,25 @@ export default function ConsultNowPage() {
                 </button>
               </div>
             ) : (
+              <>
+                {specializations.length > 0 && (
+                  <div className="mb-6 p-4 rounded-2xl bg-purple-500/10 border border-purple-500/30">
+                    <p className="text-white font-medium text-sm mb-3">📡 بث سريع — أول طبيب يقبل</p>
+                    <div className="flex flex-wrap gap-2">
+                      {specializations.map((spec) => (
+                        <button
+                          key={spec}
+                          type="button"
+                          disabled={!!payingDoctorId || !!broadcastingSpec}
+                          onClick={() => void startBroadcast(spec)}
+                          className="px-4 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-500 text-white text-xs font-medium disabled:opacity-50"
+                        >
+                          {broadcastingSpec === spec ? '...' : spec}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
               <div className="space-y-3">
                 {doctors.map((d) => (
                   <div
@@ -258,6 +341,7 @@ export default function ConsultNowPage() {
                   </div>
                 ))}
               </div>
+              </>
             )}
           </>
         )}

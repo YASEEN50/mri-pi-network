@@ -105,6 +105,35 @@ export async function createChatRoomForInstantConsult(
   return room.id
 }
 
+export async function notifyDoctorsBroadcast(
+  specialization: string,
+  requestId: string,
+  clientName: string,
+) {
+  const doctors = await prisma.doctorProfile.findMany({
+    where: doctorProfileApprovedWhere({
+      acceptsInstantConsult: true,
+      isOnlineForInstant: true,
+      instantConsultFee: { not: null, gt: 0 },
+      specialization: { contains: specialization, mode: 'insensitive' },
+    }),
+    select: { id: true, userId: true },
+  })
+
+  for (const d of doctors) {
+    if (await doctorHasActiveInstantSession(d.id)) continue
+    await prisma.notification.create({
+      data: {
+        userId: d.userId,
+        title: '⚡ طلب استشارة فورية (بث)',
+        body: `${clientName} يطلب استشارة في ${specialization} — أول من يقبل يفوز (${INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC}ث)`,
+        type: 'INSTANT_CONSULT_REQUEST',
+        data: { requestId, broadcast: true },
+      },
+    })
+  }
+}
+
 export async function notifyDoctorInstantRequest(doctorUserId: string, requestId: string, clientName: string) {
   await prisma.notification.create({
     data: {

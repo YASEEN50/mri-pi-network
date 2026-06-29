@@ -20,6 +20,8 @@ interface IncomingRequest {
   reason: string | null
   fee: number
   expiresAt: string | null
+  isBroadcast?: boolean
+  targetSpecialization?: string | null
   client: { name: string }
 }
 
@@ -229,6 +231,11 @@ export default function DoctorInstantConsultPage() {
               className="p-4 rounded-2xl bg-purple-500/10 border border-purple-500/25"
             >
               <p className="text-white font-medium">{r.client.name}</p>
+              {r.isBroadcast && (
+                <span className="inline-block mt-1 text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                  📡 بث — {r.targetSpecialization ?? 'تخصص عام'}
+                </span>
+              )}
               {r.reason && <p className="text-slate-400 text-sm mt-1">{r.reason}</p>}
               <p className="text-purple-300 text-xs mt-1">{r.fee} π</p>
               {r.status === 'PENDING' && (

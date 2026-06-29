@@ -26,6 +26,10 @@ export async function GET(
     })
     if (!consult) return ok({ error: true, message: 'الطلب غير موجود' })
 
+    if (!consult.doctor) {
+      return ok({ canJoin: false, reason: 'no_doctor' })
+    }
+
     const isClient =
       auth.context.role === Role.CLIENT &&
       consult.client.userId === auth.context.userId

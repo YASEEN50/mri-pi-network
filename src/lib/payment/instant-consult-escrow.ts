@@ -39,8 +39,21 @@ export async function findInstantConsultTransaction(instantConsultId: string) {
 
 /** Pay doctor only after the consult is accepted (escrow until accept). */
 export async function settleInstantConsultOnAccept(instantConsultId: string): Promise<void> {
+  const request = await prisma.instantConsultRequest.findUnique({
+    where: { id: instantConsultId },
+    select: { doctorId: true },
+  })
+
   const tx = await findInstantConsultTransaction(instantConsultId)
   if (!tx || tx.status !== TransactionStatus.COMPLETED) return
+
+  if (request?.doctorId && !tx.doctorId) {
+    await prisma.transaction.update({
+      where: { id: tx.id },
+      data: { doctorId: request.doctorId },
+    })
+    tx.doctorId = request.doctorId
+  }
 
   const meta = parseNotes(tx.notes)
   if (meta.doctorSettled === true) return

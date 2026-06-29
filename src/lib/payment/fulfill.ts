@@ -6,6 +6,7 @@ import { InstantConsultStatus, PremioType } from '@prisma/client'
 import {
   acceptDeadlineFromNow,
   notifyDoctorInstantRequest,
+  notifyDoctorsBroadcast,
 } from '@/lib/instant-consult/service'
 import { linkInstantConsultTransaction } from '@/lib/payment/instant-consult-escrow'
 
@@ -126,19 +127,25 @@ export async function fulfillInstantConsultPayment(
     },
   })
 
-  await notifyDoctorInstantRequest(
-    request.doctor.userId,
-    instantConsultId,
-    `${request.client.firstName} ${request.client.lastName}`,
-  )
+  const clientName = `${request.client.firstName} ${request.client.lastName}`
+
+  if (request.isBroadcast && request.targetSpecialization) {
+    await notifyDoctorsBroadcast(request.targetSpecialization, instantConsultId, clientName)
+  } else if (request.doctor) {
+    await notifyDoctorInstantRequest(request.doctor.userId, instantConsultId, clientName)
+  }
 
   await linkInstantConsultTransaction(instantConsultId, transactionId)
+
+  const doctorLabel = request.doctor
+    ? `د. ${request.doctor.firstName} ${request.doctor.lastName}`
+    : request.targetSpecialization ?? 'الأطباء المتاحين'
 
   await prisma.notification.create({
     data: {
       userId: clientUserId,
       title: '⏳ بانتظار الطبيب',
-      body: `تم الدفع ${amountPaid.toFixed(4)} π — بانتظار قبول د. ${request.doctor.firstName} ${request.doctor.lastName}`,
+      body: `تم الدفع ${amountPaid.toFixed(4)} π — بانتظار قبول ${doctorLabel}`,
       type: 'INSTANT_CONSULT_PENDING',
       data: { instantConsultId, transactionId },
     },

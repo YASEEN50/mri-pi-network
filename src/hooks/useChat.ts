@@ -161,24 +161,30 @@ export function useChat() {
     }
   }, [status, active?.id, fetchMessages, fetchRooms])
 
-  const sendMessage = useCallback(async () => {
-    if (!input.trim() || !active || sending) return
+  const sendMessage = useCallback(async (opts?: { fileUrl?: string; fileType?: string; content?: string }) => {
+    const text = (opts?.content ?? input).trim()
+    const hasFile = !!opts?.fileUrl
+    if ((!text && !hasFile) || !active || sending) return
     setSending(true)
-    const text = input.trim()
     setInput('')
     try {
       const res = await fetch(`/api/chat/${active.id}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: text }),
+        body: JSON.stringify({
+          content: text || (hasFile ? '📎 مرفق' : ''),
+          fileUrl: opts?.fileUrl,
+          fileType: opts?.fileType,
+        }),
       })
       const data = await res.json()
       if (data.data?.id) {
         const msg: ChatMessage = {
           id: data.data.id,
           senderId: session?.user?.id ?? '',
-          content: text,
+          content: text || '📎 مرفق',
           createdAt: data.data.createdAt,
+          fileUrl: opts?.fileUrl,
         }
         setMessages(prev => mergeMessages(prev, [msg]))
         latestMessageAtRef.current = msg.createdAt
@@ -189,6 +195,46 @@ export function useChat() {
       setSending(false)
     }
   }, [input, active, sending, session?.user?.id, fetchRooms])
+
+  const uploadAttachment = useCallback(async (file: File) => {
+    if (!active || sending) return
+    setSending(true)
+    const caption = input.trim()
+    setInput('')
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      const up = await fetch(`/api/chat/${active.id}/upload`, { method: 'POST', body: fd })
+      const upData = await up.json()
+      if (!upData.data?.fileUrl) return
+
+      const res = await fetch(`/api/chat/${active.id}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: caption || '📎 مرفق',
+          fileUrl: upData.data.fileUrl,
+          fileType: upData.data.fileType,
+        }),
+      })
+      const data = await res.json()
+      if (data.data?.id) {
+        const msg: ChatMessage = {
+          id: data.data.id,
+          senderId: session?.user?.id ?? '',
+          content: caption || '📎 مرفق',
+          createdAt: data.data.createdAt,
+          fileUrl: upData.data.fileUrl,
+        }
+        setMessages(prev => mergeMessages(prev, [msg]))
+        latestMessageAtRef.current = msg.createdAt
+        void fetchRooms(true)
+      }
+    } catch { /* ignore */ }
+    finally {
+      setSending(false)
+    }
+  }, [active, sending, input, session?.user?.id, fetchRooms])
 
   const endConversation = useCallback(async () => {
     if (!active || closing) return false
@@ -224,6 +270,7 @@ export function useChat() {
     sending,
     closing,
     sendMessage,
+    uploadAttachment,
     endConversation,
     myId: session?.user?.id,
   }

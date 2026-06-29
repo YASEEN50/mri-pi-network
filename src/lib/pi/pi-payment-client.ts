@@ -134,20 +134,33 @@ export async function payForAppointment(
   })
 }
 
-/** Instant consult fee via Pi U2A */
+/** Instant consult fee via Pi U2A (applies platform credit first) */
 export async function payForInstantConsult(
   instantConsultId: string,
   fee: number,
 ): Promise<{ paymentId: string; txid: string }> {
   if (fee <= 0) throw new Error('رسوم الاستشارة غير محددة')
 
+  const creditRes = await fetch(`/api/instant-consult/${instantConsultId}/apply-credit`, {
+    method: 'POST',
+  })
+  const creditData = await creditRes.json()
+  if (creditData.data?.error) {
+    throw new Error(creditData.data.message ?? 'تعذر تطبيق رصيد المنصة')
+  }
+
+  const piRemaining = Number(creditData.data?.piRemaining ?? fee)
+  if (creditData.data?.fullyPaid || piRemaining <= 0.0001) {
+    return { paymentId: 'platform-credit', txid: 'platform-credit' }
+  }
+
   return payWithPi({
-    amount: fee,
+    amount: piRemaining,
     memo: 'استشارة فورية',
     metadata: { purpose: 'INSTANT_CONSULT', instantConsultId },
     approvePayload: {
       purpose: 'INSTANT_CONSULT',
-      amount: fee,
+      amount: piRemaining,
       instantConsultId,
     },
   })
