@@ -15,6 +15,9 @@ export const PI_STATIC_AUTH_PATHS = [
   '/pi-login.html',
   '/pi-email.html',
   '/pi-register.html',
+  '/pi-link-email.html',
+  '/pi-link-pi.html',
+  '/pi-auth-hub.html',
 ] as const
 
 /** Legacy static shell pages → Next.js (see docs/PI_ROUTES.md) */

@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ربط Pi — MRI</title>
+  <link rel="stylesheet" href="/pi-login.css?v=2" />
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script src="/pi-auth.js"></script>
+</head>
+<body class="pi-auth-page">
+  <div class="pi-auth-medical" aria-hidden="true"></div>
+  <div class="pi-auth-scrim" aria-hidden="true"></div>
+  <div class="pi-auth-bg"></div>
+  <div class="pi-auth-glow"></div>
+
+  <div class="pi-auth-wrap">
+    <div class="pi-auth-brand">
+      <h1 class="pi-auth-title">MRI</h1>
+      <p class="pi-auth-subtitle">ربط Pi بحساب البريد</p>
+    </div>
+
+    <div class="pi-auth-card">
+      <h2 id="title">ربط حساب Pi</h2>
+      <p class="pi-auth-hint" id="hint">سجّل الدخول بالبريد أولاً ثم اربط Pi</p>
+
+      <div id="doneBox" hidden>
+        <p class="pi-auth-success" id="doneMsg"></p>
+        <a href="/pi-app.html" class="pi-auth-btn pi-auth-btn-pi" style="margin-top:12px;display:block;text-align:center">← لوحة Pi</a>
+      </div>
+
+      <button type="button" id="linkBtn" class="pi-auth-btn pi-auth-btn-pi" style="display:none">
+        <span>π</span> ربط Pi Network
+      </button>
+      <a id="loginFirst" href="/pi-email.html" class="pi-auth-btn pi-auth-btn-email" style="display:none;margin-top:12px">📧 سجّل الدخول بالبريد أولاً</a>
+    </div>
+
+    <p id="err" class="pi-auth-error"></p>
+    <a class="pi-auth-back pi-auth-text-center" href="/pi-auth-hub.html" style="display:block">← مركز الاختبار</a>
+  </div>
+
+  <script>
+  function loadStatus() {
+    return fetch('/api/auth/account-status', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (res) { return res.data || res })
+  }
+
+  document.getElementById('linkBtn').addEventListener('click', function () {
+    var btn = document.getElementById('linkBtn')
+    var err = document.getElementById('err')
+    err.textContent = ''
+    btn.disabled = true
+    btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري الربط...'
+    window.PiAuth.authenticatePi().then(function (auth) {
+      return fetch('/api/auth/link-pi', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accessToken: auth.accessToken }),
+      })
+    }).then(function (r) { return r.json() })
+      .then(function (res) {
+        var d = res.data || res
+        if (d.error) throw new Error(d.message || 'فشل الربط')
+        document.getElementById('linkBtn').style.display = 'none'
+        document.getElementById('doneBox').hidden = false
+        document.getElementById('doneMsg').textContent = '✅ ' + (d.message || 'تم ربط Pi') + (d.piUsername ? ' (@' + d.piUsername + ')' : '')
+      })
+      .catch(function (ex) {
+        err.textContent = ex.message || 'حدث خطأ'
+        btn.disabled = false
+        btn.innerHTML = '<span>π</span> ربط Pi Network'
+      })
+  })
+
+  loadStatus().then(function (s) {
+    if (!s.authenticated) {
+      document.getElementById('loginFirst').style.display = 'block'
+      document.getElementById('hint').textContent = 'يجب تسجيل الدخول بالبريد قبل ربط Pi'
+      return
+    }
+    if (s.hasPi) {
+      document.getElementById('title').textContent = 'Pi مربوط ✓'
+      document.getElementById('hint').textContent = (s.email || '') + ' + @' + (s.piUsername || 'pi')
+      document.getElementById('doneBox').hidden = false
+      document.getElementById('doneMsg').textContent = '✅ حساب موحّد — ادخل بالبريد أو Pi'
+      return
+    }
+    if (!s.hasEmail) {
+      document.getElementById('loginFirst').href = '/pi-email.html'
+      document.getElementById('loginFirst').textContent = '📧 سجّل الدخول بالبريد أولاً'
+      document.getElementById('loginFirst').style.display = 'block'
+      return
+    }
+    document.getElementById('hint').textContent = 'مسجّل كـ ' + s.email + ' — اربط Pi الآن'
+    document.getElementById('linkBtn').style.display = 'block'
+  })
+  </script>
+</body>
+</html>

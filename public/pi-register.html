@@ -96,8 +96,11 @@
           else if (res.d.message) errMsg = res.d.message
           throw new Error(errMsg)
         }
+        var payload = res.d.data || res.d
         msg.className = 'pi-auth-success'
-        msg.textContent = '✅ تم إنشاء الحساب! تحقق من بريدك ثم سجّل الدخول.'
+        msg.textContent = payload.autoVerified
+          ? '✅ تم إنشاء الحساب! يمكنك الدخول مباشرة.'
+          : '✅ تم إنشاء الحساب! تحقق من بريدك ثم سجّل الدخول.'
         setTimeout(function () { window.location.href = '/pi-email.html' }, 2500)
       })
       .catch(function (ex) {

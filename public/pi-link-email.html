@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ربط البريد — MRI</title>
+  <link rel="stylesheet" href="/pi-login.css?v=2" />
+</head>
+<body class="pi-auth-page">
+  <div class="pi-auth-medical" aria-hidden="true"></div>
+  <div class="pi-auth-scrim" aria-hidden="true"></div>
+  <div class="pi-auth-bg"></div>
+  <div class="pi-auth-glow"></div>
+
+  <div class="pi-auth-wrap">
+    <div class="pi-auth-brand">
+      <h1 class="pi-auth-title">MRI</h1>
+      <p class="pi-auth-subtitle">ربط البريد بحساب Pi</p>
+    </div>
+
+    <div class="pi-auth-card">
+      <h2 id="title">ربط بريد إلكتروني</h2>
+      <p class="pi-auth-hint" id="hint">سجّل الدخول بـ Pi أولاً ثم أضف بريداً للاختبار بحسابات متعددة</p>
+
+      <div id="statusBox" class="pi-auth-hint loading pi-auth-status" hidden>
+        <span class="pi-auth-spinner"></span> جاري التحقق...
+      </div>
+
+      <form id="form" hidden>
+        <label class="pi-auth-label" for="email">البريد الإلكتروني</label>
+        <div class="pi-auth-input-wrap">
+          <input id="email" class="pi-auth-input" type="email" required dir="ltr" placeholder="test1@example.com" autocomplete="email" />
+        </div>
+
+        <label class="pi-auth-label" for="password">كلمة المرور</label>
+        <div class="pi-auth-input-wrap">
+          <input id="password" class="pi-auth-input" type="password" required minlength="8" dir="ltr" placeholder="8+ أحرف، حرف كبير ورقم" autocomplete="new-password" />
+        </div>
+
+        <label class="pi-auth-label" for="confirm">تأكيد كلمة المرور</label>
+        <div class="pi-auth-input-wrap">
+          <input id="confirm" class="pi-auth-input" type="password" required minlength="8" dir="ltr" autocomplete="new-password" />
+        </div>
+
+        <button class="pi-auth-btn pi-auth-btn-email" type="submit" id="submitBtn">ربط البريد</button>
+      </form>
+
+      <div id="doneBox" hidden>
+        <p class="pi-auth-success" id="doneMsg"></p>
+        <a href="/pi-email.html" class="pi-auth-btn pi-auth-btn-outline" style="margin-top:12px;display:block;text-align:center">جرّب الدخول بالبريد</a>
+        <a href="/pi-app.html" class="pi-auth-btn pi-auth-btn-pi" style="margin-top:8px;display:block;text-align:center">← لوحة Pi</a>
+      </div>
+
+      <a id="loginFirst" href="/pi-app.html" class="pi-auth-btn pi-auth-btn-pi" style="display:none;margin-top:12px">π سجّل الدخول بـ Pi أولاً</a>
+    </div>
+
+    <p id="err" class="pi-auth-error"></p>
+    <a class="pi-auth-back pi-auth-text-center" href="/pi-auth-hub.html" style="display:block">← مركز الاختبار</a>
+  </div>
+
+  <script>
+  function loadStatus() {
+    return fetch('/api/auth/account-status', { credentials: 'include', cache: 'no-store' })
+      .then(function (r) { return r.json() })
+      .then(function (res) { return res.data || res })
+  }
+
+  document.getElementById('form').addEventListener('submit', function (e) {
+    e.preventDefault()
+    var err = document.getElementById('err')
+    var btn = document.getElementById('submitBtn')
+    err.textContent = ''
+    var pwd = document.getElementById('password').value
+    var confirm = document.getElementById('confirm').value
+    if (pwd !== confirm) {
+      err.textContent = 'كلمتا المرور غير متطابقتين'
+      return
+    }
+    btn.disabled = true
+    btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري الربط...'
+    fetch('/api/auth/link-email', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value.trim(),
+        password: pwd,
+      }),
+    })
+      .then(function (r) { return r.json() })
+      .then(function (res) {
+        var d = res.data || res
+        if (d.error) throw new Error(d.message || 'فشل الربط')
+        document.getElementById('form').hidden = true
+        document.getElementById('doneBox').hidden = false
+        document.getElementById('doneMsg').textContent = '✅ ' + (d.message || 'تم ربط البريد')
+      })
+      .catch(function (ex) {
+        err.textContent = ex.message || 'حدث خطأ'
+        btn.disabled = false
+        btn.textContent = 'ربط البريد'
+      })
+  })
+
+  loadStatus().then(function (s) {
+    document.getElementById('statusBox').hidden = true
+    if (!s.authenticated) {
+      document.getElementById('loginFirst').style.display = 'block'
+      document.getElementById('hint').textContent = 'يجب تسجيل الدخول بـ Pi قبل ربط البريد'
+      return
+    }
+    if (s.hasEmail) {
+      document.getElementById('title').textContent = 'البريد مربوط ✓'
+      document.getElementById('hint').textContent = 'حسابك: ' + (s.email || '') + (s.piUsername ? ' + @' + s.piUsername : '')
+      document.getElementById('doneBox').hidden = false
+      document.getElementById('doneMsg').textContent = '✅ يمكنك الدخول بالبريد أو Pi — نفس الحساب'
+      return
+    }
+    var label = s.piUsername ? '@' + s.piUsername : 'Pi'
+    document.getElementById('hint').textContent = 'مسجّل كـ ' + label + ' — أضف بريداً للاختبار'
+    document.getElementById('form').hidden = false
+  }).catch(function () {
+    document.getElementById('statusBox').hidden = true
+    document.getElementById('loginFirst').style.display = 'block'
+  })
+  </script>
+</body>
+</html>

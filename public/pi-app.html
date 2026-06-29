@@ -1,130 +1,135 @@
-<!DOCTYPE html>
-<html lang="ar" dir="rtl">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>MRI — لوحة الدخول</title>
-  <link rel="stylesheet" href="/pi-login.css?v=2" />
-  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
-  <script src="/pi-auth.js"></script>
-</head>
-<body class="pi-auth-page">
-  <div class="pi-auth-medical" aria-hidden="true"></div>
-  <div class="pi-auth-scrim" aria-hidden="true"></div>
-  <div class="pi-auth-bg"></div>
-  <div class="pi-auth-glow"></div>
-
-  <div class="pi-auth-wrap">
-    <div class="pi-auth-brand">
-      <div class="pi-auth-logo" aria-hidden="true">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
-        </svg>
-      </div>
-      <h1 class="pi-auth-title">MRI</h1>
-      <p class="pi-auth-subtitle">منصة طبية موثوقة</p>
-    </div>
-
-    <div class="pi-auth-card">
-      <h2 id="welcomeTitle">مرحباً بك</h2>
-      <p id="user" class="pi-auth-hint loading pi-auth-status">
-        <span class="pi-auth-spinner"></span> جاري التحقق من الجلسة...
-      </p>
-
-      <div id="menu" style="display:none">
-        <a href="/dashboard" class="pi-auth-btn pi-auth-btn-pi">لوحة التحكم</a>
-        <a href="/consult-now" class="pi-auth-btn pi-auth-btn-outline">⚡ استشارة فورية</a>
-        <a href="/doctors" class="pi-auth-btn pi-auth-btn-outline">الأطباء — حجز موعد</a>
-        <a href="/dashboard/client/chat" class="pi-auth-btn pi-auth-btn-outline">المحادثات</a>
-        <a href="/profile" class="pi-auth-btn pi-auth-btn-outline">الملف الشخصي</a>
-        <button type="button" id="logoutBtn" class="pi-auth-btn pi-auth-btn-outline">تسجيل الخروج</button>
-      </div>
-
-      <button id="piBtn" type="button" class="pi-auth-btn pi-auth-btn-pi" style="display:none">
-        <span>π</span> تسجيل الدخول بـ Pi
-      </button>
-      <a id="emailBtn" href="/pi-email.html" class="pi-auth-btn pi-auth-btn-outline" style="display:none;margin-top:10px">
-        📧 الدخول بالبريد (للاختبار)
-      </a>
-    </div>
-
-    <p id="err" class="pi-auth-error"></p>
-  </div>
-
-  <script>
-  (function () {
-    function requestCookieAccess() {
-      if (document.requestStorageAccess) {
-        return document.requestStorageAccess().catch(function () {})
-      }
-      return Promise.resolve()
-    }
-
-    function resolvePostLoginPath(session) {
-      if (!session || !session.user) return null
-      var u = session.user
-      if (u.isProfileComplete === false) {
-        if (u.role === 'CLIENT') return '/onboarding/client'
-        if (u.role === 'DOCTOR') return '/onboarding/doctor'
-        if (u.role === 'FACILITY') return '/onboarding/facility'
-        return '/select-role'
-      }
-      return null
-    }
-
-    document.getElementById('logoutBtn').addEventListener('click', function () {
-      window.PiAuth.signOut('/pi-app.html')
-    })
-
-    document.getElementById('piBtn').addEventListener('click', function () {
-      var btn = document.getElementById('piBtn')
-      btn.disabled = true
-      btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري التحقق...'
-      window.PiAuth.signIn().catch(function (e) {
-        document.getElementById('err').textContent = e.message || 'فشل الدخول'
-        btn.disabled = false
-        btn.innerHTML = '<span>π</span> تسجيل الدخول بـ Pi'
-      })
-    })
-
-    function showGuest() {
-      document.getElementById('user').className = 'pi-auth-hint'
-      document.getElementById('user').textContent = 'لم يتم تسجيل الدخول — اختر طريقة الدخول'
-      document.getElementById('piBtn').style.display = 'block'
-      document.getElementById('emailBtn').style.display = 'block'
-    }
-
-    requestCookieAccess().then(function () {
-      return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-    }).then(function (r) { return r.json() })
-      .then(function (s) {
-        if (!s || !s.user) {
-          showGuest()
-          if (!window.PiAuth.shouldSkipAuto()) window.PiAuth.tryAutoSignIn()
-          return
-        }
-
-        var next = resolvePostLoginPath(s)
-        if (next) {
-          document.getElementById('user').className = 'pi-auth-hint loading pi-auth-status'
-          document.getElementById('user').innerHTML = '<span class="pi-auth-spinner"></span> جاري إعداد حسابك...'
-          window.location.replace(next)
-          return
-        }
-
-        var label = s.user.piUsername ? '@' + s.user.piUsername : (s.user.email || 'بك')
-        document.getElementById('welcomeTitle').textContent = 'مرحباً'
-        document.getElementById('user').className = 'pi-auth-hint'
-        document.getElementById('user').textContent = 'مسجّل كـ ' + label
-        document.getElementById('menu').style.display = 'block'
-      })
-      .catch(function () {
-        document.getElementById('err').textContent = 'تعذر التحقق من الجلسة — جرّب مرة أخرى'
-        showGuest()
-      })
-  })()
-  </script>
-</body>
-</html>
-
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MRI — لوحة الدخول</title>
+  <link rel="stylesheet" href="/pi-login.css?v=2" />
+  <script src="https://sdk.minepi.com/pi-sdk.js"></script>
+  <script src="/pi-auth.js"></script>
+</head>
+<body class="pi-auth-page">
+  <div class="pi-auth-medical" aria-hidden="true"></div>
+  <div class="pi-auth-scrim" aria-hidden="true"></div>
+  <div class="pi-auth-bg"></div>
+  <div class="pi-auth-glow"></div>
+
+  <div class="pi-auth-wrap">
+    <div class="pi-auth-brand">
+      <div class="pi-auth-logo" aria-hidden="true">
+        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+        </svg>
+      </div>
+      <h1 class="pi-auth-title">MRI</h1>
+      <p class="pi-auth-subtitle">منصة طبية موثوقة</p>
+    </div>
+
+    <div class="pi-auth-card">
+      <h2 id="welcomeTitle">مرحباً بك</h2>
+      <p id="user" class="pi-auth-hint loading pi-auth-status">
+        <span class="pi-auth-spinner"></span> جاري التحقق من الجلسة...
+      </p>
+
+      <div id="menu" style="display:none">
+        <a href="/dashboard" class="pi-auth-btn pi-auth-btn-pi">لوحة التحكم</a>
+        <a href="/consult-now" class="pi-auth-btn pi-auth-btn-outline">⚡ استشارة فورية</a>
+        <a href="/doctors" class="pi-auth-btn pi-auth-btn-outline">الأطباء — حجز موعد</a>
+        <a href="/dashboard/client/chat" class="pi-auth-btn pi-auth-btn-outline">المحادثات</a>
+        <a href="/profile" class="pi-auth-btn pi-auth-btn-outline">الملف الشخصي</a>
+        <a id="linkEmailBtn" href="/pi-link-email.html" class="pi-auth-btn pi-auth-btn-outline" style="display:none">🔗 ربط البريد</a>
+        <a href="/pi-auth-hub.html" class="pi-auth-btn pi-auth-btn-outline">🧪 مركز الاختبار</a>
+        <button type="button" id="logoutBtn" class="pi-auth-btn pi-auth-btn-outline">تسجيل الخروج</button>
+      </div>
+
+      <button id="piBtn" type="button" class="pi-auth-btn pi-auth-btn-pi" style="display:none">
+        <span>π</span> تسجيل الدخول بـ Pi
+      </button>
+      <a id="emailBtn" href="/pi-email.html" class="pi-auth-btn pi-auth-btn-outline" style="display:none;margin-top:10px">
+        📧 الدخول بالبريد (للاختبار)
+      </a>
+    </div>
+
+    <p id="err" class="pi-auth-error"></p>
+  </div>
+
+  <script>
+  (function () {
+    function requestCookieAccess() {
+      if (document.requestStorageAccess) {
+        return document.requestStorageAccess().catch(function () {})
+      }
+      return Promise.resolve()
+    }
+
+    function resolvePostLoginPath(session) {
+      if (!session || !session.user) return null
+      var u = session.user
+      if (u.isProfileComplete === false) {
+        if (u.role === 'CLIENT') return '/onboarding/client'
+        if (u.role === 'DOCTOR') return '/onboarding/doctor'
+        if (u.role === 'FACILITY') return '/onboarding/facility'
+        return '/select-role'
+      }
+      return null
+    }
+
+    document.getElementById('logoutBtn').addEventListener('click', function () {
+      window.PiAuth.signOut('/pi-app.html')
+    })
+
+    document.getElementById('piBtn').addEventListener('click', function () {
+      var btn = document.getElementById('piBtn')
+      btn.disabled = true
+      btn.innerHTML = '<span class="pi-auth-spinner"></span> جاري التحقق...'
+      window.PiAuth.signIn().catch(function (e) {
+        document.getElementById('err').textContent = e.message || 'فشل الدخول'
+        btn.disabled = false
+        btn.innerHTML = '<span>π</span> تسجيل الدخول بـ Pi'
+      })
+    })
+
+    function showGuest() {
+      document.getElementById('user').className = 'pi-auth-hint'
+      document.getElementById('user').textContent = 'لم يتم تسجيل الدخول — اختر طريقة الدخول'
+      document.getElementById('piBtn').style.display = 'block'
+      document.getElementById('emailBtn').style.display = 'block'
+    }
+
+    requestCookieAccess().then(function () {
+      return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+    }).then(function (r) { return r.json() })
+      .then(function (s) {
+        if (!s || !s.user) {
+          showGuest()
+          if (!window.PiAuth.shouldSkipAuto()) window.PiAuth.tryAutoSignIn()
+          return
+        }
+
+        var next = resolvePostLoginPath(s)
+        if (next) {
+          document.getElementById('user').className = 'pi-auth-hint loading pi-auth-status'
+          document.getElementById('user').innerHTML = '<span class="pi-auth-spinner"></span> جاري إعداد حسابك...'
+          window.location.replace(next)
+          return
+        }
+
+        var label = s.user.piUsername ? '@' + s.user.piUsername : (s.user.email || 'بك')
+        document.getElementById('welcomeTitle').textContent = 'مرحباً'
+        document.getElementById('user').className = 'pi-auth-hint'
+        document.getElementById('user').textContent = 'مسجّل كـ ' + label
+        if (!s.user.email && s.user.piUsername) {
+          document.getElementById('linkEmailBtn').style.display = 'block'
+        }
+        document.getElementById('menu').style.display = 'block'
+      })
+      .catch(function () {
+        document.getElementById('err').textContent = 'تعذر التحقق من الجلسة — جرّب مرة أخرى'
+        showGuest()
+      })
+  })()
+  </script>
+</body>
+</html>
+

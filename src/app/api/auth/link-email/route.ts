@@ -6,6 +6,7 @@ import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { linkEmailToUser } from '@/lib/auth/account-linking'
 import { prisma } from '@/lib/prisma'
 import { sendVerificationEmail } from '@/lib/email'
+import { shouldAutoVerifyEmail } from '@/lib/auth/email-verify-helper'
 import { z } from 'zod'
 
 const Schema = z.object({
@@ -38,21 +39,31 @@ export async function POST(req: NextRequest) {
     const passwordHash = await hash(password, 12)
     const user = await linkEmailToUser(auth.context.userId, email, passwordHash)
 
-    try {
-      const token = randomBytes(32).toString('hex')
-      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
-      await prisma.verificationToken.deleteMany({ where: { identifier: `verify:${email}` } })
-      await prisma.verificationToken.create({
-        data: { identifier: `verify:${email}`, token, expires },
+    if (shouldAutoVerifyEmail()) {
+      await prisma.user.update({
+        where: { id: user.id },
+        data:  { emailVerified: new Date() },
       })
-      await sendVerificationEmail(email, token)
-    } catch (emailErr) {
-      console.error('[link-email] verification email failed:', emailErr)
+    } else {
+      try {
+        const token = randomBytes(32).toString('hex')
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        await prisma.verificationToken.deleteMany({ where: { identifier: `verify:${email}` } })
+        await prisma.verificationToken.create({
+          data: { identifier: `verify:${email}`, token, expires },
+        })
+        await sendVerificationEmail(email, token)
+      } catch (emailErr) {
+        console.error('[link-email] verification email failed:', emailErr)
+      }
     }
 
     return ok({
-      message: 'تم ربط البريد الإلكتروني. تحقق من صندوق الوارد لتأكيد البريد.',
+      message: shouldAutoVerifyEmail()
+        ? 'تم ربط البريد الإلكتروني — يمكنك الدخول بالبريد الآن.'
+        : 'تم ربط البريد الإلكتروني. تحقق من صندوق الوارد لتأكيد البريد.',
       email: user.email,
+      autoVerified: shouldAutoVerifyEmail(),
     })
   } catch (err) {
     if (err instanceof Error && ERROR_MESSAGES[err.message]) {

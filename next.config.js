@@ -36,6 +36,9 @@ const nextConfig = {
       { source: '/pi-login.html', headers: piHeaders },
       { source: '/pi-email.html', headers: piHeaders },
       { source: '/pi-register.html', headers: piHeaders },
+      { source: '/pi-link-email.html', headers: piHeaders },
+      { source: '/pi-link-pi.html', headers: piHeaders },
+      { source: '/pi-auth-hub.html', headers: piHeaders },
       { source: '/pi-app.html', headers: piHeaders },
       { source: '/pi-profile.html', headers: piHeaders },
       { source: '/pi-dashboard.html', headers: piHeaders },
@@ -49,7 +52,7 @@ const nextConfig = {
       { source: '/pi-auth.js', headers: piHeaders },
       { source: '/pi-login.css', headers: piHeaders },
       {
-        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-app\\.html|pi-profile\\.html|pi-dashboard\\.html|pi-appointments\\.html|pi-doctors\\.html|pi-doctor\\.html|pi-owner\\.html|pi-select-role\\.html|pi-shell\\.js|pi-shell\\.css|pi-auth\\.js|pi-login\\.css|test-pi\\.txt).*)',
+        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-link-email\\.html|pi-link-pi\\.html|pi-auth-hub\\.html|pi-app\\.html|pi-profile\\.html|pi-dashboard\\.html|pi-appointments\\.html|pi-doctors\\.html|pi-doctor\\.html|pi-owner\\.html|pi-select-role\\.html|pi-shell\\.js|pi-shell\\.css|pi-auth\\.js|pi-login\\.css|test-pi\\.txt).*)',
         headers: securityHeaders,
       },
     ]

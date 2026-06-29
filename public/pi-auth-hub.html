@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>مركز اختبار الدخول — MRI</title>
+  <link rel="stylesheet" href="/pi-login.css?v=2" />
+</head>
+<body class="pi-auth-page">
+  <div class="pi-auth-medical" aria-hidden="true"></div>
+  <div class="pi-auth-scrim" aria-hidden="true"></div>
+  <div class="pi-auth-bg"></div>
+  <div class="pi-auth-glow"></div>
+
+  <div class="pi-auth-wrap">
+    <div class="pi-auth-brand">
+      <h1 class="pi-auth-title">MRI</h1>
+      <p class="pi-auth-subtitle">مركز اختبار Pi + البريد</p>
+    </div>
+
+    <div class="pi-auth-card">
+      <h2>طرق الدخول والربط</h2>
+      <p class="pi-auth-hint" id="accountLine">جاري التحقق من حسابك...</p>
+
+      <a href="/pi-app.html" class="pi-auth-btn pi-auth-btn-pi" style="margin-top:16px">π Pi — الدخول الرئيسي</a>
+      <a href="/pi-email.html" class="pi-auth-btn pi-auth-btn-email" style="margin-top:10px">📧 الدخول بالبريد (اختبار)</a>
+      <a href="/pi-register.html" class="pi-auth-btn pi-auth-btn-outline" style="margin-top:10px">➕ حساب بريد جديد</a>
+      <a href="/pi-link-email.html" class="pi-auth-btn pi-auth-btn-outline" style="margin-top:10px">🔗 ربط بريد لحساب Pi</a>
+      <a href="/pi-link-pi.html" class="pi-auth-btn pi-auth-btn-outline" style="margin-top:10px">🔗 ربط Pi لحساب بريد</a>
+
+      <div class="pi-auth-trust" style="margin-top:16px">
+        <span>Pi = الإنتاج</span>
+        <span>Email = اختبار متعدد</span>
+      </div>
+    </div>
+
+    <p class="pi-auth-hint pi-auth-text-center" style="max-width:320px;margin:12px auto 0;font-size:12px">
+      للاختبار بدون تأكيد بريد: فعّل <code style="color:var(--pi-accent)">AUTH_AUTO_VERIFY_EMAIL=true</code> في Vercel
+    </p>
+    <a class="pi-auth-back pi-auth-text-center" href="/" style="display:block;margin-top:12px">← الرئيسية</a>
+  </div>
+
+  <script>
+  fetch('/api/auth/account-status', { credentials: 'include', cache: 'no-store' })
+    .then(function (r) { return r.json() })
+    .then(function (res) {
+      var s = res.data || res
+      var el = document.getElementById('accountLine')
+      if (!s.authenticated) {
+        el.textContent = 'غير مسجّل — اختر طريقة الدخول'
+        return
+      }
+      var parts = []
+      if (s.email) parts.push(s.email)
+      if (s.piUsername) parts.push('@' + s.piUsername)
+      el.textContent = 'مسجّل: ' + (parts.join(' · ') || s.userId.slice(0, 8))
+      if (s.unified) el.textContent += ' ✓ موحّد'
+    })
+    .catch(function () {
+      document.getElementById('accountLine').textContent = 'اختر طريقة الدخول'
+    })
+  </script>
+</body>
+</html>

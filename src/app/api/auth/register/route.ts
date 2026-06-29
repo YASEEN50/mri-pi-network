@@ -7,6 +7,7 @@ import { created, fromAppError, parseBody, serverError } from '@/lib/api-respons
 import { RegisterSchema } from '@/lib/validations/auth.schema'
 import { ConflictError } from '@/core/errors'
 import { sendVerificationEmail } from '@/lib/email'
+import { shouldAutoVerifyEmail } from '@/lib/auth/email-verify-helper'
 import { rateLimitAuth } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
@@ -30,23 +31,31 @@ export async function POST(req: NextRequest) {
     if (exists) return fromAppError(new ConflictError('هذا البريد الإلكتروني مسجل مسبقاً'))
 
     const passwordHash = await hash(password, 12)
+    const autoVerify = shouldAutoVerifyEmail()
     const user = await prisma.user.create({
-      data: { email, passwordHash, role },
+      data: {
+        email,
+        passwordHash,
+        role,
+        ...(autoVerify ? { emailVerified: new Date() } : {}),
+      },
       select: { id: true, email: true, role: true, createdAt: true },
     })
 
-    try {
-      const token   = randomBytes(32).toString('hex')
-      const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
-      await prisma.verificationToken.create({
-        data: { identifier: `verify:${email}`, token, expires },
-      })
-      await sendVerificationEmail(email, token)
-    } catch (emailErr) {
-      console.error('[register] فشل إرسال إيميل التحقق:', emailErr)
+    if (!autoVerify) {
+      try {
+        const token   = randomBytes(32).toString('hex')
+        const expires = new Date(Date.now() + 24 * 60 * 60 * 1000)
+        await prisma.verificationToken.create({
+          data: { identifier: `verify:${email}`, token, expires },
+        })
+        await sendVerificationEmail(email, token)
+      } catch (emailErr) {
+        console.error('[register] فشل إرسال إيميل التحقق:', emailErr)
+      }
     }
 
-    return created({ user })
+    return created({ user, autoVerified: autoVerify })
   } catch (err) {
     console.error('[POST /api/auth/register]', err)
     return serverError()
