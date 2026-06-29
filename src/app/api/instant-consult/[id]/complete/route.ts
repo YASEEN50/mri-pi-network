@@ -3,6 +3,7 @@ import { InstantConsultStatus, Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { prisma } from '@/lib/prisma'
+import { notifyInstantConsultReviewRequested } from '@/lib/reviews/notifications'
 
 export async function POST(
   _req: NextRequest,
@@ -36,6 +37,7 @@ export async function POST(
           data: { status: 'CLOSED' },
         })
       }
+      notifyInstantConsultReviewRequested(id).catch(console.error)
       return ok({ completed: true })
     }
 

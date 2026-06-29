@@ -4,6 +4,7 @@
 import { prisma } from '@/lib/prisma'
 import { AppointmentStatus } from '@prisma/client'
 import { notifyReviewReceived } from '@/lib/reviews/notifications'
+import { refreshDoctorRatingStats } from '@/lib/reviews/update-doctor-rating'
 
 export interface CreateReviewInput {
   clientUserId:  string
@@ -60,18 +61,7 @@ export async function createDoctorReview(input: CreateReviewInput): Promise<Crea
     },
   })
 
-  const stats = await prisma.review.aggregate({
-    where: { doctorId: input.doctorId, isVisible: true },
-    _avg:  { rating: true },
-    _count: { rating: true },
-  })
-  await prisma.doctorProfile.update({
-    where: { id: input.doctorId },
-    data: {
-      averageRating: stats._avg.rating ?? 0,
-      totalReviews:  stats._count.rating,
-    },
-  })
+  await refreshDoctorRatingStats(input.doctorId)
 
   notifyReviewReceived(review.id).catch(console.error)
 

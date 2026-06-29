@@ -684,7 +684,8 @@ model Review {
   clientId      String
   doctorId      String?
   facilityId    String?
-  appointmentId String?   @unique
+  appointmentId     String? @unique
+  instantConsultId  String? @unique
 
   rating      Int
   comment     String?
@@ -697,7 +698,8 @@ model Review {
   client      User             @relation(fields: [clientId], references: [id])
   doctor      DoctorProfile?   @relation(fields: [doctorId], references: [id])
   facility    FacilityProfile? @relation(fields: [facilityId], references: [id])
-  appointment Appointment?     @relation(fields: [appointmentId], references: [id])
+  appointment     Appointment?           @relation(fields: [appointmentId], references: [id])
+  instantConsult  InstantConsultRequest? @relation(fields: [instantConsultId], references: [id])
 
   @@index([clientId])
   @@index([doctorId])
@@ -1239,6 +1241,7 @@ model InstantConsultRequest {
 
   client ClientProfile  @relation(fields: [clientId], references: [id], onDelete: Cascade)
   doctor DoctorProfile? @relation(fields: [doctorId], references: [id], onDelete: Cascade)
+  review Review?
 
   @@index([doctorId, status])
   @@index([clientId, status])

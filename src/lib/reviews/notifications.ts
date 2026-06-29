@@ -1,6 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@prisma/client'
-import { appointmentRatingPath } from '@/lib/reviews/paths'
+import { appointmentRatingPath, instantConsultRatingPath } from '@/lib/reviews/paths'
 import { formatAppointmentWhen } from '@/lib/appointments/format'
 
 async function createNotification(
@@ -56,6 +56,43 @@ export async function notifyReviewReceived(reviewId: string) {
     '⭐ تقييم جديد',
     `${clientLabel} قيّمك ${review.rating}/5.`,
     'REVIEW_RECEIVED',
-    { reviewId, rating: review.rating, appointmentId: review.appointmentId },
+    { reviewId, rating: review.rating, appointmentId: review.appointmentId, instantConsultId: review.instantConsultId },
+  )
+}
+
+/** Prompt client to rate after instant consult completes */
+export async function notifyInstantConsultReviewRequested(instantConsultId: string) {
+  const consult = await prisma.instantConsultRequest.findUnique({
+    where: { id: instantConsultId },
+    include: {
+      review: { select: { id: true } },
+      doctor: { select: { firstName: true, lastName: true } },
+      client: { select: { userId: true } },
+    },
+  })
+  if (
+    !consult ||
+    consult.status !== 'COMPLETED' ||
+    !consult.doctorId ||
+    consult.review ||
+    !consult.client?.userId
+  ) {
+    return
+  }
+
+  const doctorName = consult.doctor
+    ? `د. ${consult.doctor.firstName} ${consult.doctor.lastName}`
+    : 'طبيبك'
+
+  await createNotification(
+    consult.client.userId,
+    '⭐ قيّم الاستشارة الفورية',
+    `اكتملت استشارتك الفورية مع ${doctorName}. ساعد الآخرين بتقييمك.`,
+    'REVIEW_REQUESTED',
+    {
+      instantConsultId,
+      doctorId: consult.doctorId,
+      ratingPath: instantConsultRatingPath(instantConsultId),
+    },
   )
 }

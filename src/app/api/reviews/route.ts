@@ -6,15 +6,25 @@ import { Role } from '@prisma/client'
 import { requireAuth } from '@/infrastructure/auth/providers/role-guard'
 import { ok, created, fromAppError, serverError } from '@/lib/api-response'
 import { createDoctorReview } from '@/lib/reviews/create-review'
+import { createInstantConsultReview } from '@/lib/reviews/create-instant-consult-review'
 import { rateLimitReviews, rateLimitResponse } from '@/lib/upstash-rate-limit'
 import { z } from 'zod'
 
-const PostSchema = z.object({
+const AppointmentReviewSchema = z.object({
   doctorId:      z.string().uuid(),
   appointmentId: z.string().uuid(),
   rating:        z.number().int().min(1).max(5),
   comment:       z.string().max(1000).optional(),
 })
+
+const InstantConsultReviewSchema = z.object({
+  doctorId:         z.string().uuid(),
+  instantConsultId: z.string().uuid(),
+  rating:           z.number().int().min(1).max(5),
+  comment:          z.string().max(1000).optional(),
+})
+
+const PostSchema = z.union([AppointmentReviewSchema, InstantConsultReviewSchema])
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,13 +44,21 @@ export async function POST(req: NextRequest) {
     const parsed = PostSchema.safeParse(body)
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
 
-    const result = await createDoctorReview({
-      clientUserId:  auth.context.userId,
-      doctorId:      parsed.data.doctorId,
-      appointmentId: parsed.data.appointmentId,
-      rating:        parsed.data.rating,
-      comment:       parsed.data.comment,
-    })
+    const result = 'appointmentId' in parsed.data
+      ? await createDoctorReview({
+          clientUserId:  auth.context.userId,
+          doctorId:      parsed.data.doctorId,
+          appointmentId: parsed.data.appointmentId,
+          rating:        parsed.data.rating,
+          comment:       parsed.data.comment,
+        })
+      : await createInstantConsultReview({
+          clientUserId:     auth.context.userId,
+          doctorId:         parsed.data.doctorId,
+          instantConsultId: parsed.data.instantConsultId,
+          rating:           parsed.data.rating,
+          comment:          parsed.data.comment,
+        })
 
     if (!result.ok) {
       return NextResponse.json(

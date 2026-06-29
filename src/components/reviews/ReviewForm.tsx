@@ -7,11 +7,17 @@ import { useTranslations } from 'next-intl'
 
 interface ReviewFormProps {
   doctorId: string
-  appointmentId: string
+  appointmentId?: string
+  instantConsultId?: string
   onSuccess?: () => void
 }
 
-export default function ReviewForm({ doctorId, appointmentId, onSuccess }: ReviewFormProps) {
+export default function ReviewForm({
+  doctorId,
+  appointmentId,
+  instantConsultId,
+  onSuccess,
+}: ReviewFormProps) {
   const t = useTranslations('review')
   const { data: session } = useSession()
   const [rating, setRating] = useState(0)
@@ -38,10 +44,14 @@ export default function ReviewForm({ doctorId, appointmentId, onSuccess }: Revie
     setIsLoading(true); setError('')
 
     try {
+      const payload = instantConsultId
+        ? { doctorId, instantConsultId, rating, comment }
+        : { doctorId, appointmentId, rating, comment }
+
       const res = await fetch('/api/reviews', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doctorId, appointmentId, rating, comment }),
+        body: JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok) {

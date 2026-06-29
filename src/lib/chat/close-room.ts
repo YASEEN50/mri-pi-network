@@ -1,6 +1,7 @@
 import { InstantConsultStatus, Role } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getChatRoomForUser, getChatRecipientUserId } from '@/lib/chat/access'
+import { notifyInstantConsultReviewRequested } from '@/lib/reviews/notifications'
 
 export async function closeChatRoom(
   roomId: string,
@@ -27,6 +28,15 @@ export async function closeChatRoom(
       })
     }
   })
+
+  const completedConsult = await prisma.instantConsultRequest.findFirst({
+    where: { chatRoomId: roomId, status: InstantConsultStatus.COMPLETED },
+    select: { id: true },
+    orderBy: { completedAt: 'desc' },
+  })
+  if (completedConsult) {
+    notifyInstantConsultReviewRequested(completedConsult.id).catch(console.error)
+  }
 
   const recipientUserId = await getChatRecipientUserId(room, userId)
   if (recipientUserId) {

@@ -8,6 +8,7 @@ import Image from 'next/image'
 import Navbar from '@/components/common/Navbar'
 import { payForInstantConsult, piPaymentErrorMessage } from '@/lib/pi/pi-payment-client'
 import { INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC } from '@/lib/instant-consult/constants'
+import { instantConsultRatingPath, isInstantConsultReviewPending } from '@/lib/reviews/paths'
 
 interface AvailableDoctor {
   id: string
@@ -20,7 +21,16 @@ interface AvailableDoctor {
   durationMinutes: number
 }
 
-type Phase = 'browse' | 'waiting' | 'accepted' | 'failed'
+type Phase = 'browse' | 'waiting' | 'accepted' | 'completed' | 'failed'
+
+interface ClientConsultRequest {
+  id: string
+  status: string
+  doctorId?: string | null
+  hasReview?: boolean
+  chatRoomId?: string | null
+  doctor?: { fullName: string }
+}
 
 export default function ConsultNowPage() {
   const { data: session, status } = useSession()
@@ -37,6 +47,19 @@ export default function ConsultNowPage() {
   const [countdown, setCountdown] = useState(INSTANT_CONSULT_ACCEPT_TIMEOUT_SEC)
   const [piCredit, setPiCredit] = useState(0)
   const [broadcastingSpec, setBroadcastingSpec] = useState<string | null>(null)
+  const [pendingReviews, setPendingReviews] = useState<ClientConsultRequest[]>([])
+
+  const loadPendingReviews = useCallback(async () => {
+    if (status !== 'authenticated') return
+    try {
+      const res = await fetch('/api/instant-consult')
+      const data = await res.json()
+      const list = (data.data ?? []) as ClientConsultRequest[]
+      setPendingReviews(list.filter(isInstantConsultReviewPending))
+    } catch {
+      /* ignore */
+    }
+  }, [status])
 
   const loadDoctors = useCallback(async () => {
     setLoading(true)
@@ -66,15 +89,22 @@ export default function ConsultNowPage() {
   }, [status])
 
   useEffect(() => {
-    if (phase !== 'waiting' || !requestId) return
+    void loadPendingReviews()
+  }, [loadPendingReviews])
+
+  useEffect(() => {
+    if ((phase !== 'waiting' && phase !== 'accepted') || !requestId) return
 
     const poll = async () => {
       const res = await fetch('/api/instant-consult')
       const data = await res.json()
-      const req = (data.data ?? []).find((r: { id: string }) => r.id === requestId)
+      const req = (data.data ?? []).find((r: ClientConsultRequest) => r.id === requestId)
       if (req?.status === 'ACCEPTED' && req.chatRoomId) {
         setChatRoomId(req.chatRoomId)
         setPhase('accepted')
+      } else if (req?.status === 'COMPLETED') {
+        setPhase('completed')
+        void loadPendingReviews()
       } else if (req?.status === 'REJECTED' || req?.status === 'EXPIRED') {
         setPhase('failed')
         fetch('/api/profile')
@@ -94,7 +124,7 @@ export default function ConsultNowPage() {
     void poll()
     const timer = window.setInterval(poll, 3000)
     return () => window.clearInterval(timer)
-  }, [phase, requestId])
+  }, [phase, requestId, loadPendingReviews])
 
   useEffect(() => {
     if (phase !== 'waiting') return
@@ -247,6 +277,35 @@ export default function ConsultNowPage() {
           </div>
         )}
 
+        {phase === 'completed' && requestId && (
+          <div className="mb-6 p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 text-center">
+            <p className="text-emerald-400 font-medium mb-2">✅ انتهت الاستشارة</p>
+            <p className="text-slate-400 text-sm mb-4">شاركنا رأيك في تجربتك مع الطبيب</p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Link
+                href={instantConsultRatingPath(requestId)}
+                className="inline-block px-6 py-3 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-sm font-medium"
+              >
+                ⭐ قيّم الاستشارة
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setPhase('browse')
+                  setRequestId(null)
+                  setChatRoomId(null)
+                  setSelected(null)
+                  void loadDoctors()
+                  void loadPendingReviews()
+                }}
+                className="inline-block px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm font-medium"
+              >
+                استشارة جديدة
+              </button>
+            </div>
+          </div>
+        )}
+
         {phase === 'failed' && (
           <div className="mb-6 p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
             {error}
@@ -262,6 +321,25 @@ export default function ConsultNowPage() {
 
         {error && phase === 'browse' && (
           <p className="mb-4 text-red-400 text-sm">{error}</p>
+        )}
+
+        {phase === 'browse' && pendingReviews.length > 0 && (
+          <div className="mb-6 rounded-2xl border border-amber-500/25 bg-amber-500/10 px-4 py-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-amber-300 font-medium text-sm">
+                لديك {pendingReviews.length} استشارة بانتظار التقييم
+              </p>
+              <p className="text-slate-400 text-xs mt-1">
+                {pendingReviews[0].doctor?.fullName ?? 'طبيب'}
+              </p>
+            </div>
+            <Link
+              href={instantConsultRatingPath(pendingReviews[0].id)}
+              className="px-4 py-2 bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/30 text-amber-200 rounded-xl text-sm font-medium text-center transition-all"
+            >
+              قيّم الآن
+            </Link>
+          </div>
         )}
 
         {phase === 'browse' && (

@@ -9,6 +9,10 @@ export function notificationActionPath(type: string, data: unknown): string | nu
     return `/appointments/${d.appointmentId}/rating`
   }
 
+  if (type === 'REVIEW_REQUESTED' && typeof d.instantConsultId === 'string') {
+    return `/consult-now/${d.instantConsultId}/rating`
+  }
+
   if (typeof d.videoPath === 'string') return d.videoPath
 
   if (

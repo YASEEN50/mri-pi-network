@@ -34,6 +34,7 @@ function mapClientRequest(r: {
   expiresAt: Date | null
   sessionEndsAt: Date | null
   chatRoomId: string | null
+  doctorId: string | null
   createdAt: Date
   doctor: {
     firstName: string
@@ -41,6 +42,7 @@ function mapClientRequest(r: {
     specialization: string
     avatarUrl: string | null
   } | null
+  review?: { id: string } | null
 }) {
   return {
     id: r.id,
@@ -53,6 +55,8 @@ function mapClientRequest(r: {
     expiresAt: r.expiresAt?.toISOString() ?? null,
     sessionEndsAt: r.sessionEndsAt?.toISOString() ?? null,
     chatRoomId: r.chatRoomId,
+    doctorId: r.doctorId,
+    hasReview: !!r.review,
     doctor: r.doctor
       ? {
           fullName: `د. ${r.doctor.firstName} ${r.doctor.lastName}`,
@@ -92,6 +96,7 @@ export async function GET() {
           doctor: {
             select: { firstName: true, lastName: true, specialization: true, avatarUrl: true },
           },
+          review: { select: { id: true } },
         },
       })
 
