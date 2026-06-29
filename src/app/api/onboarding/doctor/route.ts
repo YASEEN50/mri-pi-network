@@ -31,6 +31,7 @@ const Schema = z.object({
   yearsOfExperience: z.number().min(0).max(60).optional(),
   consultationFee:   z.number().positive().optional(),
   city:              z.string().optional(),
+  country:           z.string().length(2).optional().default('SA'),
   bio:               z.string().optional(),
   credentials:       z.array(CredentialSchema).optional(),
 })
@@ -72,6 +73,7 @@ export async function POST(req: NextRequest) {
         yearsOfExperience: data.yearsOfExperience ?? 0,
         consultationFee:   data.consultationFee,
         city:              data.city,
+        country:           data.country,
         bio:               data.bio,
         approvalStatus:    ApprovalStatus.PENDING,
       },
@@ -88,10 +90,10 @@ export async function POST(req: NextRequest) {
         yearsOfExperience: data.yearsOfExperience ?? 0,
         consultationFee:   data.consultationFee,
         city:              data.city,
+        country:           data.country,
         bio:               data.bio,
         approvalStatus:    ApprovalStatus.PENDING,
         languages:         ['ar'],
-        country:           'SA',
       },
     })
 

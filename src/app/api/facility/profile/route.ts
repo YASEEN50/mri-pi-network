@@ -13,6 +13,7 @@ const UpdateSchema = z.object({
   website: z.string().max(200).optional(),
   address: z.string().min(5).max(300).optional(),
   city: z.string().min(2).max(100).optional(),
+  country: z.string().length(2).optional(),
 })
 
 export async function GET() {
@@ -74,6 +75,7 @@ export async function PATCH(req: NextRequest) {
         ...(website !== undefined && { website }),
         ...(data.address !== undefined && { address: data.address }),
         ...(data.city !== undefined && { city: data.city }),
+        ...(data.country !== undefined && { country: data.country }),
       },
       select: {
         id: true,
@@ -86,6 +88,7 @@ export async function PATCH(req: NextRequest) {
         website: true,
         address: true,
         city: true,
+        country: true,
       },
     })
 

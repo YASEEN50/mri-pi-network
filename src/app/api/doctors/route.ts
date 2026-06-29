@@ -7,6 +7,7 @@ import { buildDoctorTextSearch } from '@/lib/doctors/search-text'
 import { listPublicDoctors } from '@/lib/premio/list-doctors'
 import { doctorProfilePublicWhere, expireStalePremios } from '@/lib/premio/active-premio'
 import { prisma } from '@/lib/prisma'
+import { resolveCityCoords } from '@/lib/geo/countries-cities'
 
 export async function GET(req: NextRequest) {
   try {
@@ -41,7 +42,9 @@ export async function GET(req: NextRequest) {
     ])
 
     return ok(
-      doctors.map(d => ({
+      doctors.map(d => {
+        const coords = resolveCityCoords(d.country, d.city)
+        return {
         id: d.id,
         fullName: `${d.firstName} ${d.lastName}`,
         specialization: d.specialization,
@@ -49,13 +52,15 @@ export async function GET(req: NextRequest) {
         yearsOfExperience: d.yearsOfExperience,
         city: d.city,
         country: d.country,
+        lat: coords?.[0] ?? null,
+        lng: coords?.[1] ?? null,
         consultationFee: d.consultationFee ? Number(d.consultationFee) : null,
         averageRating: Number(d.averageRating),
         totalReviews: d.totalReviews,
         avatarUrl: d.avatarUrl,
         bio: d.bio,
         premioTier: d.premioTier,
-      })),
+      }}),
       { total, page, limit },
     )
   } catch (err) {

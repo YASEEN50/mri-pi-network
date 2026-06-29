@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { CountryCitySelect } from '@/components/geo/CountryCitySelect'
 
 const facilityTypes = [
   { value: 'CLINIC', label: 'عيادة' },
@@ -26,6 +27,7 @@ export default function FacilityOnboardingPage() {
     name: '',
     type: '',
     phone: '',
+    country: 'SA',
     city: '',
     address: '',
     licenseNumber: '',
@@ -109,19 +111,20 @@ export default function FacilityOnboardingPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500/50" />
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm text-slate-300 mb-2">المدينة</label>
-              <input name="city" value={form.city} onChange={handleChange}
-                placeholder="الرياض"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500/50" />
-            </div>
-            <div>
-              <label className="block text-sm text-slate-300 mb-2">العنوان</label>
-              <input name="address" value={form.address} onChange={handleChange}
-                placeholder="حي النزهة"
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500/50" />
-            </div>
+          <CountryCitySelect
+            country={form.country}
+            city={form.city}
+            onCountryChange={country => setForm(prev => ({ ...prev, country, city: '' }))}
+            onCityChange={city => setForm(prev => ({ ...prev, city }))}
+            inputClassName="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500/50"
+            labelClassName="block text-sm text-slate-300 mb-2"
+          />
+
+          <div>
+            <label className="block text-sm text-slate-300 mb-2">العنوان</label>
+            <input name="address" value={form.address} onChange={handleChange}
+              placeholder="حي النزهة"
+              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-violet-500/50" />
           </div>
 
           <div>

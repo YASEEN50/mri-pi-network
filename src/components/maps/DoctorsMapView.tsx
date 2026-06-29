@@ -41,12 +41,19 @@ export default function DoctorsMapView() {
         fullName: string
         specialization: string
         city: string | null
+        country?: string
         averageRating: number
         totalReviews: number
         consultationFee: number | null
+        lat?: number | null
+        lng?: number | null
       }, i: number) => {
-        const [lat, lng] = coordsForCity(d.city, i)
-        return { ...d, lat, lng }
+        const fallback = coordsForCity(d.city, i)
+        return {
+          ...d,
+          lat: d.lat ?? fallback[0],
+          lng: d.lng ?? fallback[1],
+        }
       })
       setDoctors(list)
       setFiltered(list)

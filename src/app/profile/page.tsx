@@ -9,6 +9,7 @@ import { useEffect, useState, useRef } from 'react'
 import Navbar from '@/components/common/Navbar'
 import Link from 'next/link'
 import Image from 'next/image'
+import { CountryCitySelect } from '@/components/geo/CountryCitySelect'
 
 // =====================================================================
 // الحالات الصحية
@@ -30,6 +31,7 @@ interface ProfileData {
   avatarUrl?: string
   bio?: string
   city?: string
+  country?: string
   phone?: string
   gender?: string
   dateOfBirth?: string
@@ -373,12 +375,23 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="text-slate-400 text-xs mb-1 block">المدينة</label>
-                  {isEditing
-                    ? <input value={profile.city ?? ''} onChange={e => setProfile(p => ({ ...p, city: e.target.value }))}
-                        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50" />
-                    : <p className="text-white text-sm">{profile.city ?? '-'}</p>
-                  }
+                  {!isEditing && (
+                    <label className="text-slate-400 text-xs mb-1 block">الموقع</label>
+                  )}
+                {isEditing ? (
+                  <CountryCitySelect
+                    country={profile.country ?? 'SA'}
+                    city={profile.city ?? ''}
+                    onCountryChange={country => setProfile(p => ({ ...p, country, city: '' }))}
+                    onCityChange={city => setProfile(p => ({ ...p, city }))}
+                    inputClassName="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-emerald-500/50"
+                    labelClassName="text-slate-400 text-xs mb-1 block"
+                  />
+                ) : (
+                  <p className="text-white text-sm">
+                    {[profile.city, profile.country].filter(Boolean).join('، ') || '-'}
+                  </p>
+                )}
                 </div>
 
                 {isEditing && (

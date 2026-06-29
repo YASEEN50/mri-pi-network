@@ -7,6 +7,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useTranslations } from 'next-intl'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import { CountryCitySelect } from '@/components/geo/CountryCitySelect'
 
 interface FacilityProfile {
   id: string
@@ -50,6 +51,7 @@ export default function FacilitySettingsPage() {
     email: '',
     website: '',
     address: '',
+    country: 'SA',
     city: '',
   })
   const [loading, setLoading] = useState(true)
@@ -82,6 +84,7 @@ export default function FacilitySettingsPage() {
         email: p.email ?? '',
         website: p.website?.replace(/^https?:\/\//, '') ?? '',
         address: p.address ?? '',
+        country: p.country ?? 'SA',
         city: p.city ?? '',
       })
     } catch {
@@ -320,25 +323,24 @@ export default function FacilitySettingsPage() {
                 </div>
               </div>
 
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-slate-400 text-xs mb-1">{tf('settings_city')}</label>
-                  <input
-                    value={form.city}
-                    onChange={(e) => setForm((f) => ({ ...f, city: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-400 text-xs mb-1">{tf('settings_address')}</label>
-                  <input
-                    value={form.address}
-                    onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm"
-                    required
-                  />
-                </div>
+              <CountryCitySelect
+                country={form.country}
+                city={form.city}
+                onCountryChange={country => setForm(f => ({ ...f, country, city: '' }))}
+                onCityChange={city => setForm(f => ({ ...f, city }))}
+                inputClassName="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm"
+                labelClassName="block text-slate-400 text-xs mb-1"
+                required
+              />
+
+              <div>
+                <label className="block text-slate-400 text-xs mb-1">{tf('settings_address')}</label>
+                <input
+                  value={form.address}
+                  onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm"
+                  required
+                />
               </div>
 
               <button

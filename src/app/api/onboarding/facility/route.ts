@@ -13,6 +13,7 @@ const Schema = z.object({
   phone:         z.string().min(9),
   licenseNumber: z.string().min(3),
   city:          z.string().min(1),
+  country:       z.string().length(2).optional().default('SA'),
   address:       z.string().optional(),
   description:   z.string().optional(),
 })
@@ -47,6 +48,7 @@ export async function POST(req: NextRequest) {
         phone:         data.phone,
         licenseNumber: data.licenseNumber,
         city:          data.city,
+        country:       data.country,
         address:       data.address ?? '',
         description:   data.description,
       },
@@ -61,7 +63,7 @@ export async function POST(req: NextRequest) {
         address:        data.address ?? '',
         description:    data.description,
         approvalStatus: ApprovalStatus.PENDING,
-        country:        'SA',
+        country:        data.country,
       },
     })
 

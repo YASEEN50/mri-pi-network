@@ -1,4 +1,4 @@
-/** إحداثيات تقريبية للمدن السعودية — لعرض الأطباء على الخريطة */
+/** إحداثيات تقريبية للمدن السعودية — للتوافق مع البيانات القديمة (عميل فقط) */
 export const SA_CITY_COORDS: Record<string, [number, number]> = {
   'الرياض':   [24.7136, 46.6753],
   'riyadh':   [24.7136, 46.6753],
@@ -15,7 +15,7 @@ export const SA_CITY_COORDS: Record<string, [number, number]> = {
 
 const DEFAULT_CENTER: [number, number] = [24.7136, 46.6753]
 
-/** يُرجع إحداثيات المدينة مع jitter بسيط لتجنب تداخل العلامات */
+/** يُرجع إحداثيات المدينة مع jitter بسيط — fallback للعميل عند غياب lat/lng من API */
 export function coordsForCity(city: string | null | undefined, index = 0): [number, number] {
   if (!city) return DEFAULT_CENTER
   const key = Object.keys(SA_CITY_COORDS).find(
@@ -27,4 +27,4 @@ export function coordsForCity(city: string | null | undefined, index = 0): [numb
 }
 
 export const MAP_DEFAULT_CENTER = DEFAULT_CENTER
-export const MAP_DEFAULT_ZOOM = 6
+export const MAP_DEFAULT_ZOOM = 3

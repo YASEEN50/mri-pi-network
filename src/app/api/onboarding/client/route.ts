@@ -12,6 +12,7 @@ const Schema = z.object({
   gender:   z.enum(['MALE', 'FEMALE']),
   dateOfBirth: z.string().optional(),
   city:     z.string().optional(),
+  country:  z.string().length(2).optional().default('SA'),
 })
 
 export async function POST(req: NextRequest) {
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
     const parsed = Schema.safeParse(body)
     if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
 
-    const { fullName, phone, gender, dateOfBirth, city } = parsed.data
+    const { fullName, phone, gender, dateOfBirth, city, country } = parsed.data
     const userId = session.user.id
 
     // تقسيم الاسم الكامل
@@ -41,6 +42,7 @@ export async function POST(req: NextRequest) {
         gender,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         city,
+        country,
       },
       create: {
         userId,
@@ -50,7 +52,7 @@ export async function POST(req: NextRequest) {
         gender,
         dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : undefined,
         city,
-        country: 'SA',
+        country,
         allergies: [],
         chronicDiseases: [],
       },

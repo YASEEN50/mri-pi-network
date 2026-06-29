@@ -4,6 +4,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import { CountryCitySelect } from '@/components/geo/CountryCitySelect'
 
 export default function ClientOnboardingPage() {
   const router = useRouter()
@@ -16,6 +17,7 @@ export default function ClientOnboardingPage() {
     phone: '',
     dateOfBirth: '',
     gender: '',
+    country: 'SA',
     city: '',
   })
 
@@ -97,13 +99,14 @@ export default function ClientOnboardingPage() {
               className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/50" />
           </div>
 
-          {/* المدينة */}
-          <div>
-            <label className="block text-sm text-slate-300 mb-2">المدينة</label>
-            <input name="city" value={form.city} onChange={handleChange}
-              placeholder="الرياض"
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/50" />
-          </div>
+          <CountryCitySelect
+            country={form.country}
+            city={form.city}
+            onCountryChange={country => setForm(prev => ({ ...prev, country, city: '' }))}
+            onCityChange={city => setForm(prev => ({ ...prev, city }))}
+            inputClassName="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-emerald-500/50"
+            labelClassName="block text-sm text-slate-300 mb-2"
+          />
 
           {error && (
             <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm">

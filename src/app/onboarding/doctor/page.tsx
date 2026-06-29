@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useSession } from 'next-auth/react'
+import CountrySelect, { CountryCitySelect } from '@/components/geo/CountryCitySelect'
 
 const SPECIALIZATIONS = [
   'طب القلب والأوعية الدموية','طب الأطفال','طب العيون','طب الأسنان',
@@ -11,11 +12,6 @@ const SPECIALIZATIONS = [
   'طب المسالك البولية','طب الأورام','طب الطوارئ','الطب النفسي',
   'طب الغدد الصماء','طب الكلى','طب الجهاز الهضمي','طب الرئة والصدر',
   'الطب العام','طب الأسرة','التخدير والإنعاش','طب الأشعة',
-]
-
-const CITIES = [
-  'الرياض','جدة','مكة المكرمة','المدينة المنورة','الدمام','الخبر',
-  'الأحساء','تبوك','أبها','القصيم','حائل','نجران','جازان','عسير',
 ]
 
 interface Credential {
@@ -38,7 +34,7 @@ export default function DoctorOnboardingPage() {
 
   // الخطوة 1 - بيانات شخصية
   const [personal, setPersonal] = useState({
-    firstName: '', lastName: '', phone: '', gender: '', city: '', bio: '',
+    firstName: '', lastName: '', phone: '', gender: '', country: 'SA', city: '', bio: '',
   })
 
   // الخطوة 2 - مهنية
@@ -101,6 +97,7 @@ export default function DoctorOnboardingPage() {
           phone:             personal.phone,
           gender:            personal.gender,
           city:              personal.city,
+          country:           personal.country,
           bio:               personal.bio,
           specialization:    professional.specialization,
           subSpecialization: professional.subSpecialization,
@@ -177,7 +174,7 @@ export default function DoctorOnboardingPage() {
                     placeholder="العلي" className={inputCls} />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div>
                   <label className={labelCls}>الجنس <span className="text-red-400">*</span></label>
                   <select value={personal.gender} onChange={e => setPersonal(p=>({...p,gender:e.target.value}))}
@@ -187,14 +184,14 @@ export default function DoctorOnboardingPage() {
                     <option value="FEMALE" className="bg-slate-900">أنثى</option>
                   </select>
                 </div>
-                <div>
-                  <label className={labelCls}>المدينة</label>
-                  <select value={personal.city} onChange={e => setPersonal(p=>({...p,city:e.target.value}))}
-                    className={inputCls}>
-                    <option value="" className="bg-slate-900">اختر مدينة</option>
-                    {CITIES.map(c => <option key={c} value={c} className="bg-slate-900">{c}</option>)}
-                  </select>
-                </div>
+                <CountryCitySelect
+                  country={personal.country}
+                  city={personal.city}
+                  onCountryChange={code => setPersonal(p => ({ ...p, country: code, city: '' }))}
+                  onCityChange={city => setPersonal(p => ({ ...p, city }))}
+                  inputClassName={inputCls}
+                  labelClassName={labelCls}
+                />
               </div>
               <div>
                 <label className={labelCls}>رقم الهاتف <span className="text-red-400">*</span></label>
@@ -313,10 +310,12 @@ export default function DoctorOnboardingPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="text-xs text-slate-400 mb-1 block">الدولة</label>
-                      <input value={c.country} onChange={e => updateCredential(i,'country',e.target.value)}
-                        placeholder="SA"
-                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none" />
+                      <CountrySelect
+                        country={c.country}
+                        onCountryChange={v => updateCredential(i, 'country', v)}
+                        labelClassName="text-xs text-slate-400 mb-1 block"
+                        inputClassName="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none"
+                      />
                     </div>
                     <div>
                       <label className="text-xs text-slate-400 mb-1 block">سنة التخرج</label>
@@ -345,6 +344,7 @@ export default function DoctorOnboardingPage() {
                   { label: 'الجنس', value: personal.gender === 'MALE' ? 'ذكر' : 'أنثى' },
                   { label: 'الهاتف', value: personal.phone },
                   { label: 'المدينة', value: personal.city || '—' },
+                  { label: 'الدولة', value: personal.country || '—' },
                 ]},
                 { title: 'المعلومات المهنية', items: [
                   { label: 'التخصص', value: professional.specialization },
