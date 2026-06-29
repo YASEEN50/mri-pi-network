@@ -134,6 +134,7 @@
       "availability": "⏰ أوقات العمل",
       "payment_settings": "💳 إعدادات الدفع",
       "withdrawals": "💸 سحب المستحقات",
+      "transactions": "📒 المعاملات",
       "instant_consult": "⚡ استشارة فورية",
       "analytics": "📊 الإحصائيات",
       "publications": "✍️ المنشورات",
@@ -360,7 +361,12 @@
       "back_to_chat": "العودة للمراسلة",
       "video_return_hint": "عند انتهاء المكالمة، عد للمراسلة لمتابعة الحوار",
       "video_end_flow_hint": "أنهيت المكالمة؟ عد للمراسلة لمتابعة النص أو إنهاء الجلسة بالكامل.",
-      "attachment": "مرفق"
+      "attachment": "مرفق",
+      "tab_active": "نشطة",
+      "tab_archive": "الأرشيف",
+      "archive": "أرشيف",
+      "empty_archive": "لا توجد محادثات منتهية",
+      "read_only_banner": "محادثة منتهية — للقراءة فقط"
     },
     "medical_records": {
       "title": "السجل الطبي",

@@ -127,6 +127,10 @@ export default function DoctorSchedulePage() {
             className="px-4 py-2 bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-emerald-300 rounded-xl text-sm transition-all">
             {tn('withdrawals')}
           </Link>
+          <Link href="/dashboard/doctor/transactions"
+            className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
+            {tn('transactions')}
+          </Link>
           <Link href="/dashboard/doctor/instant-consult"
             className="px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-slate-300 rounded-xl text-sm transition-all">
             {tn('instant_consult')}

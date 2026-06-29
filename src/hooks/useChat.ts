@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { CHAT_MESSAGES_POLL_MS, CHAT_ROOMS_POLL_MS } from '@/lib/chat/constants'
 
+export type ChatRoomFilter = 'active' | 'closed'
+
 export interface ChatRoom {
   id: string
   status?: 'ACTIVE' | 'CLOSED' | 'ARCHIVED'
@@ -36,6 +38,7 @@ export function useChat() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const roomFromUrl = searchParams.get('room')
+  const [roomFilter, setRoomFilter] = useState<ChatRoomFilter>('active')
   const [rooms, setRooms] = useState<ChatRoom[]>([])
   const [active, setActive] = useState<ChatRoom | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -45,10 +48,17 @@ export function useChat() {
   const [closing, setClosing] = useState(false)
   const latestMessageAtRef = useRef<string | null>(null)
   const activeRoomIdRef = useRef<string | null>(null)
+  const sseConnectedRef = useRef(false)
+  const roomFilterRef = useRef(roomFilter)
 
-  const fetchRooms = useCallback(async (silent = false) => {
+  useEffect(() => {
+    roomFilterRef.current = roomFilter
+  }, [roomFilter])
+
+  const fetchRooms = useCallback(async (silent = false, filter?: ChatRoomFilter) => {
+    const f = filter ?? roomFilterRef.current
     try {
-      const res = await fetch('/api/chat', { cache: 'no-store' })
+      const res = await fetch(`/api/chat?filter=${f}`, { cache: 'no-store' })
       const data = await res.json()
       const list: ChatRoom[] = data.data ?? []
       setRooms(list)
@@ -59,7 +69,7 @@ export function useChat() {
         }
         if (prev) {
           const updated = list.find(r => r.id === prev.id)
-          return updated ?? null
+          return updated ?? (f === 'closed' ? prev : null)
         }
         return list.length > 0 ? list[0] : null
       })
@@ -107,8 +117,8 @@ export function useChat() {
       return
     }
     if (status === 'loading') return
-    void fetchRooms()
-  }, [status, router, fetchRooms])
+    void fetchRooms(false, roomFilter)
+  }, [status, router, fetchRooms, roomFilter])
 
   useEffect(() => {
     if (!active) {
@@ -128,11 +138,55 @@ export function useChat() {
     void fetch('/api/chat/presence', { method: 'DELETE' }).catch(() => {})
   }, [active?.id])
 
+  // SSE — live messages for active rooms
+  useEffect(() => {
+    if (status !== 'authenticated' || !active || active.status === 'CLOSED') {
+      sseConnectedRef.current = false
+      return
+    }
+
+    const roomId = active.id
+    const since = latestMessageAtRef.current ?? ''
+    const es = new EventSource(
+      `/api/chat/${roomId}/stream?since=${encodeURIComponent(since)}`,
+    )
+
+    es.onopen = () => {
+      sseConnectedRef.current = true
+    }
+
+    es.onmessage = (ev) => {
+      try {
+        const payload = JSON.parse(ev.data) as {
+          type?: string
+          message?: ChatMessage
+        }
+        if (payload.type === 'message' && payload.message) {
+          setMessages(prev => mergeMessages(prev, [payload.message!]))
+          latestMessageAtRef.current = payload.message.createdAt
+          void fetchRooms(true)
+        }
+      } catch { /* ignore */ }
+    }
+
+    es.onerror = () => {
+      sseConnectedRef.current = false
+      es.close()
+    }
+
+    return () => {
+      sseConnectedRef.current = false
+      es.close()
+    }
+  }, [status, active?.id, active?.status, fetchRooms])
+
+  // Fallback polling when SSE unavailable
   useEffect(() => {
     if (status !== 'authenticated' || !active) return
+    if (active.status === 'CLOSED') return
 
     const pollMessages = () => {
-      if (document.hidden) return
+      if (document.hidden || sseConnectedRef.current) return
       const roomId = activeRoomIdRef.current
       if (!roomId) return
       void fetchMessages(roomId, latestMessageAtRef.current)
@@ -159,12 +213,12 @@ export function useChat() {
       window.clearInterval(roomsTimer)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [status, active?.id, fetchMessages, fetchRooms])
+  }, [status, active?.id, active?.status, fetchMessages, fetchRooms])
 
   const sendMessage = useCallback(async (opts?: { fileUrl?: string; fileType?: string; content?: string }) => {
     const text = (opts?.content ?? input).trim()
     const hasFile = !!opts?.fileUrl
-    if ((!text && !hasFile) || !active || sending) return
+    if ((!text && !hasFile) || !active || active.status === 'CLOSED' || sending) return
     setSending(true)
     setInput('')
     try {
@@ -197,7 +251,7 @@ export function useChat() {
   }, [input, active, sending, session?.user?.id, fetchRooms])
 
   const uploadAttachment = useCallback(async (file: File) => {
-    if (!active || sending) return
+    if (!active || active.status === 'CLOSED' || sending) return
     setSending(true)
     const caption = input.trim()
     setInput('')
@@ -243,10 +297,10 @@ export function useChat() {
       const res = await fetch(`/api/chat/${active.id}/close`, { method: 'POST' })
       const data = await res.json()
       if (data.data?.closed) {
-        setActive(null)
-        setMessages([])
-        setInput('')
-        await fetchRooms(true)
+        const closedRoom: ChatRoom = { ...active, status: 'CLOSED', unreadCount: 0 }
+        setRoomFilter('closed')
+        setActive(closedRoom)
+        await fetchRooms(true, 'closed')
         return true
       }
       return false
@@ -256,6 +310,8 @@ export function useChat() {
       setClosing(false)
     }
   }, [active, closing, fetchRooms])
+
+  const isReadOnly = (active?.status ?? 'ACTIVE') === 'CLOSED'
 
   return {
     session,
@@ -272,6 +328,9 @@ export function useChat() {
     sendMessage,
     uploadAttachment,
     endConversation,
+    roomFilter,
+    setRoomFilter,
+    isReadOnly,
     myId: session?.user?.id,
   }
 }

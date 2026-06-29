@@ -28,6 +28,9 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
     sendMessage,
     endConversation,
     uploadAttachment,
+    roomFilter,
+    setRoomFilter,
+    isReadOnly,
     myId,
   } = useChat()
 
@@ -97,13 +100,43 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
             ${mobileChatOpen ? 'hidden md:flex' : 'flex'}
             md:max-h-[calc(100dvh-7rem)]`}
         >
-          <div className="p-4 border-b border-white/[0.08] flex items-center justify-between shrink-0">
-            <h2 className="text-white font-semibold text-sm">{t('title')}</h2>
-            <span className="text-slate-600 text-[10px]" title={t('live_title')}>{t('live')}</span>
+          <div className="p-4 border-b border-white/[0.08] shrink-0 space-y-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-white font-semibold text-sm">{t('title')}</h2>
+              <span className="text-slate-600 text-[10px]" title={t('live_title')}>
+                {isReadOnly ? t('archive') : t('live')}
+              </span>
+            </div>
+            <div className="flex gap-1 p-1 rounded-xl bg-white/5">
+              <button
+                type="button"
+                onClick={() => setRoomFilter('active')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  roomFilter === 'active'
+                    ? 'bg-emerald-500/20 text-emerald-300'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('tab_active')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setRoomFilter('closed')}
+                className={`flex-1 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                  roomFilter === 'closed'
+                    ? 'bg-slate-500/20 text-slate-200'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {t('tab_archive')}
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto min-h-0">
             {rooms.length === 0 ? (
-              <div className="text-center py-8 text-slate-500 text-sm px-4">{emptyRoomsHint}</div>
+              <div className="text-center py-8 text-slate-500 text-sm px-4">
+                {roomFilter === 'closed' ? t('empty_archive') : emptyRoomsHint}
+              </div>
             ) : (
               rooms.map((room) => (
                 <button
@@ -165,7 +198,7 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                     <p className="text-slate-400 text-xs truncate">{active.otherParty.specialization}</p>
                   )}
                 </div>
-                {videoPath && (
+                {videoPath && !isReadOnly && (
                   <Link
                     href={videoPath}
                     className="shrink-0 px-3 py-2 rounded-xl bg-purple-600/80 hover:bg-purple-500 text-white text-xs font-medium"
@@ -209,6 +242,12 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                 </div>
               )}
 
+              {isReadOnly && (
+                <div className="px-3 sm:px-5 py-2 bg-slate-500/10 border-b border-slate-500/20 shrink-0">
+                  <p className="text-slate-300 text-xs text-center">{t('read_only_banner')}</p>
+                </div>
+              )}
+
               <div className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-3 min-h-0">
                 {messages.length === 0 && (
                   <p className="text-center text-slate-500 text-sm py-8">{t('no_messages')}</p>
@@ -247,6 +286,7 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                 <div ref={bottomRef} />
               </div>
 
+              {!isReadOnly && (
               <div
                 className="shrink-0 p-3 sm:p-4 border-t border-white/[0.08] bg-slate-950/95 flex gap-2 sm:gap-3 items-end"
                 style={{ paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))' }}
@@ -293,6 +333,7 @@ export default function ChatWorkspace({ variant = 'client' }: ChatWorkspaceProps
                   {sending ? '...' : t('send')}
                 </button>
               </div>
+              )}
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-slate-500 text-sm p-4">
