@@ -1477,6 +1477,8 @@ model VerificationDocument {
   isProcessed   Boolean  @default(false)
   isFlagged     Boolean  @default(false)
   flagReason    String?
+  forensicsScore   Int?
+  forensicsSignals Json?
   createdAt     DateTime @default(now())
 
   session   VerificationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
@@ -1488,6 +1490,7 @@ model VerificationDocument {
   @@index([pHash])
   @@index([sha256Hash])
   @@index([doctorId, docType])
+  @@index([forensicsScore])
   @@map("verification_documents")
 }
 

@@ -35,6 +35,8 @@ export interface RiskEngineInput {
     rapidAttempts?:        boolean
     isAutomationSuspected?: boolean
     isRapidResubmission?:  boolean
+    /** أعلى درجة forensics بين مستندات الجلسة (0–100) */
+    maxForensicsScore?:    number
   }
 }
 
@@ -50,6 +52,7 @@ export type FlagCode =
   | 'NAME_MISMATCH'
   | 'DUPLICATE_DOCUMENT'
   | 'SIMILAR_IMAGE'
+  | 'DOCUMENT_FORENSICS'
   | 'HIGH_RISK_IP'
   | 'MEDIUM_RISK_IP'
   | 'HIGH_RISK_DEVICE'

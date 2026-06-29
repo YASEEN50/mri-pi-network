@@ -187,6 +187,23 @@ export const RULE_REGISTRY: RuleEntry[] = [
     }),
   },
 
+  {
+    definition: {
+      id: 'DOCUMENT_FORENSICS', label: 'إشارات تزوير/تعديل في المستند',
+      category: 'FRAUD', baseWeight: 50,
+      explanation: 'فحص metadata وسلامة الملف يشير لاحتمال تعديل أو تزوير (ليس حكماً قانونياً)',
+    },
+    evaluate: ({ fraudSignals }, { weights }) => {
+      const score = fraudSignals.maxForensicsScore ?? 0
+      const triggered = score >= 40
+      return {
+        triggered,
+        score: triggered ? (weights['DOCUMENT_FORENSICS'] ?? 50) : 0,
+        detail: triggered ? `درجة forensics=${score}` : undefined,
+      }
+    },
+  },
+
   // ── NETWORK ──────────────────────────────────────────────────────────────────
 
   {

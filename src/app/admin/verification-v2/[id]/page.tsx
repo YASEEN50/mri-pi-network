@@ -23,6 +23,13 @@ const DEGREE_LABELS: Record<string, string> = {
   BACHELOR: 'بكالوريوس', MASTER: 'ماجستير', FELLOWSHIP: 'زمالة',
 }
 
+function forensicsColor(score: number): string {
+  if (score >= 70) return '#ef4444'
+  if (score >= 50) return '#f97316'
+  if (score >= 40) return '#f59e0b'
+  return '#64748b'
+}
+
 export default function VerificationDetailPage() {
   const { data: authSession, status } = useSession()
   const router = useRouter()
@@ -215,11 +222,15 @@ export default function VerificationDetailPage() {
         <div className="rounded-2xl p-5" style={{background:'rgba(255,255,255,0.03)',border:'1px solid rgba(255,255,255,0.08)'}}>
           <h2 className="text-white font-semibold mb-3">📁 الوثائق المرفوعة ({data.documents?.length})</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-            {data.documents?.map((doc: any) => (
+            {data.documents?.map((doc: any) => {
+              const fScore = doc.forensicsScore ?? 0
+              const fColor = forensicsColor(fScore)
+              const hasForensics = fScore > 0 || (doc.forensicsSignals?.length ?? 0) > 0
+              return (
               <div key={doc.id} className="rounded-xl p-3 flex items-center justify-between gap-2"
                 style={{
-                  background: doc.isFlagged ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${doc.isFlagged ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`,
+                  background: (doc.isFlagged || fScore >= 40) ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.03)',
+                  border: `1px solid ${(doc.isFlagged || fScore >= 40) ? 'rgba(239,68,68,0.2)' : 'rgba(255,255,255,0.07)'}`,
                 }}>
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-lg">{DOC_LABELS[doc.docType]?.split(' ')[0] ?? '📄'}</span>
@@ -232,13 +243,25 @@ export default function VerificationDetailPage() {
                         {doc.legalName ?? ''}
                       </p>
                     )}
-                    <div className="flex items-center gap-2 mt-0.5">
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                       <span className={`text-xs ${doc.isProcessed ? 'text-accent' : 'text-amber-400'}`}>
                         {doc.isProcessed ? '✅ معالج' : '⏳ معالجة'}
                       </span>
                       <span className="text-slate-600 text-xs">{doc.sizeKb} KB</span>
+                      {hasForensics && (
+                        <span className="text-xs font-medium" style={{ color: fColor }}>
+                          🔬 forensics {fScore}
+                        </span>
+                      )}
                     </div>
                     {doc.isFlagged && <p className="text-red-400 text-xs mt-0.5">{doc.flagReason}</p>}
+                    {doc.forensicsSignals?.length > 0 && (
+                      <div className="mt-1 space-y-0.5">
+                        {doc.forensicsSignals.map((sig: any) => (
+                          <p key={sig.code} className="text-xs text-amber-400/80">• {sig.label}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </div>
                 {doc.url && (
@@ -254,7 +277,7 @@ export default function VerificationDetailPage() {
                   </button>
                 )}
               </div>
-            ))}
+            )})}
           </div>
         </div>
 

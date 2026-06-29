@@ -20,6 +20,7 @@ const RULE_META: Record<string, { label: string; category: string; color: string
   NAME_MISMATCH:         { label: 'عدم تطابق الاسم',           category: 'رخصة',     color: '#f97316' },
   DUPLICATE_DOCUMENT:    { label: 'مستند مكرر (SHA256)',       category: 'احتيال',   color: '#dc2626' },
   SIMILAR_IMAGE:         { label: 'صورة متشابهة (pHash)',      category: 'احتيال',   color: '#ef4444' },
+  DOCUMENT_FORENSICS:    { label: 'تزوير/تعديل مستند',         category: 'احتيال',   color: '#b91c1c' },
   HIGH_RISK_IP:          { label: 'IP عالي المخاطرة',          category: 'شبكة',     color: '#f97316' },
   MEDIUM_RISK_IP:        { label: 'IP متوسط المخاطرة',         category: 'شبكة',     color: '#f59e0b' },
   HIGH_RISK_DEVICE:      { label: 'جهاز عالي المخاطرة',        category: 'شبكة',     color: '#f97316' },

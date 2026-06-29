@@ -16,6 +16,10 @@ import {
   logVerificationPhase,
   VerificationPipelinePhase,
 } from '@/lib/verification/lifecycle'
+import {
+  analyzeDocumentForensics,
+  forensicsFlagReason,
+} from '@/lib/verification/document-forensics'
 
 export const runtime     = 'nodejs'
 export const maxDuration = 60
@@ -69,6 +73,7 @@ export async function POST(req: NextRequest) {
     // ── 2. فحص الاحتيال لكل وثيقة ────────────────────────────────────────
     let hasDuplicateHash = false
     let hasSimilarImage  = false
+    let maxForensicsScore = 0
 
     for (const doc of documents) {
       // أ. SHA256 — تطابق دقيق
@@ -84,7 +89,7 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // ب. pHash — تشابه بصري
+      // ب. pHash + forensics — تشابه بصري وسلامة الملف
       try {
         const buffer = await readBufferByKey(doc.storageKey, doc.storageBucket)
         const pHash        = await computePHash(buffer)
@@ -102,8 +107,34 @@ export async function POST(req: NextRequest) {
           imageType: doc.docType, pHash,
           sha256Hash: doc.sha256Hash ?? '',
         })
+
+        const forensics = await analyzeDocumentForensics(buffer, doc.mimeType, doc.docType)
+        maxForensicsScore = Math.max(maxForensicsScore, forensics.score)
+
+        const forensicsUpdate: {
+          forensicsScore: number
+          forensicsSignals: typeof forensics.signals
+          isFlagged?: boolean
+          flagReason?: string
+        } = {
+          forensicsScore:   forensics.score,
+          forensicsSignals: forensics.signals,
+        }
+
+        if (forensics.score >= 40) {
+          const reason = forensicsFlagReason(forensics.signals)
+          forensicsUpdate.isFlagged = true
+          forensicsUpdate.flagReason = doc.isFlagged && doc.flagReason
+            ? `${doc.flagReason} · ${reason}`
+            : reason
+        }
+
+        await db.verificationDocument.update({
+          where: { id: doc.id },
+          data:  forensicsUpdate,
+        })
       } catch (e) {
-        console.error(`[fraud-worker] pHash failed for doc ${doc.id}:`, e)
+        console.error(`[fraud-worker] pHash/forensics failed for doc ${doc.id}:`, e)
       }
 
       // ج. رقم الترخيص — تكرار
@@ -182,6 +213,7 @@ export async function POST(req: NextRequest) {
         rapidAttempts:          intelligence?.signals.rapidAttempts         ?? false,
         isAutomationSuspected:  intelligence?.signals.isAutomationSuspected ?? false,
         isRapidResubmission:    intelligence?.signals.isRapidResubmission   ?? false,
+        maxForensicsScore,
       },
     }
 
@@ -246,7 +278,7 @@ export async function POST(req: NextRequest) {
         ocrConfidence:   riskInput.licenseData.ocrConfidence,
         faceMatchScore:  riskInput.faceMatch.similarity,
         documentClarity: credentialDocs.length > 0 ? 80 : 40,
-        fraudRiskScore:  (hasDuplicateHash ? 70 : 0) + (hasSimilarImage ? 40 : 0),
+        fraudRiskScore:  (hasDuplicateHash ? 70 : 0) + (hasSimilarImage ? 40 : 0) + (maxForensicsScore >= 40 ? 35 : 0),
         finalScore:      riskResult.riskScore,
         riskLevel:       riskResult.riskLevel,
         scoreBreakdown:  scoreBreakdownData,
@@ -257,7 +289,7 @@ export async function POST(req: NextRequest) {
         ocrConfidence:   riskInput.licenseData.ocrConfidence,
         faceMatchScore:  riskInput.faceMatch.similarity,
         documentClarity: credentialDocs.length > 0 ? 80 : 40,
-        fraudRiskScore:  (hasDuplicateHash ? 70 : 0) + (hasSimilarImage ? 40 : 0),
+        fraudRiskScore:  (hasDuplicateHash ? 70 : 0) + (hasSimilarImage ? 40 : 0) + (maxForensicsScore >= 40 ? 35 : 0),
         finalScore:      riskResult.riskScore,
         riskLevel:       riskResult.riskLevel,
         scoreBreakdown:  scoreBreakdownData,

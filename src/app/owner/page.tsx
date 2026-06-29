@@ -69,6 +69,7 @@ export default function OwnerDashboard() {
     { href: '/owner/assign-admin',      icon: '🛡️', label: 'المديرين',         desc: 'صلاحيات الفريق',     clr: '#60a5fa' },
     { href: '/dashboard/admin/pending', icon: '⏳', label: 'الطلبات',          desc: `${pendingTotal} معلق`, clr: '#fbbf24' },
     { href: '/admin/verification-v2',      icon: '🔍', label: 'التحقق',           desc: 'مراجعة الوثائق',     clr: '#f87171' },
+    { href: '/admin/suspicious-documents', icon: '🔬', label: 'مستندات مشبوهة', desc: 'كشف تزوير محتمل',   clr: '#dc2626' },
     { href: '/owner/risk-config',        icon: '⚡', label: 'محرك المخاطر',     desc: 'أوزان التحقق',        clr: '#f59e0b' },
     { href: '/admin',                   icon: '⚙️', label: 'الإدارة',          desc: 'لوحة الأدمن',        clr: '#818cf8' },
     { href: '/doctors',                 icon: '🩺', label: 'الأطباء',          desc: 'عرض وإدارة',         clr: '#2dd4bf' },

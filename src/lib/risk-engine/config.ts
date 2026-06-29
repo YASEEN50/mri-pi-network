@@ -24,6 +24,7 @@ export const DEFAULT_CONFIG: RiskEngineConfig = {
     // Fraud
     DUPLICATE_DOCUMENT:    70,
     SIMILAR_IMAGE:         40,
+    DOCUMENT_FORENSICS:    50,
     // Network
     HIGH_RISK_IP:          30,
     MEDIUM_RISK_IP:        15,
