@@ -27,7 +27,7 @@ export default function PiLoginButton({
     setIsLoading(true)
     setError('')
 
-    const result = await signInWithPiNetwork()
+    const result = await signInWithPiNetwork(callbackUrl)
 
     setIsLoading(false)
 
@@ -36,6 +36,8 @@ export default function PiLoginButton({
       onError?.(result.error ?? 'فشل تسجيل الدخول')
       return
     }
+
+    if (result.navigating) return
 
     clearExplicitLogout()
     onSuccess?.()

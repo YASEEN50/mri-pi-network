@@ -189,6 +189,7 @@ export const authOptions: NextAuthOptions = {
         const piUser = await verifyPiAccessToken(credentials.accessToken)
         if (!piUser) throw new Error('INVALID_PI_TOKEN')
         const user = await resolvePiLoginUser(piUser)
+        if (!user.isActive) throw new Error('ACCOUNT_DISABLED')
         if ((user.role === Role.ADMIN || user.role === Role.OWNER) && user.mfaEnabled) {
           throw new Error('MFA_USE_EMAIL')
         }

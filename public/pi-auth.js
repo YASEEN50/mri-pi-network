@@ -171,21 +171,39 @@ window.PiAuth = (function () {
       })
   }
 
-  function verifySessionThenGo() {
-    return requestCookieAccess()
-      .then(function () {
-        return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-      })
-      .then(function (r) { return r.json() })
-      .then(function (s) {
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms) })
+  }
+
+  function readSession() {
+    return requestCookieAccess().then(function () {
+      return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+    }).then(function (r) { return r.json() })
+  }
+
+  /** Pi iframe: session cookie may lag — retry then full-page redirect (works when fetch cannot read cookie). */
+  function verifySessionThenGo(fallbackUrl) {
+    var target = fallbackUrl || '/'
+
+    function attempt(n) {
+      return readSession().then(function (s) {
         if (s && s.user) {
           clearSkipAuto()
           clearSessionRedirectLoop()
-          window.location.href = '/'
+          window.location.href = target
           return
         }
-        throw new Error('تم التحقق لكن الجلسة لم تُحفظ')
+        if (n >= 4) {
+          clearSkipAuto()
+          clearSessionRedirectLoop()
+          window.location.href = target
+          return
+        }
+        return wait(300 * (n + 1)).then(function () { return attempt(n + 1) })
       })
+    }
+
+    return attempt(0)
   }
 
   function establishSession(accessToken) {
@@ -208,8 +226,9 @@ window.PiAuth = (function () {
       .then(function (res) { return res.json() })
       .then(function (data) {
         if (data.error) throw new Error('فشل تسجيل الدخول')
+        var target = (data && data.url) ? data.url : '/'
         return flushPendingIncomplete(accessToken).then(function () {
-          return verifySessionThenGo()
+          return verifySessionThenGo(target)
         })
       })
   }

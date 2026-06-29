@@ -145,15 +145,50 @@ export async function authenticateWithPi(): Promise<PiAuthResult> {
   }
 }
 
-async function exchangePiTokenForSession(accessToken: string): Promise<{ ok: boolean; error?: string }> {
+async function readAuthSession(): Promise<{ user?: unknown } | null> {
+  await requestCookieAccess()
+  const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+  return res.json()
+}
+
+async function waitForAuthSession(callbackUrl: string): Promise<boolean> {
+  for (let i = 0; i < 5; i++) {
+    await requestCookieAccess()
+    if (i > 0) await new Promise((r) => setTimeout(r, 300 * i))
+    const session = await readAuthSession()
+    if (session?.user) return true
+  }
+  // Full navigation often succeeds in Pi iframe when fetch cannot read the cookie yet
+  if (typeof window !== 'undefined') window.location.href = callbackUrl
+  return false
+}
+
+function mapPiSignInError(code: string | undefined): string {
+  if (code === 'MFA_USE_EMAIL') {
+    return 'حساب الأدمن يتطلب الدخول بالبريد الإلكتروني (pi-email.html)'
+  }
+  if (code === 'INVALID_PI_TOKEN' || code === 'MISSING_PI_TOKEN') {
+    return 'فشل التحقق من Pi — أعد المحاولة داخل Pi Browser'
+  }
+  return 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى'
+}
+
+async function exchangePiTokenForSession(
+  accessToken: string,
+  callbackUrl = '/',
+): Promise<{ ok: boolean; error?: string; navigating?: boolean }> {
+  await requestCookieAccess()
   const result = await signIn('pi-network', {
     accessToken,
     redirect: false,
+    callbackUrl,
   })
   if (result?.error) {
-    return { ok: false, error: 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى' }
+    return { ok: false, error: mapPiSignInError(result.error) }
   }
-  return { ok: true }
+
+  const hasSession = await waitForAuthSession(callbackUrl)
+  return hasSession ? { ok: true } : { ok: true, navigating: true }
 }
 
 /** Paths where we resume an existing session on load */
@@ -190,9 +225,10 @@ export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
   return 'idle'
 }
 
-export async function signInWithPiNetwork(): Promise<{
+export async function signInWithPiNetwork(callbackUrl = '/'): Promise<{
   ok: boolean
   error?: string
+  navigating?: boolean
 }> {
   const ready = await isPiBrowserReady()
   if (!ready) {
@@ -204,7 +240,7 @@ export async function signInWithPiNetwork(): Promise<{
     await requestCookieAccess()
     const authResult = await authenticateWithPi()
     await requestCookieAccess()
-    const sessionResult = await exchangePiTokenForSession(authResult.accessToken)
+    const sessionResult = await exchangePiTokenForSession(authResult.accessToken, callbackUrl)
     if (sessionResult.ok) {
       await flushPendingIncompletePayments(authResult.accessToken)
     }

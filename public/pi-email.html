@@ -85,17 +85,31 @@
     try { sessionStorage.removeItem('pi_skip_auto_login') } catch (e) {}
   }
 
-  function verifySessionThenGo() {
-    return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
-      .then(function (r) { return r.json() })
-      .then(function (s) {
-        if (s && s.user) {
-          clearSkipAuto()
-          window.location.href = '/'
-          return
-        }
-        throw new Error('تم التحقق لكن الجلسة لم تُحفظ. أغلق التطبيق وافتحه من Pi مرة أخرى.')
-      })
+  function wait(ms) {
+    return new Promise(function (resolve) { setTimeout(resolve, ms) })
+  }
+
+  function verifySessionThenGo(fallbackUrl) {
+    var target = fallbackUrl || '/'
+    function attempt(n) {
+      return requestCookieAccess().then(function () {
+        return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
+      }).then(function (r) { return r.json() })
+        .then(function (s) {
+          if (s && s.user) {
+            clearSkipAuto()
+            window.location.href = target
+            return
+          }
+          if (n >= 4) {
+            clearSkipAuto()
+            window.location.href = target
+            return
+          }
+          return wait(300 * (n + 1)).then(function () { return attempt(n + 1) })
+        })
+    }
+    return attempt(0)
   }
 
   function fetchCsrf() {
