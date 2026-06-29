@@ -2,7 +2,7 @@
 // قرار الأدمن النهائي على طلب التحقق — نظام v2 (VerificationSession)
 
 import { NextRequest }  from 'next/server'
-import { requireVerificationReviewPermission, requireAdminPermission, ADMIN_PERMISSION_KEYS } from '@/lib/admin/permissions'
+import { requireVerificationReviewPermission, requireAdminPermission, ADMIN_PERMISSION_KEYS, hasAdminPermission } from '@/lib/admin/permissions'
 import { prisma, db } from '@/lib/prisma'
 import { ok, fromAppError, serverError } from '@/lib/api-response'
 import { Role, ApprovalStatus, ActivityType } from '@prisma/client'
@@ -25,6 +25,11 @@ const Schema = z.object({
   sessionId: z.string().uuid(),
   decision:  z.enum(['APPROVE', 'REJECT']),
   notes:     z.string().max(1000).optional(),
+})
+
+const AssignSchema = z.object({
+  sessionId:    z.string().uuid(),
+  assignedToId: z.string().uuid().nullable(),
 })
 
 export async function POST(req: NextRequest) {
@@ -223,14 +228,50 @@ export async function GET(req: NextRequest) {
             lastError: true, result: true, completedAt: true,
           },
         },
+        assignedTo: {
+          select: {
+            id: true,
+            email: true,
+            adminProfile: { select: { role: true } },
+          },
+        },
+        _count: { select: { internalNotes: true } },
       },
     })
 
     if (!session) return ok({ error: true, message: 'الجلسة غير موجودة' })
 
-    // تعيين المشرف تلقائياً عند الفتح
-    if (isHumanReviewSessionState(session.currentState)) {
-      // يمكن إضافة منطق تعيين هنا لاحقاً
+    // استلام تلقائي عند فتح الطلب (إذا غير مُسنَد)
+    let assignee = session.assignedTo
+    let assignedAt = session.assignedAt
+    if (isHumanReviewSessionState(session.currentState) && !session.assignedToId) {
+      const now = new Date()
+      await db.verificationSession.update({
+        where: { id: sessionId },
+        data:  {
+          assignedToId: auth.context.userId,
+          assignedById: auth.context.userId,
+          assignedAt:   now,
+        },
+      })
+      assignedAt = now
+      assignee = await db.user.findUnique({
+        where:  { id: auth.context.userId },
+        select: {
+          id: true,
+          email: true,
+          adminProfile: { select: { role: true } },
+        },
+      })
+      await prisma.activityLog.create({
+        data: {
+          actorId:    auth.context.userId,
+          action:     ActivityType.VERIFICATION_ASSIGNED,
+          targetType: 'VERIFICATION_SESSION',
+          targetId:   sessionId,
+          details:    { assignedToId: auth.context.userId, mode: 'self_claim' },
+        },
+      }).catch(() => {})
     }
 
     return ok({
@@ -239,6 +280,14 @@ export async function GET(req: NextRequest) {
       startedAt:      session.startedAt,
       updatedAt:      session.updatedAt,
       rejectionReason: session.rejectionReason,
+
+      assignment: assignee ? {
+        id:        assignee.id,
+        name:      assignee.email ?? 'مراجع',
+        email:     assignee.email,
+        assignedAt,
+      } : null,
+      internalNotesCount: session._count.internalNotes,
 
       doctor: {
         id:             session.doctor?.id,
@@ -311,6 +360,80 @@ export async function GET(req: NextRequest) {
 
   } catch (err) {
     console.error('[GET /api/admin/review-v2]', err)
+    return serverError()
+  }
+}
+
+// ─── PATCH: إسناد/إعادة إسناد المراجع ───────────────────────────────────────
+export async function PATCH(req: NextRequest) {
+  try {
+    const auth = await requireAdminPermission(ADMIN_PERMISSION_KEYS.canViewVerification)
+    if (!auth.success) return fromAppError(auth.error)
+
+    const parsed = AssignSchema.safeParse(await req.json().catch(() => null))
+    if (!parsed.success) return ok({ error: true, message: 'بيانات غير صحيحة' })
+
+    const { sessionId, assignedToId } = parsed.data
+
+    const session = await db.verificationSession.findUnique({
+      where:  { id: sessionId },
+      select: { id: true, currentState: true, assignedToId: true },
+    })
+    if (!session) return ok({ error: true, message: 'الجلسة غير موجودة' })
+    if (!isHumanReviewSessionState(session.currentState)) {
+      return ok({ error: true, message: 'لا يمكن إسناد طلب ليس في مرحلة المراجعة البشرية' })
+    }
+
+    const isOwner = auth.context.role === Role.OWNER
+    const canAssignOthers = isOwner || await hasAdminPermission(
+      auth.context.userId,
+      auth.context.role,
+      ADMIN_PERMISSION_KEYS.canAssignTasks,
+    )
+
+    if (assignedToId === null) {
+      if (!isOwner && session.assignedToId !== auth.context.userId) {
+        return ok({ error: true, message: 'لا يمكنك تحرير إسناد مراجع آخر' })
+      }
+    } else if (assignedToId === auth.context.userId) {
+      // استلام يدوي — مسموح لأي مراجع
+    } else if (!canAssignOthers) {
+      return ok({ error: true, message: 'لا تملك صلاحية إسناد طلب لمراجع آخر' })
+    }
+
+    if (assignedToId) {
+      const reviewer = await db.user.findFirst({
+        where: { id: assignedToId, role: { in: [Role.ADMIN, Role.OWNER] }, isActive: true },
+        select: { id: true, email: true },
+      })
+      if (!reviewer) return ok({ error: true, message: 'المراجع غير موجود' })
+    }
+
+    await db.verificationSession.update({
+      where: { id: sessionId },
+      data:  {
+        assignedToId,
+        assignedById: auth.context.userId,
+        assignedAt:   assignedToId ? new Date() : null,
+      },
+    })
+
+    await prisma.activityLog.create({
+      data: {
+        actorId:    auth.context.userId,
+        action:     ActivityType.VERIFICATION_ASSIGNED,
+        targetType: 'VERIFICATION_SESSION',
+        targetId:   sessionId,
+        details:    { assignedToId, mode: 'manual' },
+      },
+    }).catch(() => {})
+
+    return ok({
+      message:      assignedToId ? 'تم إسناد الطلب' : 'تم تحرير الإسناد',
+      assignedToId,
+    })
+  } catch (err) {
+    console.error('[PATCH /api/admin/review-v2]', err)
     return serverError()
   }
 }

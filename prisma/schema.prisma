@@ -179,6 +179,8 @@ enum ActivityType {
   ADMIN_REVIEW_APPROVE
   ADMIN_REVIEW_REJECT
   SUBMIT_VERIFICATION
+  VERIFICATION_ASSIGNED
+  VERIFICATION_INTERNAL_NOTE
 }
 
 // =============================================================================
@@ -231,6 +233,9 @@ model User {
   tasksCreated      AdminTask[]       @relation("TasksCreated")
   adminPermissions  AdminPermission[] @relation("AdminPermissions")
   verificationSessions VerificationSession[] @relation("UserVerificationSessions")
+  verificationSessionsAssigned VerificationSession[] @relation("VerificationSessionAssignee")
+  verificationSessionsAssignedBy VerificationSession[] @relation("VerificationSessionAssigner")
+  verificationSessionNotes VerificationSessionNote[] @relation("VerificationSessionNoteAuthor")
   withdrawalRequests   WithdrawalRequest[]   @relation("UserWithdrawals")
 
   @@map("users")
@@ -1439,6 +1444,9 @@ model VerificationSession {
   userAgent         String?
   rejectedBy        String?
   rejectedAt        DateTime?
+  assignedToId      String?
+  assignedAt        DateTime?
+  assignedById      String?
   isActive          Boolean   @default(true)
   startedAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
@@ -1446,6 +1454,9 @@ model VerificationSession {
 
   doctor     DoctorProfile          @relation("DoctorVerificationSessions", fields: [doctorId], references: [id], onDelete: Cascade)
   user       User                   @relation("UserVerificationSessions",   fields: [userId],   references: [id], onDelete: Cascade)
+  assignedTo User?                  @relation("VerificationSessionAssignee", fields: [assignedToId], references: [id], onDelete: SetNull)
+  assignedBy User?                  @relation("VerificationSessionAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  internalNotes VerificationSessionNote[]
   documents  VerificationDocument[]
   jobs        JobTracking[]
   fraudChecks       FraudCheck[]       @relation("SessionFraudChecks")
@@ -1454,8 +1465,24 @@ model VerificationSession {
 
   @@index([doctorId])
   @@index([currentState, updatedAt(sort: Desc)])
+  @@index([assignedToId])
+  @@index([currentState, assignedToId])
   @@index([licenseExpiryDate])
   @@map("verification_sessions")
+}
+
+model VerificationSessionNote {
+  id        String   @id @default(uuid())
+  sessionId String
+  authorId  String
+  body      String   @db.Text
+  createdAt DateTime @default(now())
+
+  session VerificationSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  author  User                @relation("VerificationSessionNoteAuthor", fields: [authorId], references: [id])
+
+  @@index([sessionId, createdAt(sort: Desc)])
+  @@map("verification_session_notes")
 }
 
 model VerificationDocument {

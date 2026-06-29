@@ -21,6 +21,9 @@ interface SessionRow {
   hasLicense:     boolean
   hasSelfie:      boolean
   updatedAt:      string
+  assignedToId:   string | null
+  assigneeEmail:  string | null
+  internalNotesCount: number
 }
 
 const RISK_COLORS: Record<string, string> = {
@@ -35,18 +38,19 @@ export default function VerificationV2Page() {
   const [rows,    setRows]    = useState<SessionRow[]>([])
   const [loading, setLoading] = useState(true)
   const [filter,  setFilter]  = useState('PENDING_HUMAN')
+  const [assignFilter, setAssignFilter] = useState('all')
   const [total,   setTotal]   = useState(0)
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const res  = await fetch(`/api/admin/verification-v2?status=${filter}&limit=50`)
+      const res  = await fetch(`/api/admin/verification-v2?status=${filter}&assign=${assignFilter}&limit=50`)
       const data = await res.json()
       setRows(data.data ?? [])
       setTotal(data.meta?.total ?? 0)
     } catch {}
     finally { setLoading(false) }
-  }, [filter])
+  }, [filter, assignFilter])
 
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return }
@@ -64,6 +68,12 @@ export default function VerificationV2Page() {
     { key: 'LICENSE_UPLOADED',     label: '📋 رخصة مرفوعة' },
     { key: 'APPROVED',             label: '✅ مقبول' },
     { key: 'REJECTED',             label: '❌ مرفوض' },
+  ]
+
+  const ASSIGN_FILTERS = [
+    { key: 'all',        label: 'الكل' },
+    { key: 'mine',       label: '👤 مهامي' },
+    { key: 'unassigned', label: '📥 غير مُسنَد' },
   ]
 
   return (
@@ -92,6 +102,22 @@ export default function VerificationV2Page() {
             </button>
           ))}
         </div>
+
+        {filter === 'PENDING_HUMAN' && (
+          <div className="flex gap-2 mb-4">
+            {ASSIGN_FILTERS.map(f => (
+              <button key={f.key} onClick={() => setAssignFilter(f.key)}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium transition-all"
+                style={{
+                  background: assignFilter === f.key ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.04)',
+                  border: `1px solid ${assignFilter === f.key ? 'rgba(16,185,129,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                  color: assignFilter === f.key ? '#34d399' : '#94a3b8',
+                }}>
+                {f.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {loading ? (
           <div className="flex justify-center py-20">
@@ -135,9 +161,21 @@ export default function VerificationV2Page() {
                             ⚠️ {row.fraudFlagsCount} علامة احتيال
                           </span>
                         )}
+                        {row.internalNotesCount > 0 && (
+                          <span className="px-2 py-0.5 rounded text-xs font-medium"
+                            style={{background:'rgba(59,130,246,0.12)',color:'#93c5fd',border:'1px solid rgba(59,130,246,0.2)'}}>
+                            💬 {row.internalNotesCount}
+                          </span>
+                        )}
                       </div>
                       <div className="text-slate-400 text-sm">{row.specialization} · {row.city}</div>
                       <div className="text-slate-500 text-xs mt-0.5">{row.email}</div>
+                      {row.assigneeEmail && (
+                        <div className="text-emerald-400/80 text-xs mt-1">👤 {row.assigneeEmail}</div>
+                      )}
+                      {!row.assigneeEmail && filter === 'PENDING_HUMAN' && (
+                        <div className="text-amber-400/70 text-xs mt-1">📥 غير مُسنَد</div>
+                      )}
                     </div>
                   </div>
 

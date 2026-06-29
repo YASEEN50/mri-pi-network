@@ -23,9 +23,19 @@ export async function GET(req: NextRequest) {
     const limit  = Number(req.nextUrl.searchParams.get('limit') ?? 20)
     const skip   = (page - 1) * limit
 
+    const assignFilter = req.nextUrl.searchParams.get('assign') ?? 'all'
+    const reviewerId   = auth.context.userId
+
+    const assignWhere =
+      assignFilter === 'mine'
+        ? { assignedToId: reviewerId }
+        : assignFilter === 'unassigned'
+          ? { assignedToId: null }
+          : {}
+
     const [sessions, total] = await Promise.all([
       db.verificationSession.findMany({
-        where:   { currentState: currentStateFilter, isActive: true },
+        where:   { currentState: currentStateFilter, isActive: true, ...assignWhere },
         orderBy: [
           { score: { finalScore: 'asc' } }, // LOW score = HIGH risk = أولاً
           { updatedAt: 'asc' },
@@ -50,10 +60,14 @@ export async function GET(req: NextRequest) {
             where:  { isFlagged: true, isResolved: false },
             select: { checkType: true, riskFlags: true },
           },
+          assignedTo: {
+            select: { id: true, email: true },
+          },
+          _count: { select: { internalNotes: true } },
         },
       }),
       db.verificationSession.count({
-        where: { currentState: currentStateFilter, isActive: true },
+        where: { currentState: currentStateFilter, isActive: true, ...assignWhere },
       }),
     ])
 
@@ -84,6 +98,11 @@ export async function GET(req: NextRequest) {
       // Fraud
       fraudFlagsCount: s.fraudChecks.length,
       fraudFlags:      s.fraudChecks.flatMap((f: any) => f.riskFlags),
+
+      // Assignment
+      assignedToId:    s.assignedToId,
+      assigneeEmail:   s.assignedTo?.email ?? null,
+      internalNotesCount: s._count.internalNotes,
     }))
 
     return ok(formatted, { total, page, limit })

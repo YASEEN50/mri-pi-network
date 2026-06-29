@@ -39,9 +39,30 @@ export default function VerificationDetailPage() {
   const [data,    setData]    = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [notes,   setNotes]   = useState('')
+  const [internalNotes, setInternalNotes] = useState<any[]>([])
+  const [internalDraft, setInternalDraft] = useState('')
+  const [reviewers, setReviewers] = useState<{ id: string; name: string; email: string | null }[]>([])
+  const [assigning, setAssigning] = useState(false)
+  const [noteSaving, setNoteSaving] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [result,  setResult]  = useState<{type:'success'|'error', msg:string} | null>(null)
   const [preview, setPreview] = useState<{ url: string; mimeType?: string; label: string } | null>(null)
+
+  const loadNotes = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/admin/review-v2/notes?sessionId=${sessionId}`)
+      const d   = await res.json()
+      setInternalNotes(d.data?.notes ?? [])
+    } catch {}
+  }, [sessionId])
+
+  const loadReviewers = useCallback(async () => {
+    try {
+      const res = await fetch('/api/admin/reviewers')
+      const d   = await res.json()
+      setReviewers(d.data ?? [])
+    } catch {}
+  }, [])
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -49,9 +70,11 @@ export default function VerificationDetailPage() {
       const res = await fetch(`/api/admin/review-v2?sessionId=${sessionId}`)
       const d   = await res.json()
       setData(d.data)
+      void loadNotes()
+      void loadReviewers()
     } catch {}
     finally { setLoading(false) }
-  }, [sessionId])
+  }, [sessionId, loadNotes, loadReviewers])
 
   useEffect(() => {
     if (status === 'unauthenticated') { router.push('/login'); return }
@@ -84,6 +107,39 @@ export default function VerificationDetailPage() {
     finally { setSubmitting(false) }
   }
 
+  async function addInternalNote() {
+    if (!internalDraft.trim()) return
+    setNoteSaving(true)
+    try {
+      const res = await fetch('/api/admin/review-v2/notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, body: internalDraft.trim() }),
+      })
+      const d = await res.json()
+      if (d.data?.note) {
+        setInternalNotes((prev) => [...prev, d.data.note])
+        setInternalDraft('')
+      }
+    } catch {}
+    finally { setNoteSaving(false) }
+  }
+
+  async function reassign(assignedToId: string | null) {
+    setAssigning(true)
+    try {
+      const res = await fetch('/api/admin/review-v2', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, assignedToId }),
+      })
+      const d = await res.json()
+      if (!d.data?.error) await loadData()
+      else setResult({ type: 'error', msg: d.data?.message ?? 'فشل الإسناد' })
+    } catch { setResult({ type: 'error', msg: 'خطأ في الإسناد' }) }
+    finally { setAssigning(false) }
+  }
+
   if (status === 'loading' || loading) return (
     <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full" />
@@ -111,6 +167,77 @@ export default function VerificationDetailPage() {
         <div className="flex items-center gap-3 mt-2">
           <h1 className="text-xl font-bold text-white">مراجعة طلب التحقق</h1>
           <span className="text-slate-500 text-sm font-mono">{sessionId.slice(0, 8)}...</span>
+        </div>
+
+        {/* Assignment */}
+        {canDecide && (
+          <div className="rounded-2xl p-5" style={{background:'rgba(16,185,129,0.04)',border:'1px solid rgba(16,185,129,0.15)'}}>
+            <h2 className="text-emerald-300 font-semibold mb-3">👤 إسناد المراجعة</h2>
+            <div className="flex flex-wrap items-center gap-3 text-sm">
+              {data.assignment ? (
+                <span className="text-slate-300">
+                  مُسنَد إلى: <span className="text-emerald-400">{data.assignment.name}</span>
+                </span>
+              ) : (
+                <span className="text-amber-400">غير مُسنَد — سيُستلم تلقائياً عند فتحك للصفحة</span>
+              )}
+              {reviewers.length > 0 && (
+                <select
+                  disabled={assigning}
+                  defaultValue=""
+                  onChange={(e) => {
+                    const v = e.target.value
+                    if (v === '__clear__') void reassign(null)
+                    else if (v) void reassign(v)
+                    e.target.value = ''
+                  }}
+                  className="bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-slate-300 text-xs">
+                  <option value="">↪ إعادة إسناد...</option>
+                  <option value="__clear__">تحرير الإسناد</option>
+                  {reviewers.map((r) => (
+                    <option key={r.id} value={r.id}>{r.name}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Internal Notes — admin only */}
+        <div className="rounded-2xl p-5" style={{background:'rgba(59,130,246,0.04)',border:'1px solid rgba(59,130,246,0.15)'}}>
+          <h2 className="text-blue-300 font-semibold mb-2">💬 ملاحظات داخلية</h2>
+          <p className="text-slate-500 text-xs mb-4">للفريق الإداري فقط — لا يراها الطبيب</p>
+          {internalNotes.length === 0 ? (
+            <p className="text-slate-600 text-sm mb-4">لا توجد ملاحظات بعد</p>
+          ) : (
+            <div className="space-y-3 mb-4 max-h-48 overflow-y-auto">
+              {internalNotes.map((n) => (
+                <div key={n.id} className="rounded-xl p-3 bg-white/[0.03] border border-white/[0.06]">
+                  <div className="flex justify-between text-xs text-slate-500 mb-1">
+                    <span>{n.authorName}</span>
+                    <span>{new Date(n.createdAt).toLocaleString('ar-SA')}</span>
+                  </div>
+                  <p className="text-slate-300 text-sm whitespace-pre-wrap">{n.body}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="flex gap-2">
+            <textarea
+              value={internalDraft}
+              onChange={(e) => setInternalDraft(e.target.value)}
+              rows={2}
+              placeholder="اكتب ملاحظة للمراجعين الآخرين..."
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm resize-none focus:outline-none focus:border-blue-500/40"
+            />
+            <button
+              type="button"
+              onClick={() => void addInternalNote()}
+              disabled={noteSaving || !internalDraft.trim()}
+              className="self-end px-4 py-2 rounded-xl text-sm text-blue-300 border border-blue-500/30 bg-blue-500/10 hover:bg-blue-500/20 disabled:opacity-50">
+              {noteSaving ? '...' : 'إضافة'}
+            </button>
+          </div>
         </div>
 
         {/* Doctor Info */}
@@ -287,9 +414,12 @@ export default function VerificationDetailPage() {
             <h2 className="text-white font-semibold mb-4">⚖️ القرار النهائي</h2>
 
             <div className="mb-4">
-              <label className="text-sm text-slate-300 mb-2 block">ملاحظات (مطلوبة عند الرفض)</label>
+              <label className="text-sm text-slate-300 mb-2 block">
+                ملاحظات القرار
+                <span className="text-slate-500 text-xs mr-2">(تُرسل للطبيب عند الرفض)</span>
+              </label>
               <textarea value={notes} onChange={e => setNotes(e.target.value)}
-                rows={3} placeholder="اكتب ملاحظاتك هنا..."
+                rows={3} placeholder="سبب الرفض أو ملاحظات للطبيب..."
                 className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:outline-none focus:border-blue-500/50 resize-none" />
             </div>
 
