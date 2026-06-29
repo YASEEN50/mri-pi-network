@@ -44,6 +44,8 @@ export default function VerificationDetailPage() {
   const [reviewers, setReviewers] = useState<{ id: string; name: string; email: string | null }[]>([])
   const [assigning, setAssigning] = useState(false)
   const [noteSaving, setNoteSaving] = useState(false)
+  const [licenseCheck, setLicenseCheck] = useState<{ message: string; status: string } | null>(null)
+  const [licenseChecking, setLicenseChecking] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [result,  setResult]  = useState<{type:'success'|'error', msg:string} | null>(null)
   const [preview, setPreview] = useState<{ url: string; mimeType?: string; label: string } | null>(null)
@@ -151,6 +153,22 @@ export default function VerificationDetailPage() {
     finally { setAssigning(false) }
   }
 
+  async function checkLicense() {
+    if (!data?.doctor?.licenseNumber) return
+    setLicenseChecking(true)
+    setLicenseCheck(null)
+    try {
+      const params = new URLSearchParams({
+        licenseNumber: data.doctor.licenseNumber,
+        ...(data.doctor.name && { holderName: data.doctor.name }),
+      })
+      const res = await fetch(`/api/admin/license-verify?${params}`)
+      const d   = await res.json()
+      if (d.data?.result) setLicenseCheck(d.data.result)
+    } catch {}
+    finally { setLicenseChecking(false) }
+  }
+
   const canDecide = data?.currentState === 'PENDING_HUMAN' || data?.currentState === 'ADMIN_REVIEW'
 
   return (
@@ -169,6 +187,13 @@ export default function VerificationDetailPage() {
             <h1 className="text-xl font-bold text-white truncate">مراجعة طلب التحقق</h1>
             <span className="text-slate-500 text-sm font-mono shrink-0">{sessionId.slice(0, 8)}...</span>
           </div>
+          <a
+            href={`/api/admin/review-v2/report?sessionId=${sessionId}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-amber-300 bg-amber-500/10 border border-amber-500/25 hover:bg-amber-500/20 transition-all">
+            🖨️ تقرير PDF
+          </a>
         </div>
 
         {(status === 'loading' || loading) && (
@@ -286,6 +311,22 @@ export default function VerificationDetailPage() {
               </div>
             ))}
           </div>
+          {data.doctor?.licenseNumber && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <button
+                type="button"
+                onClick={() => void checkLicense()}
+                disabled={licenseChecking}
+                className="px-3 py-1.5 rounded-lg text-xs text-violet-300 border border-violet-500/30 bg-violet-500/10 hover:bg-violet-500/20 disabled:opacity-50">
+                {licenseChecking ? 'جاري التحقق...' : '🔍 تحقق من الرخصة (السجل السعودي)'}
+              </button>
+              {licenseCheck && (
+                <p className={`text-xs mt-2 ${licenseCheck.status === 'verified' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {licenseCheck.message}
+                </p>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Score */}

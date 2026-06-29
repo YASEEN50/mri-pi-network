@@ -237,3 +237,62 @@ export async function notifyDoctorPublicationRejected(
     { publicationId, notes: notes ?? null },
   )
 }
+
+/** طلب تحقق عالي المخاطرة أو مستندات مشبوهة → إشعار للأدمن */
+export async function notifyAdminsVerificationRiskAlert(params: {
+  doctorId: string
+  sessionId: string
+  doctorName: string
+  riskLevel: string
+  riskScore: number
+  reasons: string[]
+}) {
+  const admins = await prisma.user.findMany({
+    where: {
+      role:      { in: [Role.ADMIN, Role.OWNER] },
+      isActive:  true,
+      deletedAt: null,
+    },
+    select: { id: true },
+  })
+  if (admins.length === 0) return
+
+  const reasonText = params.reasons.slice(0, 3).join(' · ') || 'مراجعة عاجلة'
+  const title =
+    params.riskLevel === 'HIGH'
+      ? '🚨 طلب تحقق — مخاطرة عالية'
+      : '⚠️ طلب تحقق — يحتاج مراجعة'
+
+  await prisma.notification.createMany({
+    data: admins.map((a) => ({
+      userId: a.id,
+      title,
+      body:   `${params.doctorName} · درجة ${params.riskScore} (${params.riskLevel}). ${reasonText}`,
+      type:   'VERIFICATION_RISK_ALERT',
+      data:   {
+        doctorId:  params.doctorId,
+        sessionId: params.sessionId,
+        riskLevel: params.riskLevel,
+        riskScore: params.riskScore,
+        reasons:   params.reasons,
+      },
+    })),
+  })
+}
+
+/** إسناد طلب تحقق لمراجع → إشعار للمراجع المُسنَد */
+export async function notifyReviewerAssigned(params: {
+  assigneeId: string
+  sessionId: string
+  doctorName: string
+  assignedByEmail?: string | null
+}) {
+  const by = params.assignedByEmail ? ` (من ${params.assignedByEmail})` : ''
+  await createInApp(
+    params.assigneeId,
+    '📋 طلب تحقق مُسنَد إليك',
+    `تم إسناد مراجعة ${params.doctorName} إليك${by}.`,
+    'VERIFICATION_ASSIGNED',
+    { sessionId: params.sessionId, doctorName: params.doctorName },
+  )
+}

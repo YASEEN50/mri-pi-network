@@ -82,6 +82,7 @@ export default function AdminDashboard() {
               { label: 'مراجعة المنشورات', icon: '📝', href: '/admin/publications' },
               { label: 'مراجعة الأطباء', icon: '👨‍⚕️', href: '/dashboard/admin/pending' },
               { label: 'التحقق من الأطباء', icon: '🔐', href: '/admin/verification-v2' },
+              { label: 'إحصائيات التحقق',  icon: '📊', href: '/admin/verification-stats' },
               { label: 'أحداث الاحتيال',     icon: '🚨', href: '/admin/fraud-events' },
               { label: 'مستندات مشبوهة',     icon: '🔬', href: '/admin/suspicious-documents' },
               { label: 'Intelligence',           icon: '🔭', href: '/admin/intelligence' },

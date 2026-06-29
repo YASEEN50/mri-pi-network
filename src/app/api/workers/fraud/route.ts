@@ -303,6 +303,27 @@ export async function POST(req: NextRequest) {
       data:  { currentState: 'PENDING_HUMAN', updatedAt: new Date() },
     })
     await ensureLegacyHumanQueue(doctorId, { notify: true })
+
+    const doctorName = doctor
+      ? `${doctor.firstName} ${doctor.lastName}`.trim()
+      : 'طبيب'
+    const riskReasons: string[] = []
+    if (riskResult.riskLevel === 'HIGH') riskReasons.push('مخاطرة عالية')
+    if (maxForensicsScore >= 50) riskReasons.push(`forensics ${maxForensicsScore}`)
+    if (hasDuplicateHash) riskReasons.push('مستند مكرر')
+    if (hasSimilarImage) riskReasons.push('صورة متشابهة')
+    if (riskReasons.length > 0) {
+      const { notifyAdminsVerificationRiskAlert } = await import('@/lib/notifications/service')
+      await notifyAdminsVerificationRiskAlert({
+        doctorId,
+        sessionId,
+        doctorName,
+        riskLevel: riskResult.riskLevel,
+        riskScore: riskResult.riskScore,
+        reasons:   riskReasons,
+      }).catch((e) => console.error('[fraud-worker] risk notify failed:', e))
+    }
+
     logVerificationPhase(VerificationPipelinePhase.PENDING_HUMAN, {
       doctorId,
       sessionId,

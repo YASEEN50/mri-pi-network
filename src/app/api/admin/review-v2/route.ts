@@ -377,7 +377,10 @@ export async function PATCH(req: NextRequest) {
 
     const session = await db.verificationSession.findUnique({
       where:  { id: sessionId },
-      select: { id: true, currentState: true, assignedToId: true },
+      select: {
+        id: true, currentState: true, assignedToId: true,
+        doctor: { select: { firstName: true, lastName: true } },
+      },
     })
     if (!session) return ok({ error: true, message: 'الجلسة غير موجودة' })
     if (!isHumanReviewSessionState(session.currentState)) {
@@ -427,6 +430,23 @@ export async function PATCH(req: NextRequest) {
         details:    { assignedToId, mode: 'manual' },
       },
     }).catch(() => {})
+
+    if (assignedToId && assignedToId !== auth.context.userId) {
+      const assigner = await db.user.findUnique({
+        where:  { id: auth.context.userId },
+        select: { email: true },
+      })
+      const doctorName = session.doctor
+        ? `${session.doctor.firstName} ${session.doctor.lastName}`.trim()
+        : 'طبيب'
+      const { notifyReviewerAssigned } = await import('@/lib/notifications/service')
+      await notifyReviewerAssigned({
+        assigneeId:       assignedToId,
+        sessionId,
+        doctorName,
+        assignedByEmail:  assigner?.email,
+      }).catch(() => {})
+    }
 
     return ok({
       message:      assignedToId ? 'تم إسناد الطلب' : 'تم تحرير الإسناد',
