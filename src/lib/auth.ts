@@ -13,7 +13,7 @@ import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { consumeMfaSignInToken } from '@/lib/mfa/signin-token'
 import { resolveMfaSessionFlags } from '@/lib/mfa/session-flags'
 import { getApprovalStatus, getProfileCompleteness } from '@/lib/auth/session-helpers'
-import { useCrossSiteAuthCookies } from '@/lib/auth/cookie-options'
+import { isCrossSiteAuthCookieMode } from '@/lib/auth/cookie-options'
 
 declare module 'next-auth' {
   interface Session {
@@ -70,7 +70,7 @@ async function applyMfaFlagsToToken(token: JWT, userId: string, role: Role, viaM
 }
 
 /** Pi Browser embeds apps in a cross-site iframe — default SameSite=Lax cookies are not stored. */
-const useCrossSiteCookies = useCrossSiteAuthCookies()
+const crossSiteCookiesEnabled = isCrossSiteAuthCookieMode()
 
 function crossSiteAuthCookies(): NextAuthOptions['cookies'] {
   const partitioned = process.env.NEXTAUTH_COOKIE_PARTITIONED !== 'false'
@@ -113,8 +113,8 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login', error: '/login', newUser: '/select-role' },
-  useSecureCookies: process.env.NODE_ENV === 'production' || useCrossSiteCookies,
-  ...(useCrossSiteCookies ? { cookies: crossSiteAuthCookies() } : {}),
+  useSecureCookies: process.env.NODE_ENV === 'production' || crossSiteCookiesEnabled,
+  ...(crossSiteCookiesEnabled ? { cookies: crossSiteAuthCookies() } : {}),
 
   providers: [
     CredentialsProvider({
