@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { signInWithPiNetwork, clearExplicitLogout } from '@/lib/pi/pi-auth-client'
+import { signInWithPiNetwork, clearExplicitLogout, isPiBrowser } from '@/lib/pi/pi-auth-client'
 
 interface PiLoginButtonProps {
   callbackUrl?: string
@@ -41,7 +41,12 @@ export default function PiLoginButton({
 
     clearExplicitLogout()
     onSuccess?.()
-    router.push(callbackUrl)
+    const target = result.redirectPath ?? callbackUrl
+    if (typeof window !== 'undefined' && isPiBrowser()) {
+      window.location.href = target
+      return
+    }
+    router.push(target)
     router.refresh()
   }
 

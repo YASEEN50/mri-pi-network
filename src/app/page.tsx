@@ -58,7 +58,7 @@ export default async function HomePage() {
   const locale = await getLocale() as 'ar' | 'en'
   const session = await getServerSession(authOptions)
   if (!session?.user) {
-    redirect('/login?site=full')
+    redirect('/login')
   }
   const role = session.user.role as Role
   const isLoggedIn = true

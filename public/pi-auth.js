@@ -181,22 +181,37 @@ window.PiAuth = (function () {
     }).then(function (r) { return r.json() })
   }
 
-  /** Pi iframe: session cookie may lag — retry then full-page redirect (works when fetch cannot read cookie). */
-  function verifySessionThenGo(fallbackUrl) {
-    var target = fallbackUrl || '/'
+  function resolvePostLoginPath(session) {
+    if (!session || !session.user) return '/pi-app.html'
+    var u = session.user
+    if (u.isProfileComplete === false) {
+      if (u.role === 'CLIENT') return '/onboarding/client'
+      if (u.role === 'DOCTOR') return '/onboarding/doctor'
+      if (u.role === 'FACILITY') return '/onboarding/facility'
+      return '/select-role'
+    }
+    if (u.role === 'CLIENT') return '/dashboard/client/appointments'
+    if (u.role === 'DOCTOR') return '/dashboard/doctor/schedule'
+    if (u.role === 'FACILITY') return '/dashboard/facility/overview'
+    if (u.role === 'OWNER') return '/owner'
+    if (u.role === 'ADMIN') return '/dashboard/admin/verification'
+    return '/dashboard'
+  }
 
+  /** Pi iframe: session cookie may lag — retry then static hub fallback. */
+  function verifySessionThenGo() {
     function attempt(n) {
       return readSession().then(function (s) {
         if (s && s.user) {
           clearSkipAuto()
           clearSessionRedirectLoop()
-          window.location.href = target
+          window.location.href = resolvePostLoginPath(s)
           return
         }
         if (n >= 4) {
           clearSkipAuto()
           clearSessionRedirectLoop()
-          window.location.href = target
+          window.location.href = '/pi-app.html'
           return
         }
         return wait(300 * (n + 1)).then(function () { return attempt(n + 1) })
@@ -218,7 +233,7 @@ window.PiAuth = (function () {
           body: new URLSearchParams({
             csrfToken: csrf.csrfToken,
             accessToken: accessToken,
-            callbackUrl: '/',
+            callbackUrl: '/pi-app.html',
             json: 'true',
           }).toString(),
         })
@@ -226,9 +241,8 @@ window.PiAuth = (function () {
       .then(function (res) { return res.json() })
       .then(function (data) {
         if (data.error) throw new Error('فشل تسجيل الدخول')
-        var target = (data && data.url) ? data.url : '/'
         return flushPendingIncomplete(accessToken).then(function () {
-          return verifySessionThenGo(target)
+          return verifySessionThenGo()
         })
       })
   }
@@ -280,8 +294,9 @@ window.PiAuth = (function () {
       .then(function (r) { return r.json() })
       .then(function (s) {
         if (s && s.user) {
+          clearSkipAuto()
           clearSessionRedirectLoop()
-          window.location.href = '/'
+          window.location.href = resolvePostLoginPath(s)
           return { mode: 'redirecting' }
         }
         return { mode: 'idle' }

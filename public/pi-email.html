@@ -89,8 +89,21 @@
     return new Promise(function (resolve) { setTimeout(resolve, ms) })
   }
 
+  function resolvePostLoginPath(session) {
+    if (!session || !session.user) return '/pi-app.html'
+    var u = session.user
+    if (u.isProfileComplete === false) {
+      if (u.role === 'CLIENT') return '/onboarding/client'
+      if (u.role === 'DOCTOR') return '/onboarding/doctor'
+      if (u.role === 'FACILITY') return '/onboarding/facility'
+      return '/select-role'
+    }
+    if (u.role === 'CLIENT') return '/dashboard/client/appointments'
+    return '/dashboard'
+  }
+
   function verifySessionThenGo(fallbackUrl) {
-    var target = fallbackUrl || '/'
+    var target = fallbackUrl || '/pi-app.html'
     function attempt(n) {
       return requestCookieAccess().then(function () {
         return fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
@@ -98,12 +111,12 @@
         .then(function (s) {
           if (s && s.user) {
             clearSkipAuto()
-            window.location.href = target
+            window.location.href = resolvePostLoginPath(s)
             return
           }
           if (n >= 4) {
             clearSkipAuto()
-            window.location.href = target
+            window.location.href = '/pi-app.html'
             return
           }
           return wait(300 * (n + 1)).then(function () { return attempt(n + 1) })

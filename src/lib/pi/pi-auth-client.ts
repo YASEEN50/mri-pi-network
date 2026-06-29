@@ -1,6 +1,7 @@
 'use client'
 
 import { signIn } from 'next-auth/react'
+import { resolvePostLoginPath } from '@/lib/pi/pi-post-login-path'
 import { resolvePiSandbox } from '@/lib/pi/sandbox-detect'
 import { PI_AUTH_SCOPES } from '@/lib/pi/pi-scopes'
 import { resolveIncompletePiPayment, flushPendingIncompletePayments } from '@/lib/pi/resolve-incomplete-payment'
@@ -145,22 +146,26 @@ export async function authenticateWithPi(): Promise<PiAuthResult> {
   }
 }
 
-async function readAuthSession(): Promise<{ user?: unknown } | null> {
+async function readAuthSession(): Promise<{
+  user?: { role?: string; isProfileComplete?: boolean }
+} | null> {
   await requestCookieAccess()
   const res = await fetch('/api/auth/session', { credentials: 'include', cache: 'no-store' })
   return res.json()
 }
 
-async function waitForAuthSession(callbackUrl: string): Promise<boolean> {
+async function waitForAuthSession(callbackUrl = '/'): Promise<{ ok: boolean; path: string }> {
   for (let i = 0; i < 5; i++) {
     await requestCookieAccess()
     if (i > 0) await new Promise((r) => setTimeout(r, 300 * i))
     const session = await readAuthSession()
-    if (session?.user) return true
+    if (session?.user) {
+      return { ok: true, path: resolvePostLoginPath(session) }
+    }
   }
-  // Full navigation often succeeds in Pi iframe when fetch cannot read the cookie yet
-  if (typeof window !== 'undefined') window.location.href = callbackUrl
-  return false
+  const fallback = callbackUrl === '/' ? '/pi-app.html' : callbackUrl
+  if (typeof window !== 'undefined') window.location.href = fallback
+  return { ok: true, path: fallback }
 }
 
 function mapPiSignInError(code: string | undefined): string {
@@ -176,7 +181,7 @@ function mapPiSignInError(code: string | undefined): string {
 async function exchangePiTokenForSession(
   accessToken: string,
   callbackUrl = '/',
-): Promise<{ ok: boolean; error?: string; navigating?: boolean }> {
+): Promise<{ ok: boolean; error?: string; navigating?: boolean; redirectPath?: string }> {
   await requestCookieAccess()
   const result = await signIn('pi-network', {
     accessToken,
@@ -187,8 +192,10 @@ async function exchangePiTokenForSession(
     return { ok: false, error: mapPiSignInError(result.error) }
   }
 
-  const hasSession = await waitForAuthSession(callbackUrl)
-  return hasSession ? { ok: true } : { ok: true, navigating: true }
+  const sessionResult = await waitForAuthSession(callbackUrl)
+  return sessionResult.ok
+    ? { ok: true, navigating: sessionResult.path !== callbackUrl, redirectPath: sessionResult.path }
+    : { ok: false, error: mapPiSignInError(undefined) }
 }
 
 /** Paths where we resume an existing session on load */
@@ -216,7 +223,9 @@ export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
     const session = await res.json()
     if (session?.user) {
       clearPiSessionRedirectLoop()
-      if (typeof window !== 'undefined') window.location.href = '/'
+      if (typeof window !== 'undefined') {
+        window.location.href = resolvePostLoginPath(session)
+      }
       return 'redirecting'
     }
   } catch (err) {
@@ -229,6 +238,7 @@ export async function signInWithPiNetwork(callbackUrl = '/'): Promise<{
   ok: boolean
   error?: string
   navigating?: boolean
+  redirectPath?: string
 }> {
   const ready = await isPiBrowserReady()
   if (!ready) {

@@ -18,10 +18,17 @@ export function PiSessionGate({ children }: { children: React.ReactNode }) {
     if (bootstrapped || !isPiBrowser()) return
 
     let active = true
+    const timeout = window.setTimeout(() => {
+      if (active) setBootstrapped(true)
+    }, 3000)
+
     ;(async () => {
       await requestPiCookieAccess()
       try {
-        await update()
+        await Promise.race([
+          update(),
+          new Promise<void>((resolve) => window.setTimeout(resolve, 2500)),
+        ])
       } catch {
         /* session refresh optional */
       }
@@ -30,13 +37,17 @@ export function PiSessionGate({ children }: { children: React.ReactNode }) {
 
     return () => {
       active = false
+      window.clearTimeout(timeout)
     }
   }, [bootstrapped, update])
 
-  if (!bootstrapped || status === 'loading') {
+  const waiting = !bootstrapped || (status === 'loading' && isPiBrowser())
+
+  if (waiting) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0a0f1e] flex flex-col items-center justify-center gap-3">
         <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full" />
+        <p className="text-slate-400 text-sm">جاري تحميل الجلسة...</p>
       </div>
     )
   }
