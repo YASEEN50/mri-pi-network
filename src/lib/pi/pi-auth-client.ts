@@ -1,6 +1,5 @@
 'use client'
 
-import { signIn } from 'next-auth/react'
 import { resolvePostLoginPath } from '@/lib/pi/pi-post-login-path'
 import { resolvePiSandbox } from '@/lib/pi/sandbox-detect'
 import { PI_AUTH_SCOPES } from '@/lib/pi/pi-scopes'
@@ -154,48 +153,54 @@ async function readAuthSession(): Promise<{
   return res.json()
 }
 
-async function waitForAuthSession(callbackUrl = '/'): Promise<{ ok: boolean; path: string }> {
-  for (let i = 0; i < 5; i++) {
-    await requestCookieAccess()
-    if (i > 0) await new Promise((r) => setTimeout(r, 300 * i))
-    const session = await readAuthSession()
-    if (session?.user) {
-      return { ok: true, path: resolvePostLoginPath(session) }
-    }
-  }
-  const fallback = callbackUrl === '/' ? '/pi-app.html' : callbackUrl
-  if (typeof window !== 'undefined') window.location.href = fallback
-  return { ok: true, path: fallback }
-}
-
 function mapPiSignInError(code: string | undefined): string {
   if (code === 'MFA_USE_EMAIL') {
     return 'حساب الأدمن يتطلب الدخول بالبريد الإلكتروني (pi-email.html)'
   }
   if (code === 'INVALID_PI_TOKEN' || code === 'MISSING_PI_TOKEN') {
-    return 'فشل التحقق من Pi — أعد المحاولة داخل Pi Browser'
+    return 'فشل التحقق من Pi — افتح التطبيق داخل Pi Browser ووافق على المصادقة'
+  }
+  if (code === 'ACCOUNT_DISABLED') {
+    return 'تم تعليق هذا الحساب'
+  }
+  if (code === 'SERVER_MISCONFIGURED') {
+    return 'خطأ إعداد الخادم — تواصل مع الدعم'
   }
   return 'فشل التحقق من حساب Pi. يرجى المحاولة مرة أخرى'
 }
 
 async function exchangePiTokenForSession(
   accessToken: string,
-  callbackUrl = '/',
-): Promise<{ ok: boolean; error?: string; navigating?: boolean; redirectPath?: string }> {
+): Promise<{ ok: boolean; error?: string; redirectPath?: string }> {
   await requestCookieAccess()
-  const result = await signIn('pi-network', {
-    accessToken,
-    redirect: false,
-    callbackUrl,
+  const res = await fetch('/api/auth/pi-session', {
+    method: 'POST',
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ accessToken }),
   })
-  if (result?.error) {
-    return { ok: false, error: mapPiSignInError(result.error) }
+  const data = await res.json()
+  const inner = data.data as {
+    error?: boolean
+    code?: string
+    message?: string
+    redirectPath?: string
   }
 
-  const sessionResult = await waitForAuthSession(callbackUrl)
-  return sessionResult.ok
-    ? { ok: true, navigating: sessionResult.path !== callbackUrl, redirectPath: sessionResult.path }
-    : { ok: false, error: mapPiSignInError(undefined) }
+  if (!res.ok || !data.success || inner?.error) {
+    return { ok: false, error: inner?.message || mapPiSignInError(inner?.code) }
+  }
+
+  const redirectPath = inner.redirectPath ?? '/pi-app.html'
+  await requestCookieAccess()
+  const session = await readAuthSession()
+  const target = session?.user ? resolvePostLoginPath(session) : redirectPath
+
+  if (typeof window !== 'undefined') {
+    window.location.href = target
+  }
+
+  return { ok: true, redirectPath: target }
 }
 
 /** Paths where we resume an existing session on load */
@@ -234,10 +239,9 @@ export async function runPiAuthOnLoad(): Promise<'redirecting' | 'idle'> {
   return 'idle'
 }
 
-export async function signInWithPiNetwork(callbackUrl = '/'): Promise<{
+export async function signInWithPiNetwork(_callbackUrl = '/'): Promise<{
   ok: boolean
   error?: string
-  navigating?: boolean
   redirectPath?: string
 }> {
   const ready = await isPiBrowserReady()
@@ -250,7 +254,7 @@ export async function signInWithPiNetwork(callbackUrl = '/'): Promise<{
     await requestCookieAccess()
     const authResult = await authenticateWithPi()
     await requestCookieAccess()
-    const sessionResult = await exchangePiTokenForSession(authResult.accessToken, callbackUrl)
+    const sessionResult = await exchangePiTokenForSession(authResult.accessToken)
     if (sessionResult.ok) {
       await flushPendingIncompletePayments(authResult.accessToken)
     }

@@ -136,8 +136,7 @@ window.PiAuth = (function () {
   }
 
   function initPi(forcedSandbox) {
-    var headInit = window.__piInitPromise ? window.__piInitPromise.catch(function () {}) : Promise.resolve()
-    return headInit.then(loadSdk).then(function () {
+    return loadSdk().then(function () {
       if (!window.Pi) throw new Error('Pi Browser غير متوفر')
       var sandboxSource = forcedSandbox !== undefined && forcedSandbox !== null
         ? Promise.resolve(!!forcedSandbox)
@@ -221,28 +220,58 @@ window.PiAuth = (function () {
     return attempt(0)
   }
 
+  function mapPiSessionError(data) {
+    if (!data) return 'فشل تسجيل الدخول'
+    var code = data.code || data.error
+    if (code === 'MFA_USE_EMAIL') return 'حساب الأدمن يتطلب الدخول بالبريد (pi-email.html)'
+    if (code === 'INVALID_PI_TOKEN') return 'فشل التحقق من Pi — افتح التطبيق داخل Pi Browser ووافق على المصادقة'
+    if (code === 'ACCOUNT_DISABLED') return 'تم تعليق هذا الحساب'
+    if (code === 'SERVER_MISCONFIGURED') return 'خطأ إعداد الخادم — تواصل مع الدعم'
+    return data.message || 'فشل تسجيل الدخول'
+  }
+
+  function fetchCsrf() {
+    return fetch('/api/auth/csrf', { credentials: 'include' }).then(function (r) { return r.json() })
+  }
+
+  function goToPath(path) {
+    clearSkipAuto()
+    clearSessionRedirectLoop()
+    markSessionRedirect()
+    window.location.href = path
+  }
+
   function establishSession(accessToken) {
     return requestCookieAccess()
-      .then(function () { return fetch('/api/auth/csrf', { credentials: 'include' }) })
-      .then(function (r) { return r.json() })
-      .then(function (csrf) {
-        return fetch('/api/auth/callback/pi-network', {
+      .then(function () {
+        return fetch('/api/auth/pi-session', {
           method: 'POST',
           credentials: 'include',
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-          body: new URLSearchParams({
-            csrfToken: csrf.csrfToken,
-            accessToken: accessToken,
-            callbackUrl: '/pi-app.html',
-            json: 'true',
-          }).toString(),
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ accessToken: accessToken }),
         })
       })
-      .then(function (res) { return res.json() })
-      .then(function (data) {
-        if (data.error) throw new Error('فشل تسجيل الدخول')
+      .then(function (res) {
+        return res.json().then(function (data) {
+          return { res: res, data: data }
+        })
+      })
+      .then(function (payload) {
+        var res = payload.res
+        var data = payload.data
+        var inner = data.data || data
+        if (!res.ok || !data.success || inner.error) {
+          throw new Error(mapPiSessionError(inner))
+        }
         return flushPendingIncomplete(accessToken).then(function () {
-          return verifySessionThenGo()
+          var path = inner.redirectPath || '/pi-app.html'
+          return readSession().then(function (s) {
+            if (s && s.user) {
+              goToPath(resolvePostLoginPath(s))
+              return
+            }
+            goToPath(path)
+          })
         })
       })
   }

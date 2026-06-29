@@ -12,6 +12,8 @@ import { findUserByAuthEmail } from '@/lib/auth/find-user-by-email'
 import { normalizeAuthEmail } from '@/lib/auth/normalize-email'
 import { consumeMfaSignInToken } from '@/lib/mfa/signin-token'
 import { resolveMfaSessionFlags } from '@/lib/mfa/session-flags'
+import { getApprovalStatus, getProfileCompleteness } from '@/lib/auth/session-helpers'
+import { useCrossSiteAuthCookies } from '@/lib/auth/cookie-options'
 
 declare module 'next-auth' {
   interface Session {
@@ -53,52 +55,30 @@ declare module 'next-auth/jwt' {
 }
 
 async function applyMfaFlagsToToken(token: JWT, userId: string, role: Role, viaMfaToken: boolean) {
-  const dbUser = await prisma.user.findUnique({
+  const mfaEnabled = await prisma.user.findUnique({
     where: { id: userId },
     select: { mfaEnabled: true },
-  })
+  }).then((u) => u?.mfaEnabled ?? false)
+
   const flags = resolveMfaSessionFlags({
     role,
-    mfaEnabled: dbUser?.mfaEnabled ?? false,
+    mfaEnabled,
     viaMfaToken,
   })
   token.mfaEnabled = flags.mfaEnabled
   token.mfaVerified = flags.mfaVerified
 }
 
-async function getProfileCompleteness(userId: string, role: Role): Promise<boolean> {
-  switch (role) {
-    case Role.CLIENT:   return !!(await prisma.clientProfile.findUnique({ where: { userId } }))
-    case Role.DOCTOR:   return !!(await prisma.doctorProfile.findUnique({ where: { userId } }))
-    case Role.FACILITY: return !!(await prisma.facilityProfile.findUnique({ where: { userId } }))
-    case Role.ADMIN:
-    case Role.OWNER:    return true
-    default:            return true
-  }
-}
-
-async function getApprovalStatus(userId: string, role: Role): Promise<ApprovalStatus | null> {
-  if (role === Role.DOCTOR) {
-    const profile = await prisma.doctorProfile.findUnique({ where: { userId }, select: { approvalStatus: true } })
-    return profile?.approvalStatus ?? null
-  }
-  if (role === Role.FACILITY) {
-    const profile = await prisma.facilityProfile.findUnique({ where: { userId }, select: { approvalStatus: true } })
-    return profile?.approvalStatus ?? null
-  }
-  return null
-}
-
 /** Pi Browser embeds apps in a cross-site iframe — default SameSite=Lax cookies are not stored. */
-const useCrossSiteCookies =
-  process.env.NODE_ENV === 'production' || process.env.NEXTAUTH_CROSS_SITE === 'true'
+const useCrossSiteCookies = useCrossSiteAuthCookies()
 
 function crossSiteAuthCookies(): NextAuthOptions['cookies'] {
+  const partitioned = process.env.NEXTAUTH_COOKIE_PARTITIONED !== 'false'
   const opts = {
     sameSite: 'none' as const,
     path: '/',
     secure: true,
-    partitioned: true,
+    ...(partitioned ? { partitioned: true as const } : {}),
   }
   const httpOnly = { httpOnly: true, ...opts }
   return {
@@ -133,7 +113,7 @@ export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma) as any,
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: { signIn: '/login', error: '/login', newUser: '/select-role' },
-  useSecureCookies: process.env.NODE_ENV === 'production',
+  useSecureCookies: process.env.NODE_ENV === 'production' || useCrossSiteCookies,
   ...(useCrossSiteCookies ? { cookies: crossSiteAuthCookies() } : {}),
 
   providers: [
