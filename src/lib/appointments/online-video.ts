@@ -65,18 +65,36 @@ export function appointmentVideoFields(apt: {
   }
 }
 
-export function getJitsiEmbedUrl(roomName: string, _displayName: string): string {
+const JITSI_HASH = [
+  'config.prejoinPageEnabled=true',
+  'config.disableDeepLinking=true',
+  'config.enableLobby=false',
+  'config.enableWelcomePage=false',
+  'config.startWithAudioMuted=false',
+  'config.startWithVideoMuted=false',
+  'interfaceConfig.MOBILE_APP_PROMO=false',
+  'interfaceConfig.SHOW_JITSI_WATERMARK=false',
+].join('&')
+
+export function getJitsiEmbedUrl(roomName: string, displayName: string): string {
   const base = getJitsiServerUrl()
-  return `${base}/${roomName}#config.prejoinPageEnabled=true&config.disableDeepLinking=true&interfaceConfig.MOBILE_APP_PROMO=false`
+  const name = encodeURIComponent(displayName)
+  return `${base}/${roomName}#userInfo.displayName="${name}"&${JITSI_HASH}`
 }
 
-/** إعدادات Jitsi External API — تبقى المكالمة داخل التطبيق */
+/** رابط مباشر — يعمل أفضل على الموبايل/Pi (بدون iframe متداخل) */
+export function getJitsiDirectJoinUrl(roomName: string, displayName: string): string {
+  return getJitsiEmbedUrl(roomName, displayName)
+}
+
+/** إعدادات Jitsi External API */
 export function getJitsiClientConfig() {
   return {
     configOverwrite: {
       prejoinPageEnabled: true,
       disableDeepLinking: true,
       enableWelcomePage: false,
+      enableLobby: false,
       startWithAudioMuted: false,
       startWithVideoMuted: false,
       disableThirdPartyRequests: true,
