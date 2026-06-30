@@ -34,7 +34,7 @@ const nextConfig = {
       { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
       {
         key: 'Permissions-Policy',
-        value: 'camera=(self "https://meet.jit.si" "https://sandbox.minepi.com" "https://minepi.com"), microphone=(self "https://meet.jit.si" "https://sandbox.minepi.com" "https://minepi.com"), geolocation=()',
+        value: 'camera=*, microphone=*, geolocation=()',
       },
     ]
     return [
@@ -63,7 +63,7 @@ const nextConfig = {
       { source: '/appointments/:id/video', headers: videoCallHeaders },
       { source: '/consult-now/:id/video', headers: videoCallHeaders },
       {
-        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-link-email\\.html|pi-link-pi\\.html|pi-auth-hub\\.html|pi-app\\.html|pi-profile\\.html|pi-dashboard\\.html|pi-appointments\\.html|pi-doctors\\.html|pi-doctor\\.html|pi-owner\\.html|pi-select-role\\.html|pi-shell\\.js|pi-shell\\.css|pi-auth\\.js|pi-login\\.css|test-pi\\.txt).*)',
+        source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-link-email\\.html|pi-link-pi\\.html|pi-auth-hub\\.html|pi-app\\.html|pi-profile\\.html|pi-dashboard\\.html|pi-appointments\\.html|pi-doctors\\.html|pi-doctor\\.html|pi-owner\\.html|pi-select-role\\.html|pi-shell\\.js|pi-shell\\.css|pi-auth\\.js|pi-login\\.css|test-pi\\.txt|appointments\\/[^/]+\\/video|consult-now\\/[^/]+\\/video).*)',
         headers: securityHeaders,
       },
     ]

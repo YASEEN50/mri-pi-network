@@ -5,7 +5,7 @@ import { getJitsiClientConfig } from '@/lib/appointments/online-video'
 
 type JitsiApi = {
   dispose: () => void
-  addListener: (event: string, fn: () => void) => void
+  addListener: (event: string, fn: (...args: unknown[]) => void) => void
 }
 
 declare global {
@@ -47,6 +47,32 @@ function loadJitsiScript(serverUrl: string): Promise<void> {
   return promise
 }
 
+function mediaErrorHint(err: unknown): string | null {
+  if (!(err instanceof DOMException)) return null
+  if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+    return 'لم يُمنح الإذن بعد. اضغط «ابدأ المكالمة» مرة أخرى واختر «سماح»، أو افتح الصفحة في Chrome/Safari.'
+  }
+  if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+    return 'لم يُعثر على كاميرا أو ميكروفون على هذا الجهاز.'
+  }
+  if (err.name === 'NotReadableError') {
+    return 'الكاميرا أو الميكروفون مستخدمان من تطبيق آخر. أغلقه ثم أعد المحاولة.'
+  }
+  return null
+}
+
+/** محاولة اختيارية — لا نمنع Jitsi إذا فشلت (Pi Browser/WebView يفشل أحياناً هنا لكن Jitsi يعمل) */
+async function tryWarmUpMedia(): Promise<string | null> {
+  if (!navigator.mediaDevices?.getUserMedia) return null
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    stream.getTracks().forEach(t => t.stop())
+    return null
+  } catch (err) {
+    return mediaErrorHint(err)
+  }
+}
+
 export default function JitsiVideoEmbed({
   serverUrl,
   roomName,
@@ -56,28 +82,20 @@ export default function JitsiVideoEmbed({
   const containerRef = useRef<HTMLDivElement>(null)
   const apiRef = useRef<JitsiApi | null>(null)
   const [needsPermission, setNeedsPermission] = useState(true)
-  const [permissionError, setPermissionError] = useState<string | null>(null)
+  const [permissionWarning, setPermissionWarning] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [initError, setInitError] = useState<string | null>(null)
 
   const domain = serverUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')
 
   const startCall = useCallback(async () => {
-    setPermissionError(null)
+    setPermissionWarning(null)
     setInitError(null)
     setLoading(true)
 
-    try {
-      if (navigator.mediaDevices?.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-        stream.getTracks().forEach(t => t.stop())
-      }
-    } catch {
-      setPermissionError(
-        'لم يتم السماح بالكاميرا أو الميكروفون. فعّلهما من إعدادات المتصفح ثم أعد المحاولة.',
-      )
-      setLoading(false)
-      return
+    const warmUpWarning = await tryWarmUpMedia()
+    if (warmUpWarning) {
+      setPermissionWarning(warmUpWarning)
     }
 
     try {
@@ -99,6 +117,11 @@ export default function JitsiVideoEmbed({
         ...getJitsiClientConfig(),
       })
 
+      apiRef.current.addListener('readyToClose', () => {
+        apiRef.current?.dispose()
+        apiRef.current = null
+      })
+
       setNeedsPermission(false)
     } catch {
       setInitError('تعذر تحميل مكالمة الفيديو. تحقق من الاتصال وحاول مرة أخرى.')
@@ -112,6 +135,10 @@ export default function JitsiVideoEmbed({
     apiRef.current = null
   }, [])
 
+  function openInBrowser() {
+    window.open(window.location.href, '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <div
       className={
@@ -124,22 +151,31 @@ export default function JitsiVideoEmbed({
           <div className="text-5xl">📹</div>
           <p className="text-white font-medium">مكالمة فيديو داخل التطبيق</p>
           <p className="text-slate-400 text-sm max-w-md">
-            اضغط الزر أدناه للسماح بالكاميرا والميكروفون، ثم ستُفتح المكالمة هنا دون الخروج للموقع.
+            اضغط «ابدأ المكالمة». ستظهر نافذة Jitsi — اختر «سماح» للكاميرا والميكروفون من هناك.
           </p>
-          {permissionError && (
-            <p className="text-red-400 text-sm max-w-md">{permissionError}</p>
+          {permissionWarning && (
+            <p className="text-amber-400 text-sm max-w-md">{permissionWarning}</p>
           )}
           {initError && (
             <p className="text-red-400 text-sm max-w-md">{initError}</p>
           )}
-          <button
-            type="button"
-            onClick={() => void startCall()}
-            disabled={loading}
-            className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-sm transition-all"
-          >
-            {loading ? 'جاري التحضير...' : 'ابدأ المكالمة'}
-          </button>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <button
+              type="button"
+              onClick={() => void startCall()}
+              disabled={loading}
+              className="px-6 py-3 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-semibold text-sm transition-all"
+            >
+              {loading ? 'جاري التحضير...' : 'ابدأ المكالمة'}
+            </button>
+            <button
+              type="button"
+              onClick={openInBrowser}
+              className="px-6 py-3 rounded-xl bg-white/10 hover:bg-white/15 text-white text-sm transition-all"
+            >
+              فتح في المتصفح
+            </button>
+          </div>
         </div>
       ) : (
         loading && (
