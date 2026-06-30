@@ -6,12 +6,15 @@ import { useParams, useSearchParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { useTranslations } from 'next-intl'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import JitsiVideoEmbed from '@/components/video/JitsiVideoEmbed'
 import { getChatPath } from '@/lib/chat/paths'
 
 interface VideoSession {
   canJoin: boolean
   reason?: string | null
-  embedUrl?: string | null
+  roomName?: string | null
+  serverUrl?: string | null
+  displayName?: string
   chatRoomId?: string | null
   chatHref?: string | null
   error?: boolean
@@ -79,16 +82,13 @@ export default function InstantConsultVideoPage() {
           <div className="flex justify-center py-24">
             <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full" />
           </div>
-        ) : videoSession?.canJoin && videoSession.embedUrl ? (
+        ) : videoSession?.canJoin && videoSession.roomName && videoSession.serverUrl ? (
           <>
-            <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-              <iframe
-                title="Instant consult video"
-                src={videoSession.embedUrl}
-                allow="camera; microphone; fullscreen; display-capture"
-                className="w-full min-h-[70vh] md:min-h-[520px] border-0"
-              />
-            </div>
+            <JitsiVideoEmbed
+              serverUrl={videoSession.serverUrl}
+              roomName={videoSession.roomName}
+              displayName={videoSession.displayName ?? 'مستخدم'}
+            />
             <div className="mt-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center gap-3">
               <p className="text-slate-400 text-sm flex-1">{t('video_end_flow_hint')}</p>
               <Link

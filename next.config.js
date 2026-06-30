@@ -28,6 +28,15 @@ const nextConfig = {
         value: 'camera=(), microphone=(), geolocation=()',
       },
     ]
+    const videoCallHeaders = [
+      { key: 'Content-Security-Policy', value: "frame-ancestors 'self' https://minepi.com https://*.minepi.com https://sandbox.minepi.com https://*.pi.network https://pinet.com https://*.pinet.com" },
+      { key: 'X-Content-Type-Options', value: 'nosniff' },
+      { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+      {
+        key: 'Permissions-Policy',
+        value: 'camera=(self "https://meet.jit.si" "https://sandbox.minepi.com" "https://minepi.com"), microphone=(self "https://meet.jit.si" "https://sandbox.minepi.com" "https://minepi.com"), geolocation=()',
+      },
+    ]
     return [
       { source: '/', headers: piHeaders },
       { source: '/login', headers: piHeaders },
@@ -51,6 +60,8 @@ const nextConfig = {
       { source: '/pi-shell.css', headers: piHeaders },
       { source: '/pi-auth.js', headers: piHeaders },
       { source: '/pi-login.css', headers: piHeaders },
+      { source: '/appointments/:id/video', headers: videoCallHeaders },
+      { source: '/consult-now/:id/video', headers: videoCallHeaders },
       {
         source: '/((?!pi\\.html|pi-login\\.html|pi-email\\.html|pi-register\\.html|pi-link-email\\.html|pi-link-pi\\.html|pi-auth-hub\\.html|pi-app\\.html|pi-profile\\.html|pi-dashboard\\.html|pi-appointments\\.html|pi-doctors\\.html|pi-doctor\\.html|pi-owner\\.html|pi-select-role\\.html|pi-shell\\.js|pi-shell\\.css|pi-auth\\.js|pi-login\\.css|test-pi\\.txt).*)',
         headers: securityHeaders,

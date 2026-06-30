@@ -5,11 +5,13 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useTranslations } from 'next-intl'
 import DashboardShell from '@/components/dashboard/DashboardShell'
+import JitsiVideoEmbed from '@/components/video/JitsiVideoEmbed'
 
 interface VideoSession {
   canJoin: boolean
   reason?: string | null
-  embedUrl?: string | null
+  roomName?: string | null
+  serverUrl?: string | null
   displayName?: string
   scheduledAt?: string
   duration?: number
@@ -74,15 +76,12 @@ export default function AppointmentVideoPage() {
               {tv('back_to_appointments')}
             </Link>
           </div>
-        ) : session?.canJoin && session.embedUrl ? (
-          <div className="rounded-2xl overflow-hidden border border-white/10 bg-black/40">
-            <iframe
-              title={tv('title')}
-              src={session.embedUrl}
-              allow="camera; microphone; fullscreen; display capture; autoplay"
-              className="w-full min-h-[70vh] border-0"
-            />
-          </div>
+        ) : session?.canJoin && session.roomName && session.serverUrl ? (
+          <JitsiVideoEmbed
+            serverUrl={session.serverUrl}
+            roomName={session.roomName}
+            displayName={session.displayName ?? 'مستخدم'}
+          />
         ) : (
           <div className="text-center py-16 mpi-card">
             <div className="text-4xl mb-4">💻</div>

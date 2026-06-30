@@ -67,5 +67,28 @@ export function appointmentVideoFields(apt: {
 
 export function getJitsiEmbedUrl(roomName: string, _displayName: string): string {
   const base = getJitsiServerUrl()
-  return `${base}/${roomName}#config.prejoinPageEnabled=false&config.disableDeepLinking=true`
+  return `${base}/${roomName}#config.prejoinPageEnabled=true&config.disableDeepLinking=true&interfaceConfig.MOBILE_APP_PROMO=false`
+}
+
+/** إعدادات Jitsi External API — تبقى المكالمة داخل التطبيق */
+export function getJitsiClientConfig() {
+  return {
+    configOverwrite: {
+      prejoinPageEnabled: true,
+      disableDeepLinking: true,
+      enableWelcomePage: false,
+      startWithAudioMuted: false,
+      startWithVideoMuted: false,
+      disableThirdPartyRequests: true,
+    },
+    interfaceConfigOverwrite: {
+      MOBILE_APP_PROMO: false,
+      SHOW_JITSI_WATERMARK: false,
+      SHOW_WATERMARK_FOR_GUESTS: false,
+      APP_NAME: 'MRI Consult',
+      NATIVE_APP_NAME: 'MRI Consult',
+      DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
+      HIDE_INVITE_MORE_HEADER: true,
+    },
+  }
 }

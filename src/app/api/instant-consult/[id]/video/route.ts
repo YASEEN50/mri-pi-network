@@ -5,7 +5,9 @@ import { prisma } from '@/lib/prisma'
 import {
   buildInstantConsultEmbedUrl,
   canAccessInstantConsultVideo,
+  getInstantConsultVideoRoomName,
 } from '@/lib/instant-consult/video'
+import { getJitsiServerUrl } from '@/lib/appointments/online-video'
 import { getChatPath } from '@/lib/chat/paths'
 
 export async function GET(
@@ -52,6 +54,9 @@ export async function GET(
 
     return ok({
       canJoin: true,
+      roomName: getInstantConsultVideoRoomName(consult.id),
+      serverUrl: getJitsiServerUrl(),
+      displayName,
       embedUrl: buildInstantConsultEmbedUrl(consult.id, displayName),
       sessionEndsAt: consult.sessionEndsAt?.toISOString() ?? null,
       chatRoomId: consult.chatRoomId,
