@@ -88,6 +88,7 @@ export default function InstantConsultVideoPage() {
               serverUrl={videoSession.serverUrl}
               roomName={videoSession.roomName}
               displayName={videoSession.displayName ?? 'مستخدم'}
+              returnUrl={chatHref}
             />
             <div className="mt-4 p-4 rounded-xl bg-white/[0.03] border border-white/[0.08] flex flex-col sm:flex-row sm:items-center gap-3">
               <p className="text-slate-400 text-sm flex-1">{t('video_end_flow_hint')}</p>

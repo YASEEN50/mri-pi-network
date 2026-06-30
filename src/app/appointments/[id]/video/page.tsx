@@ -81,6 +81,7 @@ export default function AppointmentVideoPage() {
             serverUrl={session.serverUrl}
             roomName={session.roomName}
             displayName={session.displayName ?? 'مستخدم'}
+            returnUrl="/dashboard/client/appointments"
           />
         ) : (
           <div className="text-center py-16 mpi-card">

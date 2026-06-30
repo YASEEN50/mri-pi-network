@@ -65,7 +65,7 @@ export function appointmentVideoFields(apt: {
   }
 }
 
-const JITSI_HASH = [
+const JITSI_HASH_BASE = [
   'config.prejoinPageEnabled=true',
   'config.disableDeepLinking=true',
   'config.enableLobby=false',
@@ -74,21 +74,32 @@ const JITSI_HASH = [
   'config.startWithVideoMuted=false',
   'interfaceConfig.MOBILE_APP_PROMO=false',
   'interfaceConfig.SHOW_JITSI_WATERMARK=false',
-].join('&')
+  'interfaceConfig.HIDE_DEEP_LINKING_LOGO=true',
+]
 
-export function getJitsiEmbedUrl(roomName: string, displayName: string): string {
+export function getJitsiDirectJoinUrl(
+  roomName: string,
+  displayName: string,
+  returnUrl?: string,
+): string {
   const base = getJitsiServerUrl()
-  const name = encodeURIComponent(displayName)
-  return `${base}/${roomName}#userInfo.displayName="${name}"&${JITSI_HASH}`
+  const parts = [
+    ...JITSI_HASH_BASE,
+    `userInfo.displayName=${encodeURIComponent(displayName)}`,
+  ]
+  if (returnUrl) {
+    parts.push(`interfaceConfig.CLOSE_PAGE_GUEST_URL=${encodeURIComponent(returnUrl)}`)
+  }
+  return `${base}/${roomName}#${parts.join('&')}`
 }
 
-/** رابط مباشر — يعمل أفضل على الموبايل/Pi (بدون iframe متداخل) */
-export function getJitsiDirectJoinUrl(roomName: string, displayName: string): string {
-  return getJitsiEmbedUrl(roomName, displayName)
+/** @deprecated use getJitsiDirectJoinUrl */
+export function getJitsiEmbedUrl(roomName: string, displayName: string, returnUrl?: string): string {
+  return getJitsiDirectJoinUrl(roomName, displayName, returnUrl)
 }
 
 /** إعدادات Jitsi External API */
-export function getJitsiClientConfig() {
+export function getJitsiClientConfig(returnUrl?: string) {
   return {
     configOverwrite: {
       prejoinPageEnabled: true,
@@ -107,6 +118,7 @@ export function getJitsiClientConfig() {
       NATIVE_APP_NAME: 'MRI Consult',
       DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
       HIDE_INVITE_MORE_HEADER: true,
+      ...(returnUrl ? { CLOSE_PAGE_GUEST_URL: returnUrl } : {}),
     },
   }
 }
